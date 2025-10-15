@@ -14,7 +14,6 @@ services:
       - PGID=1000
       
       # Optional: Override default settings
-      # - MODEL=nova-2              # Options: nova-2, base, enhanced
       # - LANGUAGE=en               # Language code (en, es, fr, etc.)
       # - BATCH_SIZE=0              # Max videos per run (0=unlimited)
       

@@ -20,46 +20,11 @@ class Config:
     # Force regeneration settings
     FORCE_REGENERATE = os.environ.get("FORCE_REGENERATE", "0") == "1"
     
-    # Model configuration
-    DEFAULT_MODEL = "nova-3"
-    MODEL_CHOICES = {"nova-2", "base", "enhanced", "nova-3"}
+    # Model configuration - Nova 3 only
+    MODEL = "nova-3"
     
-    # Cost per minute (USD) - can be overridden via environment variables
-    COST_PER_MINUTE = {
-        "nova-2": float(os.environ.get("PRICE_NOVA_2", "0.0125")),
-        "base": float(os.environ.get("PRICE_BASE", "0.0043")),
-        "enhanced": float(os.environ.get("PRICE_ENHANCED", "0.0181")),
-        "nova-3": float(os.environ.get("PRICE_NOVA_3", "0.0043")),
-    }
-    
-    @classmethod
-    def get_model(cls) -> str:
-        """
-        Get the configured model with validation.
-        
-        Returns:
-            str: The model name
-            
-        Raises:
-            ValueError: If an unsupported model is specified
-        """
-        model = os.environ.get("MODEL", cls.DEFAULT_MODEL).strip().lower()
-        if model not in cls.MODEL_CHOICES:
-            raise ValueError(
-                f"Unsupported model '{model}'. Choose one of {sorted(cls.MODEL_CHOICES)}"
-            )
-        return model
-    
-    @classmethod
-    def get_cost_per_minute(cls) -> float:
-        """
-        Get the cost per minute for the configured model.
-        
-        Returns:
-            float: Cost per minute in USD
-        """
-        model = cls.get_model()
-        return cls.COST_PER_MINUTE.get(model, 0.0043)
+    # Cost per minute (USD) for Nova 3
+    COST_PER_MINUTE = 0.0043
     
     @classmethod
     def validate(cls) -> bool:

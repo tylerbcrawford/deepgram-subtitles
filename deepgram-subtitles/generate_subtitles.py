@@ -11,7 +11,6 @@ Environment Variables:
     MEDIA_PATH: Path to scan for videos (default: /media)
     FILE_LIST_PATH: Optional path to text file with video paths to process
     BATCH_SIZE: Max videos per run, 0=unlimited (default: 0)
-    MODEL: Deepgram model - nova-2, base, or enhanced (default: nova-2)
     LANGUAGE: Language code for transcription (default: en)
 """
 
@@ -117,7 +116,7 @@ class SubtitleGenerator:
                 buffer_data = f.read()
             
             options = PrerecordedOptions(
-                model=Config.get_model(),
+                model=Config.MODEL,
                 smart_format=True,
                 utterances=True,
                 punctuate=True,
@@ -210,7 +209,7 @@ class SubtitleGenerator:
         
         try:
             duration = self.get_video_duration(str(video_path))
-            cost = duration * Config.get_cost_per_minute()
+            cost = duration * Config.COST_PER_MINUTE
             self.log(f"  ⏱️  Duration: {duration:.1f} min | Cost: ${cost:.2f}")
             
             self.log("  📢 Extracting audio...")
@@ -222,7 +221,7 @@ class SubtitleGenerator:
             
             # Generate SRT if it doesn't exist OR if force regenerate is enabled
             if not srt_already_existed or Config.FORCE_REGENERATE:
-                self.log(f"  🧠 Transcribing ({Config.get_model()})...")
+                self.log(f"  🧠 Transcribing (nova-3)...")
                 response = self.transcribe_audio(Config.TEMP_AUDIO_PATH)
                 if not response:
                     raise Exception("Transcription failed")
@@ -400,8 +399,8 @@ class SubtitleGenerator:
     
     def save_stats(self):
         self.stats["end_time"] = datetime.now().isoformat()
-        self.stats["estimated_cost"] = self.stats["total_minutes"] * Config.get_cost_per_minute()
-        self.stats["model"] = Config.get_model()
+        self.stats["estimated_cost"] = self.stats["total_minutes"] * Config.COST_PER_MINUTE
+        self.stats["model"] = Config.MODEL
         self.stats["language"] = Config.LANGUAGE
         
         os.makedirs(Config.LOG_PATH, exist_ok=True)
@@ -422,7 +421,7 @@ class SubtitleGenerator:
         self.log(f"❌ Failed:         {self.stats['failed']} files")
         self.log(f"⏱️  Total Duration: {self.stats['total_minutes']:.1f} minutes")
         
-        cost = self.stats['total_minutes'] * Config.get_cost_per_minute()
+        cost = self.stats['total_minutes'] * Config.COST_PER_MINUTE
         self.log(f"💰 Estimated Cost: ${cost:.2f}")
         self.log("="*70)
         
@@ -433,7 +432,7 @@ class SubtitleGenerator:
     
     def run(self):
         self.log("🚀 Starting Deepgram Subtitle Generator")
-        self.log(f"🤖 Model: {Config.get_model()}")
+        self.log(f"🤖 Model: {Config.MODEL}")
         self.log(f"🌍 Language: {Config.LANGUAGE}")
         if Config.FORCE_REGENERATE:
             self.log(f"🔄 Force Regenerate: ENABLED (will regenerate existing SRT files)")
@@ -468,7 +467,7 @@ class SubtitleGenerator:
             self.process_video(video_path)
             
             if idx % 5 == 0:
-                cost_so_far = self.stats['total_minutes'] * Config.get_cost_per_minute()
+                cost_so_far = self.stats['total_minutes'] * Config.COST_PER_MINUTE
                 self.log(f"\n🔄 Checkpoint: {idx}/{total} | Cost: ${cost_so_far:.2f}")
         
         self.print_summary()
