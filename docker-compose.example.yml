@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  deepgram-subtitles:
+    build: .
+    container_name: deepgram-subtitles
+    environment:
+      # Required: Your Deepgram API key (set in .env file)
+      - DEEPGRAM_API_KEY=${DEEPGRAM_API_KEY}
+      
+      # Optional: User/Group IDs for file permissions
+      # Set these to match your user's UID/GID (run 'id' command to find yours)
+      - PUID=1000
+      - PGID=1000
+      
+      # Optional: Override default settings
+      # - MODEL=nova-2              # Options: nova-2, base, enhanced
+      # - LANGUAGE=en               # Language code (en, es, fr, etc.)
+      # - BATCH_SIZE=0              # Max videos per run (0=unlimited)
+      
+      # Optional: Enable speaker-labeled transcripts (disabled by default)
+      # - ENABLE_TRANSCRIPT=1       # Set to 1 to enable transcript generation
+    
+    volumes:
+      # Mount your media directory (adjust path to your media location)
+      # Format: /host/path:/container/path
+      - /path/to/your/media:/media
+      
+      # Mount logs directory to persist processing statistics
+      - ./deepgram-logs:/logs
+      
+      # Mount config directory for video list files and speaker maps
+      - .:/config
+      
+      # Speaker maps are stored in ./speaker_maps and accessible at /config/speaker_maps
+    
+    # Set to "no" to prevent auto-restart (run manually or via cron)
+    restart: "no"
+
+# To use this configuration:
+# 1. Copy this file: cp docker-compose.example.yml docker-compose.yml
+# 2. Edit docker-compose.yml and update /path/to/your/media
+# 3. Create .env file with your DEEPGRAM_API_KEY
+# 4. Run: docker compose build
+# 5. Run: docker compose run --rm deepgram-subtitles
