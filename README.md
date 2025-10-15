@@ -11,7 +11,7 @@ Automatically generate high-quality SRT subtitle files for your video library us
 - 💰 **Cost tracking** - Real-time cost estimation and detailed processing logs
 - ⚡ **Smart skipping** - Automatically skips videos that already have subtitles
 - 🌍 **Multi-language support** - Supports various languages via Deepgram API
-- 🎛️ **Configurable models** - Choose between different Deepgram models (nova-2, base, enhanced)
+- 🎛️ **Configurable models** - Choose between different Deepgram models (nova-3, nova-2, base, enhanced)
 - 📊 **Detailed logging** - JSON logs with processing statistics and costs
 
 ## Platform Compatibility
@@ -75,7 +75,7 @@ Configure the application using environment variables:
 | `FILE_LIST_PATH` | - | Path to text file with specific videos to process |
 | `LOG_PATH` | `/logs` | Directory for processing logs |
 | `BATCH_SIZE` | `0` | Max videos per run (0 = unlimited) |
-| `MODEL` | `nova-2` | Deepgram model: `nova-2`, `base`, or `enhanced` |
+| `MODEL` | `nova-3` | Deepgram model: `nova-3`, `nova-2`, `base`, or `enhanced` |
 | `LANGUAGE` | `en` | Language code (e.g., `en`, `es`, `fr`) |
 | `ENABLE_TRANSCRIPT` | `0` | Set to `1` to enable speaker-labeled transcript generation |
 | `FORCE_REGENERATE` | `0` | Set to `1` to regenerate SRT files even if they already exist |
@@ -189,10 +189,17 @@ docker compose run --rm -e BATCH_SIZE=10 deepgram-subtitles
 
 ### Use Different Model
 
-Switch to a different Deepgram model:
+The default model is nova-3. To use a different model:
 
 ```bash
+# Use nova-2 (previous generation)
+docker compose run --rm -e MODEL=nova-2 deepgram-subtitles
+
+# Use enhanced model
 docker compose run --rm -e MODEL=enhanced deepgram-subtitles
+
+# Use base model (lowest cost)
+docker compose run --rm -e MODEL=base deepgram-subtitles
 ```
 
 ### Process Non-English Content
@@ -248,20 +255,32 @@ docker compose run --rm -e FORCE_REGENERATE=1 -e FILE_LIST_PATH=/config/problem-
 
 **Note:** Force regeneration will incur API costs for all processed videos, so use with care. Consider using BATCH_SIZE to limit costs.
 
-## Cost Information
+## Models & Pricing
 
-Deepgram charges per minute of audio processed. Current pricing (as of 2024):
+Deepgram charges per minute of audio processed. This project uses **Nova-3** by default, Deepgram's latest flagship model.
 
-| Model | Cost per Minute |
-|-------|----------------|
-| nova-2 (default) | $0.0125 |
-| base | $0.0043 |
-| enhanced | $0.0181 |
+| Model | Env MODEL value | Estimated cost/min (USD) | Notes |
+|-------|-----------------|--------------------------|-------|
+| **nova-3 (default)** | `nova-3` | ~$0.0043 | Latest flagship model, best accuracy |
+| nova-2 | `nova-2` | ~$0.0125 | Previous generation, balanced quality/cost |
+| base | `base` | ~$0.0043 | Lowest cost, good for simple transcription |
+| enhanced | `enhanced` | ~$0.0181 | Higher accuracy vs base |
 
-**Example costs:**
-- 10-minute TV episode: ~$0.13 (nova-2)
-- 90-minute movie: ~$1.13 (nova-2)
-- 100 episodes: ~$13.00 (nova-2)
+**Example costs (using nova-3):**
+- 10-minute TV episode: ~$0.04
+- 90-minute movie: ~$0.39
+- 100 episodes (10 min each): ~$4.30
+
+**Note:** Actual pricing may vary by account plan. Check your [Deepgram dashboard](https://console.deepgram.com/) for your specific rates.
+
+### About Nova-3
+
+Nova-3 is Deepgram's latest flagship model, offering:
+- Improved accuracy over previous models
+- Speaker diarization support
+- Utterances and smart formatting
+- Multi-language support
+- Keyterm Prompting (replaces Keywords feature from older models)
 
 The application displays estimated costs before processing and logs actual costs in JSON format.
 
@@ -348,8 +367,8 @@ Processing statistics are saved to `deepgram-logs/` in JSON format:
   "skipped": 2,
   "failed": 0,
   "total_minutes": 42.5,
-  "estimated_cost": 0.53,
-  "model": "nova-2",
+  "estimated_cost": 0.18,
+  "model": "nova-3",
   "language": "en",
   "start_time": "2024-01-15T10:30:00",
   "end_time": "2024-01-15T10:45:00"

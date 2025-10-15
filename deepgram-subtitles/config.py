@@ -10,7 +10,6 @@ class Config:
     LOG_PATH = os.environ.get("LOG_PATH", "/logs")
     TEMP_AUDIO_PATH = "/tmp/audio_extract.mp3"
     BATCH_SIZE = int(os.environ.get("BATCH_SIZE", "0"))
-    MODEL = os.environ.get("MODEL", "nova-2")
     LANGUAGE = os.environ.get("LANGUAGE", "en")
     VIDEO_EXTENSIONS = {'.mkv', '.mp4', '.avi', '.mov', '.m4v', '.wmv', '.flv'}
     
@@ -21,11 +20,35 @@ class Config:
     # Force regeneration settings
     FORCE_REGENERATE = os.environ.get("FORCE_REGENERATE", "0") == "1"
     
+    # Model configuration
+    DEFAULT_MODEL = "nova-3"
+    MODEL_CHOICES = {"nova-2", "base", "enhanced", "nova-3"}
+    
+    # Cost per minute (USD) - can be overridden via environment variables
     COST_PER_MINUTE = {
-        "nova-2": 0.0125,
-        "base": 0.0043,
-        "enhanced": 0.0181
+        "nova-2": float(os.environ.get("PRICE_NOVA_2", "0.0125")),
+        "base": float(os.environ.get("PRICE_BASE", "0.0043")),
+        "enhanced": float(os.environ.get("PRICE_ENHANCED", "0.0181")),
+        "nova-3": float(os.environ.get("PRICE_NOVA_3", "0.0043")),
     }
+    
+    @classmethod
+    def get_model(cls) -> str:
+        """
+        Get the configured model with validation.
+        
+        Returns:
+            str: The model name
+            
+        Raises:
+            ValueError: If an unsupported model is specified
+        """
+        model = os.environ.get("MODEL", cls.DEFAULT_MODEL).strip().lower()
+        if model not in cls.MODEL_CHOICES:
+            raise ValueError(
+                f"Unsupported model '{model}'. Choose one of {sorted(cls.MODEL_CHOICES)}"
+            )
+        return model
     
     @classmethod
     def get_cost_per_minute(cls) -> float:
@@ -35,7 +58,8 @@ class Config:
         Returns:
             float: Cost per minute in USD
         """
-        return cls.COST_PER_MINUTE.get(cls.MODEL, 0.0125)
+        model = cls.get_model()
+        return cls.COST_PER_MINUTE.get(model, 0.0043)
     
     @classmethod
     def validate(cls) -> bool:

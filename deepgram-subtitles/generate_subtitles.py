@@ -117,7 +117,7 @@ class SubtitleGenerator:
                 buffer_data = f.read()
             
             options = PrerecordedOptions(
-                model=Config.MODEL,
+                model=Config.get_model(),
                 smart_format=True,
                 utterances=True,
                 punctuate=True,
@@ -220,9 +220,9 @@ class SubtitleGenerator:
             # Track if SRT already existed
             srt_already_existed = srt_path.exists()
             
-            # Generate SRT if it doesn't exist
-            if not srt_already_existed:
-                self.log(f"  🧠 Transcribing ({Config.MODEL})...")
+            # Generate SRT if it doesn't exist OR if force regenerate is enabled
+            if not srt_already_existed or Config.FORCE_REGENERATE:
+                self.log(f"  🧠 Transcribing ({Config.get_model()})...")
                 response = self.transcribe_audio(Config.TEMP_AUDIO_PATH)
                 if not response:
                     raise Exception("Transcription failed")
@@ -233,7 +233,7 @@ class SubtitleGenerator:
                 with open(srt_path, 'w', encoding='utf-8') as f:
                     f.write(srt_content)
                 
-                self.log(f"  ✅ SRT created: {srt_path.name}")
+                self.log(f"  ✅ SRT {'regenerated' if srt_already_existed else 'created'}: {srt_path.name}")
                 self.stats["processed"] += 1
                 self.stats["total_minutes"] += duration
             else:
@@ -401,7 +401,7 @@ class SubtitleGenerator:
     def save_stats(self):
         self.stats["end_time"] = datetime.now().isoformat()
         self.stats["estimated_cost"] = self.stats["total_minutes"] * Config.get_cost_per_minute()
-        self.stats["model"] = Config.MODEL
+        self.stats["model"] = Config.get_model()
         self.stats["language"] = Config.LANGUAGE
         
         os.makedirs(Config.LOG_PATH, exist_ok=True)
@@ -433,7 +433,7 @@ class SubtitleGenerator:
     
     def run(self):
         self.log("🚀 Starting Deepgram Subtitle Generator")
-        self.log(f"🤖 Model: {Config.MODEL}")
+        self.log(f"🤖 Model: {Config.get_model()}")
         self.log(f"🌍 Language: {Config.LANGUAGE}")
         if Config.FORCE_REGENERATE:
             self.log(f"🔄 Force Regenerate: ENABLED (will regenerate existing SRT files)")
