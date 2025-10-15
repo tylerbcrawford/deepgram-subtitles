@@ -14,9 +14,22 @@ Automatically generate high-quality SRT subtitle files for your video library us
 - 🎛️ **Configurable models** - Choose between different Deepgram models (nova-2, base, enhanced)
 - 📊 **Detailed logging** - JSON logs with processing statistics and costs
 
+## Platform Compatibility
+
+This project is **fully cross-platform** and works on:
+
+- ✅ **Linux** - Native Docker support (Docker Engine or Docker Desktop)
+- ✅ **macOS** - Requires Docker Desktop
+- ✅ **Windows** - Requires Docker Desktop with WSL2 backend
+
+The application runs in a Linux container via Docker, ensuring consistent behavior across all platforms. Platform-specific differences are limited to configuration (mainly volume mount paths).
+
 ## Requirements
 
 - Docker and Docker Compose
+  - **Linux**: Docker Engine or Docker Desktop
+  - **macOS**: [Docker Desktop for Mac](https://www.docker.com/products/docker-desktop/)
+  - **Windows**: [Docker Desktop for Windows](https://www.docker.com/products/docker-desktop/) with WSL2 enabled
 - A Deepgram API key ([Get one here](https://console.deepgram.com/))
 - Video files in supported formats (MKV, MP4, AVI, MOV, M4V, WMV, FLV)
 
@@ -91,6 +104,39 @@ services:
 ```
 
 **Important:** Update `/path/to/your/media` to point to your actual media directory.
+
+#### Platform-Specific Volume Paths
+
+The volume mount paths in your `docker-compose.yml` file differ by platform:
+
+**Linux:**
+```yaml
+volumes:
+  - /home/username/Videos:/media
+  - /mnt/media:/media
+```
+
+**macOS:**
+```yaml
+volumes:
+  - /Users/username/Videos:/media
+  - /Volumes/MediaDrive:/media
+```
+
+**Windows:**
+```yaml
+volumes:
+  # Option 1: Windows-style path
+  - C:/Users/YourName/Videos:/media
+  
+  # Option 2: WSL2 path format
+  - /c/Users/YourName/Videos:/media
+  
+  # For network drives
+  - //server/share:/media
+```
+
+**Note:** The `PUID` and `PGID` environment variables are primarily for Linux file permissions. On Windows and macOS with Docker Desktop, you can keep the default values (1000) or omit them entirely.
 
 ## Usage
 
@@ -320,9 +366,22 @@ The application skips videos that already have `.srt` files. To reprocess:
 
 ### Permission Errors
 
+**Linux:**
 If you encounter permission issues:
 1. Check the `PUID` and `PGID` values in your `docker-compose.yml`
-2. Ensure they match your user's UID/GID (`id -u` and `id -g`)
+2. Ensure they match your user's UID/GID (run `id -u` and `id -g` to find them)
+3. Set these values in your docker-compose.yml:
+   ```yaml
+   environment:
+     - PUID=1000  # Your user ID
+     - PGID=1000  # Your group ID
+   ```
+
+**macOS/Windows:**
+Permission handling is managed by Docker Desktop automatically. If you experience issues:
+- Ensure your media directory is accessible to Docker Desktop
+- Check Docker Desktop's file sharing settings
+- On Windows, verify WSL2 integration is enabled
 
 ### API Errors
 
@@ -362,6 +421,28 @@ Contributions are welcome! Please feel free to submit a Pull Request. See [CONTR
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Platform-Specific Notes
+
+### Windows
+
+- **Requires:** Docker Desktop with WSL2 backend enabled
+- **Path format:** Use forward slashes in paths (e.g., `C:/Users/Name/Videos`)
+- **Line endings:** Git may convert line endings; ensure `entrypoint.sh` has LF endings
+- **Performance:** Running Docker with WSL2 provides near-native Linux performance
+
+### macOS
+
+- **Requires:** Docker Desktop for Mac
+- **Path format:** Use Unix-style paths (e.g., `/Users/Name/Videos`)
+- **Performance:** Docker Desktop runs containers in a lightweight VM
+- **M1/M2 Macs:** Fully supported via Docker's ARM64 compatibility
+
+### Linux
+
+- **Native support:** Best performance with Docker Engine
+- **Distributions:** Tested on Ubuntu, Debian, Fedora, and Arch Linux
+- **File permissions:** Use `PUID` and `PGID` to match your user for proper file ownership
 
 ## Acknowledgments
 
