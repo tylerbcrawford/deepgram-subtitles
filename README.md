@@ -442,6 +442,147 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Distributions:** Tested on Ubuntu, Debian, Fedora, and Arch Linux
 - **File permissions:** Use `PUID` and `PGID` to match your user for proper file ownership
 
+## Web UI (Optional)
+
+The Web UI provides a browser-based interface for managing subtitle generation jobs remotely. This is an **optional feature** - the CLI tool works independently and does not require the Web UI.
+
+### Features
+
+- 🌐 **Remote access** - Manage transcription from any device via web browser
+- 🔐 **Google OAuth** - Secure authentication via OAuth2 proxy
+- ⚡ **Background processing** - Jobs run asynchronously using Celery workers
+- 📊 **Real-time progress** - Server-Sent Events (SSE) for live job status
+- 🔄 **Bazarr integration** - Auto-trigger subtitle rescans after batch completion
+- 📁 **Directory scanning** - Browse and select videos from your media library
+- 🎯 **Batch submission** - Queue multiple videos for processing
+
+### Performance & Scaling
+
+**Processing Speed:**
+- Single video: ~2-5 minutes (depending on length and system)
+- Parallel processing with multiple workers
+- Average throughput: 10-20 hours of video content per hour (with concurrency=2)
+
+**Cost Efficiency:**
+- Same Nova-3 pricing: $0.0043/minute
+- Batch processing minimizes overhead
+- Single Bazarr rescan per batch (vs per-file)
+- 24-hour TV season (~10 episodes × 45min): ~$1.93 total, ~3-6 hours processing time
+
+**System Requirements:**
+- Modest hardware: Works on Intel NUC, Raspberry Pi 4, or similar
+- Recommended: 2-4GB RAM, 2+ CPU cores
+- Start with `WORKER_CONCURRENCY=1`, scale to 2-3 if system allows
+- Storage: Minimal (only SRT files created, ~50KB per episode)
+
+### Setup
+
+1. **Update docker-compose.yml paths:**
+
+```yaml
+# Update media path in both web and worker services
+volumes:
+  - /path/to/your/media:/media:ro
+```
+
+2. **Configure environment variables in `.env`:**
+
+```bash
+# Required
+DEEPGRAM_API_KEY=your_key_here
+SECRET_KEY=generate_with_python_secrets
+
+# Optional: Email allowlist for OAuth
+ALLOWED_EMAILS=user1@example.com,user2@example.com
+
+# Optional: Bazarr integration
+BAZARR_BASE_URL=http://bazarr:6767
+BAZARR_API_KEY=your_bazarr_api_key
+```
+
+3. **Start Web UI services:**
+
+```bash
+# Using make (recommended)
+make web-up
+
+# Or using docker compose directly
+docker compose up -d redis deepgram-web deepgram-worker
+```
+
+4. **Configure reverse proxy:**
+
+Point your OAuth-protected subdomain (e.g., `subs.yourdomain.com`) to `http://deepgram-web:5000`. See [`deepgram-ui.md`](./deepgram-ui.md) for nginx configuration example with OAuth2 integration.
+
+### Usage
+
+**Access the API endpoints:**
+
+- `GET /api/config` - Get default model and language settings
+- `GET /api/scan?root=/media/tv` - Scan directory for videos without subtitles
+- `POST /api/submit` - Submit batch of videos for processing
+  ```json
+  {
+    "model": "nova-3",
+    "language": "en",
+    "files": ["/media/tv/Show/episode.mkv"]
+  }
+  ```
+- `GET /api/job/<batch_id>` - Check job status
+- `GET /api/progress` - SSE stream for real-time updates
+
+**View logs:**
+
+```bash
+# Follow worker logs
+make web-logs
+
+# Or directly with docker compose
+docker compose logs -f deepgram-web deepgram-worker
+```
+
+**Stop services:**
+
+```bash
+make web-down
+```
+
+### Architecture
+
+- **Flask API** - REST endpoints for job submission and monitoring
+- **Celery Workers** - Background task processing with Redis broker
+- **Redis** - Message queue and result backend
+- **Shared Core** - Same transcription logic as CLI tool
+
+Both CLI and Web UI can run simultaneously on the same media directory. SRT files are created next to video files, accessible to both Plex/Jellyfin and the Web UI.
+
+### Example Workflows
+
+**Batch process a TV season:**
+1. Scan `/media/tv/ShowName/Season 01` via API
+2. Submit all 24 episodes as a batch
+3. Workers process in parallel (concurrency=2)
+4. Bazarr automatically rescans once when batch completes
+5. Total time: ~3-4 hours, cost: ~$1.93
+
+**Weekly automation:**
+1. Scan entire `/media` directory for new content
+2. Submit new episodes in batches of 10
+3. Process overnight with minimal system load
+4. Review logs in the morning
+
+### Security Notes
+
+- Web UI requires OAuth authentication (configured at reverse proxy)
+- Media mounts are **read-only** for web/worker containers
+- Only SRT files are created (next to source videos)
+- Email allowlist for additional access control
+- API key never exposed to browser (server-side only)
+
+For detailed setup instructions and nginx configuration, see [`deepgram-ui.md`](./deepgram-ui.md).
+
+---
+
 ## Acknowledgments
 
 - [Deepgram](https://deepgram.com/) - AI-powered speech recognition API

@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deepgram Subtitle Generator</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #1a1a1a;
+            color: #e0e0e0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        h1 {
+            color: #4a9eff;
+            margin-bottom: 10px;
+            font-size: 2em;
+        }
+        .subtitle { color: #888; margin-bottom: 30px; }
+        .card {
+            background: #2a2a2a;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid #3a3a3a;
+        }
+        .card h2 {
+            color: #4a9eff;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #aaa;
+            font-size: 0.9em;
+        }
+        input, select {
+            width: 100%;
+            padding: 10px;
+            background: #1a1a1a;
+            border: 1px solid #3a3a3a;
+            border-radius: 4px;
+            color: #e0e0e0;
+            font-size: 1em;
+        }
+        button {
+            background: #4a9eff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1em;
+            margin-right: 10px;
+        }
+        button:hover { background: #3a8eef; }
+        button:disabled {
+            background: #555;
+            cursor: not-allowed;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            display: none;
+        }
+        .status.info { background: #1a3a5a; border-left: 4px solid #4a9eff; display: block; }
+        .status.success { background: #1a4a2a; border-left: 4px solid #4aff8e; display: block; }
+        .status.error { background: #4a1a1a; border-left: 4px solid #ff4a4a; display: block; }
+        .files-list {
+            max-height: 400px;
+            overflow-y: auto;
+            background: #1a1a1a;
+            border: 1px solid #3a3a3a;
+            border-radius: 4px;
+            padding: 10px;
+        }
+        .file-item {
+            padding: 8px;
+            margin: 2px 0;
+            background: #2a2a2a;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+        }
+        .file-item input[type="checkbox"] {
+            width: auto;
+            margin-right: 10px;
+        }
+        .job-status {
+            padding: 15px;
+            background: #1a1a1a;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+        .loader {
+            border: 3px solid #3a3a3a;
+            border-top: 3px solid #4a9eff;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .stat-box {
+            background: #1a1a1a;
+            padding: 15px;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 2em;
+            color: #4a9eff;
+            font-weight: bold;
+        }
+        .stat-label {
+            color: #888;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎬 Deepgram Subtitle Generator</h1>
+        <p class="subtitle">Web UI for batch subtitle generation</p>
+
+        <!-- Scan Section -->
+        <div class="card">
+            <h2>📁 Scan Media Directory</h2>
+            <div class="form-group">
+                <label for="scanPath">Directory Path</label>
+                <input type="text" id="scanPath" value="/media" placeholder="/media/tv/ShowName">
+            </div>
+            <button onclick="scanDirectory()">Scan for Videos</button>
+            <div id="scanStatus" class="status"></div>
+            <div id="filesList" class="files-list" style="display:none;"></div>
+        </div>
+
+        <!-- Submit Section -->
+        <div class="card">
+            <h2>🚀 Submit Transcription Batch</h2>
+            <div class="form-group">
+                <label for="model">Model</label>
+                <select id="model">
+                    <option value="nova-3">Nova-3 (Latest)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="language">Language</label>
+                <input type="text" id="language" value="en" placeholder="en, es, fr, etc.">
+            </div>
+            <button onclick="submitBatch()" id="submitBtn" disabled>Submit Selected Files</button>
+            <button onclick="selectAll()">Select All</button>
+            <button onclick="selectNone()">Select None</button>
+            <div id="submitStatus" class="status"></div>
+        </div>
+
+        <!-- Job Status Section -->
+        <div class="card" id="jobCard" style="display:none;">
+            <h2>📊 Job Status</h2>
+            <div id="jobStatus" class="job-status"></div>
+            <div class="stats" id="jobStats"></div>
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
