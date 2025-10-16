@@ -88,11 +88,13 @@
   - **Port Mapping:** Container port 5000 → Host port 5000
   - **Access:** https://deepgram.800801.online (requires Basic Auth from external networks)
 
-## Phase 2: Visual Design & Live Streaming
+## Phase 2: Visual Design
 
 - [ ] Update UI based on visual design document specifications @ /home/tyler/Desktop/visual-design-guide.md
 
 - [ ] Implement center-aligned layout with switchable light/dark mode
+
+## Phase 3: Live Streaming
 
 - [ ] Configure real-time streaming support
   - Setup for in-person transcription

@@ -1,15 +1,18 @@
-version: '3.8'
-
 services:
+  # ============================================================================
+  # CLI Tool (Phase 1)
+  # ============================================================================
+  # Run manually for batch subtitle generation
+  # Usage: docker compose run --rm deepgram-subtitles
+  
   deepgram-subtitles:
-    build: .
+    build: ./deepgram-subtitles
     container_name: deepgram-subtitles
     environment:
       # Required: Your Deepgram API key (set in .env file)
       - DEEPGRAM_API_KEY=${DEEPGRAM_API_KEY}
       
       # Optional: User/Group IDs for file permissions
-      # Set these to match your user's UID/GID (run 'id' command to find yours)
       - PUID=1000
       - PGID=1000
       
@@ -17,12 +20,11 @@ services:
       # - LANGUAGE=en               # Language code (en, es, fr, etc.)
       # - BATCH_SIZE=0              # Max videos per run (0=unlimited)
       
-      # Optional: Enable speaker-labeled transcripts (disabled by default)
+      # Optional: Enable speaker-labeled transcripts
       # - ENABLE_TRANSCRIPT=1       # Set to 1 to enable transcript generation
     
     volumes:
       # Mount your media directory (adjust path to your media location)
-      # Format: /host/path:/container/path
       - /path/to/your/media:/media
       
       # Mount logs directory to persist processing statistics
@@ -30,15 +32,162 @@ services:
       
       # Mount config directory for video list files and speaker maps
       - .:/config
-      
-      # Speaker maps are stored in ./speaker_maps and accessible at /config/speaker_maps
     
-    # Set to "no" to prevent auto-restart (run manually or via cron)
+    # Set to "no" to prevent auto-restart (run manually)
     restart: "no"
 
-# To use this configuration:
+  # ============================================================================
+  # Web UI Services (Phase 2 - Optional)
+  # ============================================================================
+  # Redis: Message broker for Celery workers
+  # Web: Flask API server
+  # Worker: Background transcription workers
+  # 
+  # Usage: docker compose up -d redis deepgram-web deepgram-worker
+  
+  redis:
+    image: redis:7-alpine
+    container_name: deepgram-redis
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  deepgram-web:
+    image: python:3.11-slim
+    container_name: deepgram-web
+    working_dir: /app
+    environment:
+      # Deepgram API
+      DEEPGRAM_API_KEY: ${DEEPGRAM_API_KEY}
+      
+      # Flask/Celery configuration
+      SECRET_KEY: ${SECRET_KEY:-change-me-in-production}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      
+      # Paths
+      MEDIA_ROOT: ${MEDIA_ROOT:-/media}
+      LOG_ROOT: ${LOG_ROOT:-/logs}
+      
+      # Defaults
+      DEFAULT_MODEL: ${DEFAULT_MODEL:-nova-3}
+      DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-en}
+      
+      # Security: OAuth email allowlist (comma-separated)
+      # Leave empty to allow all authenticated users
+      ALLOWED_EMAILS: ${ALLOWED_EMAILS:-}
+      
+      # Bazarr integration (optional)
+      BAZARR_BASE_URL: ${BAZARR_BASE_URL:-}
+      BAZARR_API_KEY: ${BAZARR_API_KEY:-}
+    
+    command: >
+      bash -c "apt-get update && apt-get install -y --no-install-recommends ffmpeg wget &&
+               pip install --no-cache-dir -r requirements.txt &&
+               gunicorn -w 2 -k gevent --worker-connections 100
+               -b 0.0.0.0:5000 app:app"
+    
+    volumes:
+      # Media directory (read-only for security)
+      - /path/to/your/media:/media:ro
+      
+      # Logs directory (for job results)
+      - ./deepgram-logs:/logs
+      
+      # Application code
+      - ./web:/app
+      - ./core:/core:ro
+    
+    depends_on:
+      redis:
+        condition: service_healthy
+    
+    restart: unless-stopped
+    
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:5000/healthz | grep ok"]
+      interval: 15s
+      timeout: 3s
+      retries: 5
+    
+    # Expose port for reverse proxy
+    ports:
+      - "5000:5000"
+
+  deepgram-worker:
+    image: python:3.11-slim
+    container_name: deepgram-worker
+    working_dir: /app
+    environment:
+      # Deepgram API
+      DEEPGRAM_API_KEY: ${DEEPGRAM_API_KEY}
+      
+      # Celery configuration
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      
+      # Paths
+      MEDIA_ROOT: ${MEDIA_ROOT:-/media}
+      LOG_ROOT: ${LOG_ROOT:-/logs}
+      
+      # Defaults
+      DEFAULT_MODEL: ${DEFAULT_MODEL:-nova-3}
+      DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-en}
+      
+      # Bazarr integration (optional)
+      BAZARR_BASE_URL: ${BAZARR_BASE_URL:-}
+      BAZARR_API_KEY: ${BAZARR_API_KEY:-}
+      
+      # Worker concurrency (adjust based on your system)
+      # Start with 1, increase to 2-3 if system can handle it
+      CELERYD_CONCURRENCY: ${WORKER_CONCURRENCY:-1}
+    
+    command: >
+      bash -c "apt-get update && apt-get install -y --no-install-recommends ffmpeg &&
+               pip install --no-cache-dir -r requirements.txt &&
+               celery -A tasks.celery_app worker
+               --loglevel=INFO -Q transcribe
+               --concurrency=${WORKER_CONCURRENCY:-1}"
+    
+    volumes:
+      # Media directory (read-only for security)
+      - /path/to/your/media:/media:ro
+      
+      # Logs directory (for job results)
+      - ./deepgram-logs:/logs
+      
+      # Application code
+      - ./web:/app
+      - ./core:/core:ro
+    
+    depends_on:
+      redis:
+        condition: service_healthy
+    
+    restart: unless-stopped
+
+# ============================================================================
+# Setup Instructions
+# ============================================================================
+#
 # 1. Copy this file: cp docker-compose.example.yml docker-compose.yml
-# 2. Edit docker-compose.yml and update /path/to/your/media
-# 3. Create .env file with your DEEPGRAM_API_KEY
+# 2. Edit docker-compose.yml and update /path/to/your/media to your actual media path
+# 3. Create .env file with your DEEPGRAM_API_KEY (see .env.example)
 # 4. Run: docker compose build
-# 5. Run: docker compose run --rm deepgram-subtitles
+#
+# ============================================================================
+# Usage Examples
+# ============================================================================
+#
+# CLI Tool (Phase 1):
+#   docker compose run --rm deepgram-subtitles
+#   docker compose run --rm -e BATCH_SIZE=10 deepgram-subtitles
+#   docker compose run --rm -e MEDIA_PATH=/media/tv/ShowName deepgram-subtitles
+#
+# Web UI (Phase 2):
+#   docker compose up -d redis deepgram-web deepgram-worker
+#   docker compose logs -f deepgram-web deepgram-worker
+#   docker compose down
+#
+# Both can run simultaneously on the same media directory
