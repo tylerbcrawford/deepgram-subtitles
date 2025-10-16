@@ -49,6 +49,12 @@
   - Better visual feedback for selected/unselected files
   - Improve user control over file selection
 
+- [ ] Remove model dropdown (hardcode to Nova-3)
+  - Remove the model selection dropdown from UI
+  - Hardcode model to "nova-3" in backend
+  - Display "Model: Nova-3" as static text or remove entirely
+  - Simplify UI since only one model is supported
+
 - [ ] Add time and cost estimation display
   - **Pre-job estimates** (before starting transcription):
     - Estimated cost per video based on duration
