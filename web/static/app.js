@@ -595,4 +595,7 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('language').value = config.default_language;
         })
         .catch(err => console.error('Failed to load config:', err));
+    
+    // Automatically load /media directory on page load
+    browseDirectories('/media');
 });
