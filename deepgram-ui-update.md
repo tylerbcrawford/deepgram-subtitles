@@ -74,7 +74,19 @@
   - Extract video duration metadata for accurate estimates
   - **Status:** Completed - "Calculate Estimates" button provides pre-job cost/time projections, uses ffprobe for duration extraction, displays total files/duration/cost/processing time
 
-- [ ] Setup NGINX reverse proxy and configure subdomain
+- [x] Setup NGINX reverse proxy and configure subdomain
+  - **Status:** Completed - nginx configuration created and deployed
+  - **Subdomain:** `deepgram.800801.online`
+  - **Configuration File:** `/etc/nginx/sites-available/deepgram-subdomain`
+  - **Features:**
+    - HTTPS enforcement with SSL termination
+    - Basic authentication for external access (local network bypass)
+    - WebSocket support for real-time updates
+    - Extended timeouts (600s) for transcription operations
+    - Large file upload support (500MB max)
+    - HTTP/2 enabled
+  - **Port Mapping:** Container port 5000 → Host port 5000
+  - **Access:** https://deepgram.800801.online (requires Basic Auth from external networks)
 
 ## Phase 2: Visual Design & Live Streaming
 
