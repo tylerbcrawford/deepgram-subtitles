@@ -24,8 +24,8 @@ services:
       # - ENABLE_TRANSCRIPT=1       # Set to 1 to enable transcript generation
     
     volumes:
-      # Mount your media directory (adjust path to your media location)
-      - /path/to/your/media:/media
+      # Mount your media directory
+      - /media/tyler/8TB/media:/media
       
       # Mount logs directory to persist processing statistics
       - ./deepgram-logs:/logs
@@ -91,7 +91,7 @@ services:
     
     volumes:
       # Media directory (read-only for security)
-      - /path/to/your/media:/media:ro
+      - /media/tyler/8TB/media:/media:ro
       
       # Logs directory (for job results)
       - ./deepgram-logs:/logs
@@ -153,7 +153,7 @@ services:
     
     volumes:
       # Media directory (read-only for security)
-      - /path/to/your/media:/media:ro
+      - /media/tyler/8TB/media:/media:ro
       
       # Logs directory (for job results)
       - ./deepgram-logs:/logs

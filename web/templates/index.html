@@ -136,6 +136,25 @@
             font-size: 0.9em;
             margin-top: 5px;
         }
+        .checkbox-group {
+            margin-bottom: 15px;
+        }
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            color: #e0e0e0;
+            font-size: 1em;
+        }
+        .checkbox-label input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            margin-right: 10px;
+            cursor: pointer;
+        }
+        .checkbox-label span {
+            user-select: none;
+        }
     </style>
 </head>
 <body>
@@ -166,8 +185,69 @@
             </div>
             <div class="form-group">
                 <label for="language">Language</label>
-                <input type="text" id="language" value="en" placeholder="en, es, fr, etc.">
+                <select id="language">
+                    <option value="en">English</option>
+                    <option value="en-US">English (US)</option>
+                    <option value="en-AU">English (Australia)</option>
+                    <option value="en-GB">English (UK)</option>
+                    <option value="en-IN">English (India)</option>
+                    <option value="en-NZ">English (New Zealand)</option>
+                    <option value="en-CA">English (Canada)</option>
+                    <option value="en-IE">English (Ireland)</option>
+                    <option value="es">Spanish</option>
+                    <option value="es-419">Spanish (Latin America)</option>
+                    <option value="fr">French</option>
+                    <option value="fr-CA">French (Canada)</option>
+                    <option value="de">German</option>
+                    <option value="hi">Hindi</option>
+                    <option value="ru">Russian</option>
+                    <option value="pt">Portuguese</option>
+                    <option value="pt-BR">Portuguese (Brazil)</option>
+                    <option value="pt-PT">Portuguese (Portugal)</option>
+                    <option value="ja">Japanese</option>
+                    <option value="it">Italian</option>
+                    <option value="nl">Dutch</option>
+                    <option value="sv">Swedish</option>
+                    <option value="sv-SE">Swedish (Sweden)</option>
+                    <option value="da">Danish</option>
+                    <option value="da-DK">Danish (Denmark)</option>
+                    <option value="tr">Turkish</option>
+                    <option value="no">Norwegian</option>
+                    <option value="id">Indonesian</option>
+                </select>
             </div>
+            
+            <div class="form-group checkbox-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="enableTranscript" onchange="toggleTranscriptOptions()">
+                    <span>Generate Transcript</span>
+                </label>
+            </div>
+            
+            <div id="transcriptOptions" style="display: none; margin-left: 20px; padding: 15px; background: #1a1a1a; border-radius: 4px; margin-bottom: 15px;">
+                <div class="form-group">
+                    <label for="speakerMap">Speaker Map Name (optional)</label>
+                    <input type="text" id="speakerMap" placeholder="e.g., Breaking Bad">
+                    <small style="color: #888; display: block; margin-top: 5px;">
+                        Speaker map files should be located in speaker_maps/ directory
+                    </small>
+                </div>
+                <div class="form-group">
+                    <label for="keyTerms">Key Terms (optional, Nova-3 only)</label>
+                    <input type="text" id="keyTerms" placeholder="e.g., Walter White, Jesse Pinkman">
+                    <small style="color: #888; display: block; margin-top: 5px;">
+                        Comma-separated list of names or terms for better recognition
+                    </small>
+                </div>
+            </div>
+            
+            <div class="form-group checkbox-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="forceRegenerate">
+                    <span>Force Regenerate (overwrite existing subtitles)</span>
+                </label>
+            </div>
+            
             <button onclick="submitBatch()" id="submitBtn" disabled>Submit Selected Files</button>
             <button onclick="selectAll()">Select All</button>
             <button onclick="selectNone()">Select None</button>
@@ -178,6 +258,7 @@
         <div class="card" id="jobCard" style="display:none;">
             <h2>📊 Job Status</h2>
             <div id="jobStatus" class="job-status"></div>
+            <button onclick="cancelJob()" id="cancelBtn" style="display:none; background: #ff4a4a; margin-top: 15px;">Cancel Job</button>
             <div class="stats" id="jobStats"></div>
         </div>
     </div>

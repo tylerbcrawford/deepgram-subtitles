@@ -27,6 +27,12 @@ DG_KEY = os.environ["DEEPGRAM_API_KEY"]
 # Initialize Celery app
 celery_app = Celery(__name__, broker=REDIS_URL, backend=REDIS_URL)
 
+# Configure task routing
+celery_app.conf.task_routes = {
+    'transcribe_task': {'queue': 'transcribe'},
+    'batch_finalize': {'queue': 'transcribe'},
+}
+
 
 def _save_job_log(payload: dict):
     """
@@ -42,7 +48,8 @@ def _save_job_log(payload: dict):
 
 
 @celery_app.task(bind=True, name="transcribe_task")
-def transcribe_task(self, video_path: str, model=DEFAULT_MODEL, language=DEFAULT_LANGUAGE):
+def transcribe_task(self, video_path: str, model=DEFAULT_MODEL, language=DEFAULT_LANGUAGE,
+                    force_regenerate=False, enable_transcript=False, speaker_map=None, key_terms=None):
     """
     Transcribe a single video file.
     
@@ -50,24 +57,33 @@ def transcribe_task(self, video_path: str, model=DEFAULT_MODEL, language=DEFAULT
         video_path: Path to video file
         model: Deepgram model to use (default: nova-3)
         language: Language code (default: en)
+        force_regenerate: Force overwrite existing subtitles
+        enable_transcript: Generate transcript file in addition to subtitles
+        speaker_map: Optional speaker map name for diarization
+        key_terms: Optional list of key terms for better recognition
         
     Returns:
         dict: Status and file paths
         
     The task will:
-    1. Check if SRT already exists (skip if yes)
+    1. Check if SRT already exists (skip if yes unless force_regenerate)
     2. Extract audio from video
     3. Transcribe with Deepgram API
     4. Generate and save SRT file
-    5. Log the result
-    6. Clean up temporary audio file
+    5. Optionally generate transcript file
+    6. Log the result
+    7. Clean up temporary audio file
     """
     vp = Path(video_path)
     srt_out = vp.with_suffix(".srt")
+    txt_out = vp.with_suffix(".txt") if enable_transcript else None
     meta = {"video": str(vp), "srt": str(srt_out)}
     
-    # Skip if SRT already exists
-    if srt_out.exists():
+    if enable_transcript:
+        meta["transcript"] = str(txt_out)
+    
+    # Skip if SRT already exists (unless force_regenerate)
+    if srt_out.exists() and not force_regenerate:
         return {"status": "skipped", **meta}
     
     audio_tmp = None
@@ -75,12 +91,24 @@ def transcribe_task(self, video_path: str, model=DEFAULT_MODEL, language=DEFAULT
         # Extract audio
         audio_tmp = extract_audio(vp)
         
-        # Transcribe
+        # Transcribe with optional parameters
         with open(audio_tmp, "rb") as f:
-            resp = transcribe_file(f.read(), DG_KEY, model, language)
+            resp = transcribe_file(
+                f.read(),
+                DG_KEY,
+                model,
+                language,
+                diarize=enable_transcript,
+                keywords=key_terms
+            )
         
         # Generate SRT
         write_srt(resp, srt_out)
+        
+        # Generate transcript if requested
+        if enable_transcript:
+            from core.transcribe import write_transcript
+            write_transcript(resp, txt_out, speaker_map)
         
         # Log success
         _save_job_log({"status": "ok", **meta})
@@ -131,7 +159,8 @@ def batch_finalize(results):
     return {"batch_status": "done", "results": results}
 
 
-def make_batch(files, model, language):
+def make_batch(files, model, language, force_regenerate=False, enable_transcript=False,
+               speaker_map=None, key_terms=None):
     """
     Create a batch of transcription jobs.
     
@@ -142,9 +171,23 @@ def make_batch(files, model, language):
         files: List of Path objects for videos to transcribe
         model: Deepgram model to use
         language: Language code
+        force_regenerate: Force overwrite existing subtitles
+        enable_transcript: Generate transcript files in addition to subtitles
+        speaker_map: Optional speaker map name for diarization
+        key_terms: Optional list of key terms for better recognition
         
     Returns:
         AsyncResult: Celery async result for tracking batch progress
     """
-    jobs = [transcribe_task.s(str(f), model, language) for f in files]
+    jobs = [
+        transcribe_task.s(
+            str(f),
+            model,
+            language,
+            force_regenerate,
+            enable_transcript,
+            speaker_map,
+            key_terms
+        ) for f in files
+    ]
     return chord(group(jobs))(batch_finalize.s())

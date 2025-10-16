@@ -13,6 +13,13 @@ function showStatus(elementId, message, type = 'info') {
     el.style.display = 'block';
 }
 
+// Toggle transcript options visibility
+function toggleTranscriptOptions() {
+    const checkbox = document.getElementById('enableTranscript');
+    const options = document.getElementById('transcriptOptions');
+    options.style.display = checkbox.checked ? 'block' : 'none';
+}
+
 // Scan directory for videos
 async function scanDirectory() {
     const path = document.getElementById('scanPath').value;
@@ -101,6 +108,32 @@ async function submitBatch() {
     
     const model = document.getElementById('model').value;
     const language = document.getElementById('language').value;
+    const enableTranscript = document.getElementById('enableTranscript').checked;
+    const forceRegenerate = document.getElementById('forceRegenerate').checked;
+    
+    // Build request body
+    const requestBody = {
+        files: selectedFiles,
+        model: model,
+        language: language,
+        force_regenerate: forceRegenerate
+    };
+    
+    // Add transcript-related fields if enabled
+    if (enableTranscript) {
+        requestBody.enable_transcript = true;
+        
+        const speakerMap = document.getElementById('speakerMap').value.trim();
+        if (speakerMap) {
+            requestBody.speaker_map = speakerMap;
+        }
+        
+        const keyTerms = document.getElementById('keyTerms').value.trim();
+        if (keyTerms) {
+            // Split by comma and clean up whitespace
+            requestBody.key_terms = keyTerms.split(',').map(t => t.trim()).filter(t => t.length > 0);
+        }
+    }
     
     showStatus('submitStatus', '🚀 Submitting batch...', 'info');
     document.getElementById('submitBtn').disabled = true;
@@ -109,11 +142,7 @@ async function submitBatch() {
         const response = await fetch('/api/submit', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                files: selectedFiles,
-                model: model,
-                language: language
-            })
+            body: JSON.stringify(requestBody)
         });
         
         if (!response.ok) {
@@ -175,7 +204,7 @@ async function checkJobStatus(batchId) {
         updateJobDisplay(data);
         
         // If job is complete, stop polling
-        if (data.state === 'SUCCESS' || data.state === 'FAILURE') {
+        if (data.state === 'SUCCESS' || data.state === 'FAILURE' || data.state === 'REVOKED') {
             clearInterval(pollInterval);
             if (eventSource) {
                 eventSource.close();
@@ -188,10 +217,33 @@ async function checkJobStatus(batchId) {
     }
 }
 
+// Cancel current job
+async function cancelJob() {
+    if (!currentBatchId) return;
+    
+    if (!confirm('Are you sure you want to cancel this job?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/job/${currentBatchId}/cancel`, {
+            method: 'POST'
+        });
+        
+        if (response.ok) {
+            document.getElementById('cancelBtn').style.display = 'none';
+            showStatus('submitStatus', '🛑 Job cancelled', 'info');
+        }
+    } catch (error) {
+        console.error('Cancel error:', error);
+    }
+}
+
 // Update job status display
 function updateJobDisplay(data) {
     const statusDiv = document.getElementById('jobStatus');
     const statsDiv = document.getElementById('jobStats');
+    const cancelBtn = document.getElementById('cancelBtn');
     
     let statusHtml = '';
     let statsHtml = '';
@@ -199,10 +251,13 @@ function updateJobDisplay(data) {
     // Show current state
     if (data.state === 'PENDING') {
         statusHtml = '<div class="loader"></div>Job queued, waiting to start...';
+        cancelBtn.style.display = 'inline-block';
     } else if (data.state === 'STARTED') {
         statusHtml = '<div class="loader"></div>Processing videos...';
+        cancelBtn.style.display = 'inline-block';
     } else if (data.state === 'SUCCESS') {
         statusHtml = '✅ Batch complete!';
+        cancelBtn.style.display = 'none';
         
         // Show results if available
         if (data.data && data.data.results) {
@@ -232,11 +287,16 @@ function updateJobDisplay(data) {
         }
     } else if (data.state === 'FAILURE') {
         statusHtml = '❌ Batch failed';
+        cancelBtn.style.display = 'none';
         if (data.data && data.data.error) {
             statusHtml += `: ${data.data.error}`;
         }
+    } else if (data.state === 'REVOKED') {
+        statusHtml = '🛑 Job cancelled';
+        cancelBtn.style.display = 'none';
     } else {
         statusHtml = `State: ${data.state}`;
+        cancelBtn.style.display = 'none';
     }
     
     statusDiv.innerHTML = statusHtml;

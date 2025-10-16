@@ -1,0 +1,1 @@
+# Core transcription module for Deepgram Subtitle Generator
