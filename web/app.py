@@ -12,10 +12,10 @@ import time
 from pathlib import Path
 from flask import Flask, request, jsonify, Response, abort, render_template
 from tasks import celery_app, make_batch
-from core.transcribe import is_video
+from core.transcribe import is_video, is_media, get_video_duration
 
 MEDIA_ROOT = Path(os.environ.get("MEDIA_ROOT", "/media"))
-DEFAULT_MODEL = os.environ.get("DEFAULT_MODEL", "nova-3")
+DEFAULT_MODEL = "nova-3"  # Hardcoded to Nova-3
 DEFAULT_LANGUAGE = os.environ.get("DEFAULT_LANGUAGE", "en")
 ALLOWED = set([e.strip().lower() for e in os.environ.get("ALLOWED_EMAILS", "").split(",") if e.strip()])
 
@@ -73,16 +73,77 @@ def api_config():
     })
 
 
+@app.get("/api/browse")
+def api_browse():
+    """
+    Browse directories and video files within MEDIA_ROOT.
+    
+    Query Parameters:
+        path: Subdirectory to list (default: MEDIA_ROOT)
+        show_all: Include videos with existing subtitles (default: false)
+        
+    Returns:
+        JSON with list of subdirectories and video files
+        
+    Security:
+        - Path must be under MEDIA_ROOT
+    """
+    # _require_auth()
+    path = request.args.get("path", str(MEDIA_ROOT))
+    show_all = request.args.get("show_all", "false").lower() == "true"
+    path = Path(path)
+    
+    # Security: Ensure path is under MEDIA_ROOT
+    if not str(path).startswith(str(MEDIA_ROOT)):
+        abort(400, "Path must be under MEDIA_ROOT")
+    
+    if not path.exists() or not path.is_dir():
+        abort(404, "Directory not found")
+    
+    directories = []
+    files = []
+    
+    try:
+        for item in sorted(path.iterdir()):
+            if item.is_dir() and not item.name.startswith('.'):
+                # Count media files in this directory (recursive)
+                media_count = sum(1 for p in item.rglob("*") if p.is_file() and is_media(p))
+                directories.append({
+                    "name": item.name,
+                    "path": str(item),
+                    "video_count": media_count  # Keep name for compatibility, but now includes audio
+                })
+            elif item.is_file() and is_media(item):
+                # Only include if showing all OR subtitle doesn't exist
+                if show_all or not item.with_suffix(".srt").exists():
+                    files.append({
+                        "name": item.name,
+                        "path": str(item),
+                        "has_subtitles": item.with_suffix(".srt").exists()
+                    })
+    except PermissionError:
+        abort(403, "Permission denied")
+    
+    return jsonify({
+        "current_path": str(path),
+        "parent_path": str(path.parent) if path != MEDIA_ROOT else None,
+        "directories": directories,
+        "files": files,
+        "file_count": len(files)
+    })
+
+
 @app.get("/api/scan")
 def api_scan():
     """
-    Scan a directory for videos without subtitles.
+    Scan a directory for videos.
     
     Query Parameters:
         root: Directory path to scan (default: MEDIA_ROOT)
+        show_all: Include videos with existing subtitles (default: false)
         
     Returns:
-        JSON with count and list of video files needing subtitles
+        JSON with count and list of video files
         
     Security:
         - Path must be under MEDIA_ROOT
@@ -90,6 +151,7 @@ def api_scan():
     """
     # _require_auth()
     root = request.args.get("root", str(MEDIA_ROOT))
+    show_all = request.args.get("show_all", "false").lower() == "true"
     root = Path(root)
     
     # Security: Ensure path is under MEDIA_ROOT
@@ -98,12 +160,66 @@ def api_scan():
     
     files = []
     for p in root.rglob("*"):
-        if p.is_file() and is_video(p) and not p.with_suffix(".srt").exists():
-            files.append(str(p))
-            if len(files) >= 500:
-                break
+        if p.is_file() and is_media(p):
+            # Only include if showing all OR subtitle doesn't exist
+            if show_all or not p.with_suffix(".srt").exists():
+                files.append(str(p))
+                if len(files) >= 500:
+                    break
     
-    return jsonify({"count": len(files), "files": files})
+    return jsonify({"count": len(files), "files": files, "show_all": show_all})
+
+
+@app.post("/api/estimate")
+def api_estimate():
+    """
+    Get cost and time estimates for a batch of videos.
+    
+    Request Body (JSON):
+        files: List of video file paths
+        
+    Returns:
+        JSON with duration metadata and cost estimates
+        - Nova-3 pricing: $0.0043 per minute of audio
+        - Estimated processing time: ~0.1x real-time (rough estimate)
+    """
+    # _require_auth()
+    body = request.get_json(force=True) or {}
+    raw_files = body.get("files", [])
+    
+    NOVA3_PRICE_PER_MINUTE = 0.0043
+    PROCESSING_TIME_MULTIPLIER = 0.1  # Rough estimate: 10% of video length
+    
+    total_duration = 0.0
+    file_durations = []
+    
+    for f in raw_files:
+        p = Path(f)
+        # Security: Ensure path is under MEDIA_ROOT
+        if not str(p).startswith(str(MEDIA_ROOT)):
+            continue
+        if p.exists():
+            duration = get_video_duration(p)
+            total_duration += duration
+            file_durations.append({
+                "file": str(p),
+                "duration_seconds": duration,
+                "duration_minutes": duration / 60.0
+            })
+    
+    total_minutes = total_duration / 60.0
+    estimated_cost = total_minutes * NOVA3_PRICE_PER_MINUTE
+    estimated_time = total_duration * PROCESSING_TIME_MULTIPLIER
+    
+    return jsonify({
+        "total_files": len(file_durations),
+        "total_duration_seconds": total_duration,
+        "total_duration_minutes": total_minutes,
+        "estimated_cost_usd": round(estimated_cost, 2),
+        "estimated_processing_time_seconds": estimated_time,
+        "price_per_minute": NOVA3_PRICE_PER_MINUTE,
+        "files": file_durations
+    })
 
 
 @app.post("/api/submit")
@@ -131,7 +247,7 @@ def api_submit():
     user = "local_user"
     body = request.get_json(force=True) or {}
     
-    model = body.get("model", DEFAULT_MODEL)
+    model = "nova-3"  # Hardcoded to Nova-3
     language = body.get("language", DEFAULT_LANGUAGE)
     raw_files = body.get("files", [])
     force_regenerate = body.get("force_regenerate", False)
@@ -176,20 +292,48 @@ def api_job(rid):
         rid: Job/batch ID returned from /api/submit
         
     Returns:
-        JSON with job state and result data
+        JSON with job state and result data including detailed child task progress
     """
     # _require_auth()
     res = celery_app.AsyncResult(rid)
     state = res.state
     data = None
+    children_info = []
     
     try:
         if res.ready():
             data = res.get(propagate=False)
+        
+        # Get child task information for detailed progress
+        if hasattr(res, 'children') and res.children:
+            for child in res.children:
+                child_result = celery_app.AsyncResult(child.id)
+                child_info = {
+                    'id': child.id,
+                    'state': child_result.state,
+                }
+                
+                # Get task metadata if available
+                if child_result.state == 'PROGRESS' and child_result.info:
+                    child_info['current_file'] = child_result.info.get('current_file', '')
+                    child_info['stage'] = child_result.info.get('stage', '')
+                elif child_result.ready():
+                    result = child_result.get(propagate=False)
+                    if isinstance(result, dict):
+                        child_info['filename'] = result.get('filename', '')
+                        child_info['status'] = result.get('status', '')
+                        child_info['video'] = result.get('video', '')
+                
+                children_info.append(child_info)
+    
     except Exception as e:
         data = {"error": str(e)}
     
-    return jsonify({"state": state, "data": data})
+    return jsonify({
+        "state": state,
+        "data": data,
+        "children": children_info
+    })
 
 
 @app.post("/api/job/<rid>/cancel")

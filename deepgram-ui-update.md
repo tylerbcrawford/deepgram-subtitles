@@ -18,13 +18,14 @@
 - [x] Add job cancellation functionality
   - **Status:** Completed (Bonus Feature) - Cancel button for in-progress jobs with REVOKED state handling
 
-- [ ] Enhance keyterm prompting UI for Nova-3
+- [x] Enhance keyterm prompting UI for Nova-3
   - Add helpful tooltip/info about keyterm best practices
   - Display character/token count for keyterms (500 token limit)
   - Add examples of good keyterms (product names, technical jargon, proper nouns)
   - Warn against generic common words
   - Note: Keyterms can improve accuracy up to 90% for important terminology
   - Support up to 100 keyterms per request
+  - **Status:** Completed - Changed to textarea, added real-time token counter with warnings, tooltip with best practices
   - **Best Practices:**
     - Industry-specific terminology (medical terms, technical jargon)
     - Product and company names (brands, services)
@@ -32,14 +33,15 @@
     - Proper nouns with capitalization (Deepgram, iPhone, Dr. Smith)
     - Avoid: generic words (the, and), overly broad terms, excessive keyterms
 
-- [ ] Add detailed job progress display
+- [x] Add detailed job progress display
   - Show individual file progress with status indicators
   - Display which file is currently processing
   - Show completed files with success/error states
   - Real-time progress updates for each file in the batch
   - Visual progress bar or percentage for overall batch completion
+  - **Status:** Completed - Color-coded file status (green=completed, blue=processing, orange=skipped, red=error, gray=pending), shows processing stages (extracting audio, transcribing, generating subtitles)
 
-- [ ] Enhance media selection interface
+- [x] Enhance media selection interface
   - Replace text input with folder browser dialogue for easier navigation
   - Add toggle to switch between:
     - "Videos without subtitles only" (default)
@@ -48,14 +50,16 @@
   - Add "Select All" and "Deselect All" buttons for batch operations
   - Better visual feedback for selected/unselected files
   - Improve user control over file selection
+  - **Status:** Completed - Interactive directory browser with folder navigation, shows videos AND audio files with subtitle status indicators (⚠️=missing, ✓=has subtitles), checkboxes for file selection (not auto-selected), "Show all videos" enabled by default
 
-- [ ] Remove model dropdown (hardcode to Nova-3)
+- [x] Remove model dropdown (hardcode to Nova-3)
   - Remove the model selection dropdown from UI
   - Hardcode model to "nova-3" in backend
   - Display "Model: Nova-3" as static text or remove entirely
   - Simplify UI since only one model is supported
+  - **Status:** Completed - Model dropdown removed, displays "Nova-3 (Latest)" as static text, backend hardcoded to nova-3
 
-- [ ] Add time and cost estimation display
+- [x] Add time and cost estimation display
   - **Pre-job estimates** (before starting transcription):
     - Estimated cost per video based on duration
     - Estimated total cost for selected batch
@@ -68,6 +72,7 @@
     - Average time per video (updated as processing)
   - Use Nova-3 pricing: $0.0043 per minute of audio
   - Extract video duration metadata for accurate estimates
+  - **Status:** Completed - "Calculate Estimates" button provides pre-job cost/time projections, uses ffprobe for duration extraction, displays total files/duration/cost/processing time
 
 - [ ] Setup NGINX reverse proxy and configure subdomain
 
@@ -91,10 +96,33 @@
 - ✅ Fixed critical docker volume permissions issue (removed :ro flag from worker media mount)
 - ✅ Task routing configured correctly to transcribe queue
 - ✅ Verified working: Transcription jobs processing successfully with subtitle file generation
-- 🔄 In Progress: Enhanced keyterm UI and detailed progress tracking
+- ✅ **All Phase 1 features completed and tested!**
+  - Enhanced keyterm UI with real-time token counter
+  - Detailed job progress display with color-coded status
+  - Interactive directory browser with file selection
+  - Model hardcoded to Nova-3
+  - Time and cost estimation with ffprobe integration
+  - Tested successfully with real transcription job (4.87s processing time)
 
 ### Key Technical Details
 - Keyterm feature is Nova-3 model only (monolingual transcription)
 - Keyterms limited to 500 tokens per request
 - Case-sensitive formatting preserved for proper nouns
-- Multiple keyterms supported (space-delimited or repeated parameter)
+- Multiple keyterms supported (comma-delimited in UI, array in API)
+- Directory browser supports both video and audio files (.mp3, .wav, .flac, .ogg, .opus, .m4a, .aac, .wma)
+- File selection handles special characters in filenames (quotes, apostrophes)
+- Real-time token estimation using ~1.3 tokens per word average
+- Cost estimation uses Nova-3 pricing: $0.0043/minute
+- Processing time estimate: ~10% of video duration (configurable)
+
+### New API Endpoints
+- `/api/browse` - Directory and file browsing with subtitle status
+- `/api/estimate` - Pre-job cost and time estimation
+- Enhanced `/api/job/<rid>` - Returns child task progress for detailed tracking
+
+### Files Modified
+- `web/templates/index.html` - Enhanced UI with directory browser, keyterm counter, estimates display
+- `web/static/app.js` - File selection state management, directory navigation, progress display
+- `web/app.py` - New browse and estimate endpoints, hardcoded Nova-3
+- `web/tasks.py` - Task progress tracking with state updates
+- `core/transcribe.py` - Added audio file support, video duration extraction

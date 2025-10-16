@@ -155,6 +155,67 @@
         .checkbox-label span {
             user-select: none;
         }
+        .file-progress-item {
+            padding: 8px;
+            margin: 4px 0;
+            background: #2a2a2a;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .file-progress-item.completed {
+            border-left: 3px solid #4aff8e;
+        }
+        .file-progress-item.processing {
+            border-left: 3px solid #4a9eff;
+        }
+        .file-progress-item.skipped {
+            border-left: 3px solid #ff9a4a;
+        }
+        .file-progress-item.error {
+            border-left: 3px solid #ff4a4a;
+        }
+        .file-progress-item.pending {
+            border-left: 3px solid #555;
+        }
+        .progress-filename {
+            flex: 1;
+            font-size: 0.9em;
+        }
+        .progress-stage {
+            font-size: 0.8em;
+            color: #888;
+            margin-left: 10px;
+        }
+        .progress-status {
+            font-size: 0.9em;
+            margin-left: 10px;
+        }
+        .directory-item {
+            padding: 10px;
+            margin: 4px 0;
+            background: #2a2a2a;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.2s;
+        }
+        .directory-item:hover {
+            background: #3a3a3a;
+        }
+        .directory-item-name {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .directory-item-count {
+            color: #888;
+            font-size: 0.9em;
+        }
     </style>
 </head>
 <body>
@@ -164,24 +225,46 @@
 
         <!-- Scan Section -->
         <div class="card">
-            <h2>📁 Scan Media Directory</h2>
+            <h2>📁 Select Media Files</h2>
+            
+            <!-- Selected Path at Top -->
             <div class="form-group">
-                <label for="scanPath">Directory Path</label>
-                <input type="text" id="scanPath" value="/media" placeholder="/media/tv/ShowName">
+                <label for="scanPath">Current Directory</label>
+                <input type="text" id="scanPath" value="/media" placeholder="/media/tv/ShowName" readonly
+                       style="background: #1a1a1a; cursor: default; color: #4a9eff; font-weight: bold;">
             </div>
-            <button onclick="scanDirectory()">Scan for Videos</button>
+            
+            <div class="form-group checkbox-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="showAllVideos" onchange="refreshBrowser()" checked>
+                    <span>Show all videos (including those with existing subtitles)</span>
+                </label>
+                <small style="color: #888; display: block; margin-top: 5px; margin-left: 30px;">
+                    ⚠️ = Missing subtitles | ✓ = Has subtitles
+                </small>
+            </div>
+            
+            <!-- Directory Browser -->
+            <div id="directoryBrowser" style="margin-bottom: 15px;">
+                <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                    <button onclick="browseDirectories('/media')" style="background: #6a5acd;">🏠 Start Browse</button>
+                    <button onclick="refreshBrowser()" style="background: #4a9eff;">🔄 Refresh</button>
+                </div>
+                <div id="directoryList" style="max-height: 400px; overflow-y: auto; background: #1a1a1a; border: 1px solid #3a3a3a; border-radius: 4px; padding: 10px; display: none;">
+                </div>
+            </div>
+            
             <div id="scanStatus" class="status"></div>
-            <div id="filesList" class="files-list" style="display:none;"></div>
         </div>
 
         <!-- Submit Section -->
         <div class="card">
             <h2>🚀 Submit Transcription Batch</h2>
             <div class="form-group">
-                <label for="model">Model</label>
-                <select id="model">
-                    <option value="nova-3">Nova-3 (Latest)</option>
-                </select>
+                <label>Model</label>
+                <div style="padding: 10px; background: #1a1a1a; border: 1px solid #3a3a3a; border-radius: 4px; color: #4a9eff;">
+                    Nova-3 (Latest)
+                </div>
             </div>
             <div class="form-group">
                 <label for="language">Language</label>
@@ -217,6 +300,27 @@
                 </select>
             </div>
             
+            <div class="form-group">
+                <label for="keyTerms">
+                    Key Terms (optional, Nova-3 only)
+                    <span class="info-icon" title="Keyterms can improve accuracy up to 90% for important terminology">ℹ️</span>
+                </label>
+                <textarea id="keyTerms" rows="3" placeholder="e.g., Deepgram, iPhone, customer service, Dr. Smith"
+                          oninput="updateKeyTermCount()" style="resize: vertical; font-family: inherit;"></textarea>
+                <div style="display: flex; justify-content: space-between; align-items: start; margin-top: 5px;">
+                    <small style="color: #888;">
+                        <strong>Best practices:</strong><br>
+                        ✓ Product/company names, technical jargon, proper nouns<br>
+                        ✓ Multi-word phrases (account number, customer service)<br>
+                        ✗ Generic words (the, and), overly broad terms<br>
+                        Limit: 100 keyterms, 500 tokens max
+                    </small>
+                    <small id="keyTermCount" style="color: #4a9eff; white-space: nowrap; margin-left: 10px;">
+                        0 terms, ~0 tokens
+                    </small>
+                </div>
+            </div>
+            
             <div class="form-group checkbox-group">
                 <label class="checkbox-label">
                     <input type="checkbox" id="enableTranscript" onchange="toggleTranscriptOptions()">
@@ -232,13 +336,6 @@
                         Speaker map files should be located in speaker_maps/ directory
                     </small>
                 </div>
-                <div class="form-group">
-                    <label for="keyTerms">Key Terms (optional, Nova-3 only)</label>
-                    <input type="text" id="keyTerms" placeholder="e.g., Walter White, Jesse Pinkman">
-                    <small style="color: #888; display: block; margin-top: 5px;">
-                        Comma-separated list of names or terms for better recognition
-                    </small>
-                </div>
             </div>
             
             <div class="form-group checkbox-group">
@@ -248,9 +345,35 @@
                 </label>
             </div>
             
+            <div id="estimatesBox" style="display: none; margin-bottom: 15px; padding: 15px; background: #1a1a1a; border-radius: 4px; border: 1px solid #3a3a3a;">
+                <h3 style="color: #4a9eff; margin-bottom: 10px; font-size: 1.1em;">📊 Batch Estimates</h3>
+                <div class="stats">
+                    <div class="stat-box">
+                        <div class="stat-value" id="estFiles">0</div>
+                        <div class="stat-label">Files</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value" id="estDuration">0:00</div>
+                        <div class="stat-label">Total Duration</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value" id="estCost">$0.00</div>
+                        <div class="stat-label">Estimated Cost</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value" id="estTime">0:00</div>
+                        <div class="stat-label">Est. Processing Time</div>
+                    </div>
+                </div>
+                <small style="color: #888; display: block; margin-top: 10px;">
+                    Nova-3 pricing: $0.0043/min • Processing estimate: ~10% of video duration
+                </small>
+            </div>
+            
             <button onclick="submitBatch()" id="submitBtn" disabled>Submit Selected Files</button>
             <button onclick="selectAll()">Select All</button>
             <button onclick="selectNone()">Select None</button>
+            <button onclick="calculateEstimates()" id="estimateBtn" style="background: #6a5acd;" disabled>Calculate Estimates</button>
             <div id="submitStatus" class="status"></div>
         </div>
 

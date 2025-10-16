@@ -1,6 +1,7 @@
 // Deepgram Subtitle Generator - Web UI Client
 
-let scannedFiles = [];
+let selectedFiles = [];
+let currentPath = '/media';
 let currentBatchId = null;
 let eventSource = null;
 let pollInterval = null;
@@ -20,13 +21,164 @@ function toggleTranscriptOptions() {
     options.style.display = checkbox.checked ? 'block' : 'none';
 }
 
+// Browse directories and show files
+async function browseDirectories(path) {
+    currentPath = path;
+    const directoryList = document.getElementById('directoryList');
+    const scanPath = document.getElementById('scanPath');
+    const showAll = document.getElementById('showAllVideos').checked;
+    
+    scanPath.value = path;
+    directoryList.innerHTML = '<div style="color: #888; text-align: center; padding: 20px;">Loading...</div>';
+    directoryList.style.display = 'block';
+    
+    try {
+        const response = await fetch(`/api/browse?path=${encodeURIComponent(path)}&show_all=${showAll}`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        let html = '';
+        
+        // Add parent directory link if not at root
+        if (data.parent_path) {
+            html += `
+                <div class="directory-item" onclick="browseDirectories('${data.parent_path}')" style="border-bottom: 2px solid #3a3a3a; margin-bottom: 10px;">
+                    <div class="directory-item-name">
+                        📁 <strong>..</strong> (Go up to parent directory)
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Add subdirectories
+        if (data.directories.length > 0) {
+            html += '<div style="color: #888; font-size: 0.9em; margin: 10px 0; font-weight: bold;">📂 Folders:</div>';
+            data.directories.forEach(dir => {
+                html += `
+                    <div class="directory-item" onclick="browseDirectories('${dir.path}')">
+                        <div class="directory-item-name">
+                            📁 ${dir.name}
+                        </div>
+                        <div class="directory-item-count">
+                            ${dir.video_count} videos →
+                        </div>
+                    </div>
+                `;
+            });
+        }
+        
+        // Add video files with checkboxes
+        if (data.files.length > 0) {
+            html += '<div style="color: #888; font-size: 0.9em; margin: 15px 0 10px 0; font-weight: bold; border-top: 2px solid #3a3a3a; padding-top: 10px;">🎬 Videos in this folder:</div>';
+            data.files.forEach((file, index) => {
+                const isSelected = selectedFiles.includes(file.path);
+                const statusIcon = file.has_subtitles ?
+                    '<span style="color: #4aff8e; font-size: 1.1em;" title="Has subtitles">✓</span>' :
+                    '<span style="color: #ff9a4a; font-size: 1.1em;" title="Missing subtitles">⚠️</span>';
+                // Escape file path for safe HTML attribute
+                const escapedPath = file.path.replace(/"/g, '&quot;');
+                html += `
+                    <div class="file-item">
+                        <input type="checkbox" id="file-${index}" value="${escapedPath}"
+                               ${isSelected ? 'checked' : ''}
+                               onchange="toggleFileSelection(this.value)">
+                        <label for="file-${index}" style="flex: 1; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                            ${statusIcon} ${file.name}
+                        </label>
+                    </div>
+                `;
+            });
+        }
+        
+        if (data.directories.length === 0 && data.files.length === 0) {
+            html += '<div style="color: #888; text-align: center; padding: 20px;">No folders or videos found</div>';
+        }
+        
+        directoryList.innerHTML = html;
+        updateSelectionStatus();
+        
+    } catch (error) {
+        directoryList.innerHTML = `<div style="color: #ff4a4a; text-align: center; padding: 20px;">Error: ${error.message}</div>`;
+        console.error('Browse error:', error);
+    }
+}
+
+// Refresh current directory
+function refreshBrowser() {
+    if (currentPath) {
+        browseDirectories(currentPath);
+    }
+}
+
+// Toggle file selection
+function toggleFileSelection(filePath) {
+    const index = selectedFiles.indexOf(filePath);
+    if (index > -1) {
+        selectedFiles.splice(index, 1);
+        console.log('Deselected:', filePath);
+    } else {
+        selectedFiles.push(filePath);
+        console.log('Selected:', filePath);
+    }
+    console.log('Total selected files:', selectedFiles.length);
+    updateSelectionStatus();
+}
+
+// Update selection status display
+function updateSelectionStatus() {
+    const count = selectedFiles.length;
+    const submitBtn = document.getElementById('submitBtn');
+    const estimateBtn = document.getElementById('estimateBtn');
+    
+    if (count > 0) {
+        showStatus('scanStatus', `✅ ${count} file${count > 1 ? 's' : ''} selected`, 'success');
+        if (submitBtn) submitBtn.disabled = false;
+        if (estimateBtn) estimateBtn.disabled = false;
+    } else {
+        showStatus('scanStatus', 'Select files to continue', 'info');
+        if (submitBtn) submitBtn.disabled = true;
+        if (estimateBtn) estimateBtn.disabled = true;
+    }
+    
+    console.log('Selection updated:', count, 'files selected');
+}
+
+// Update keyterm count and estimate tokens
+function updateKeyTermCount() {
+    const input = document.getElementById('keyTerms').value;
+    const terms = input.split(',').map(t => t.trim()).filter(t => t.length > 0);
+    const termCount = terms.length;
+    
+    // Rough token estimation: ~1.3 tokens per word on average
+    const totalWords = terms.reduce((acc, term) => acc + term.split(/\s+/).length, 0);
+    const estimatedTokens = Math.ceil(totalWords * 1.3);
+    
+    const countEl = document.getElementById('keyTermCount');
+    countEl.textContent = `${termCount} terms, ~${estimatedTokens} tokens`;
+    
+    // Warn if limits exceeded
+    if (termCount > 100) {
+        countEl.style.color = '#ff4a4a';
+        countEl.textContent += ' ⚠️ Exceeds 100 term limit';
+    } else if (estimatedTokens > 500) {
+        countEl.style.color = '#ff9a4a';
+        countEl.textContent += ' ⚠️ May exceed 500 token limit';
+    } else {
+        countEl.style.color = '#4a9eff';
+    }
+}
+
 // Scan directory for videos
 async function scanDirectory() {
     const path = document.getElementById('scanPath').value;
+    const showAll = document.getElementById('showAllVideos').checked;
     showStatus('scanStatus', '🔍 Scanning directory...', 'info');
     
     try {
-        const response = await fetch(`/api/scan?root=${encodeURIComponent(path)}`);
+        const response = await fetch(`/api/scan?root=${encodeURIComponent(path)}&show_all=${showAll}`);
         
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -36,13 +188,20 @@ async function scanDirectory() {
         scannedFiles = data.files;
         
         if (scannedFiles.length === 0) {
-            showStatus('scanStatus', '✅ No videos need subtitles in this directory', 'success');
+            const message = showAll ?
+                '✅ No videos found in this directory' :
+                '✅ No videos need subtitles in this directory';
+            showStatus('scanStatus', message, 'success');
             document.getElementById('filesList').style.display = 'none';
             document.getElementById('submitBtn').disabled = true;
+            document.getElementById('estimateBtn').disabled = true;
             return;
         }
         
-        showStatus('scanStatus', `✅ Found ${data.count} videos without subtitles`, 'success');
+        const message = showAll ?
+            `✅ Found ${data.count} videos` :
+            `✅ Found ${data.count} videos without subtitles`;
+        showStatus('scanStatus', message, 'success');
         displayFiles(scannedFiles);
         document.getElementById('submitBtn').disabled = false;
         
@@ -52,7 +211,7 @@ async function scanDirectory() {
     }
 }
 
-// Display scanned files with checkboxes
+// Display scanned files with checkboxes (NOT auto-selected)
 function displayFiles(files) {
     const container = document.getElementById('filesList');
     container.innerHTML = '';
@@ -65,7 +224,7 @@ function displayFiles(files) {
         checkbox.type = 'checkbox';
         checkbox.id = `file-${index}`;
         checkbox.value = file;
-        checkbox.checked = true;
+        checkbox.checked = false;  // NOT auto-selected by default
         
         const label = document.createElement('label');
         label.htmlFor = `file-${index}`;
@@ -79,6 +238,7 @@ function displayFiles(files) {
     });
     
     container.style.display = 'block';
+    document.getElementById('estimateBtn').disabled = false;
 }
 
 // Select all files
@@ -95,6 +255,62 @@ function selectNone() {
     });
 }
 
+// Calculate cost and time estimates
+async function calculateEstimates() {
+    const selectedFiles = Array.from(
+        document.querySelectorAll('.file-item input[type="checkbox"]:checked')
+    ).map(cb => cb.value);
+    
+    if (selectedFiles.length === 0) {
+        showStatus('submitStatus', '⚠️ Please select at least one file', 'error');
+        return;
+    }
+    
+    showStatus('submitStatus', '🔍 Calculating estimates...', 'info');
+    
+    try {
+        const response = await fetch('/api/estimate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ files: selectedFiles })
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        displayEstimates(data);
+        showStatus('submitStatus', '✅ Estimates calculated', 'success');
+        
+    } catch (error) {
+        showStatus('submitStatus', `❌ Error: ${error.message}`, 'error');
+        console.error('Estimate error:', error);
+    }
+}
+
+// Display cost and time estimates
+function displayEstimates(data) {
+    const estimatesBox = document.getElementById('estimatesBox');
+    estimatesBox.style.display = 'block';
+    
+    // Format duration as HH:MM:SS
+    function formatDuration(seconds) {
+        const h = Math.floor(seconds / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        const s = Math.floor(seconds % 60);
+        if (h > 0) {
+            return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+        }
+        return `${m}:${String(s).padStart(2, '0')}`;
+    }
+    
+    document.getElementById('estFiles').textContent = data.total_files;
+    document.getElementById('estDuration').textContent = formatDuration(data.total_duration_seconds);
+    document.getElementById('estCost').textContent = `$${data.estimated_cost_usd.toFixed(2)}`;
+    document.getElementById('estTime').textContent = formatDuration(data.estimated_processing_time_seconds);
+}
+
 // Submit batch for transcription
 async function submitBatch() {
     const selectedFiles = Array.from(
@@ -106,7 +322,7 @@ async function submitBatch() {
         return;
     }
     
-    const model = document.getElementById('model').value;
+    const model = 'nova-3'; // Hardcoded to Nova-3
     const language = document.getElementById('language').value;
     const enableTranscript = document.getElementById('enableTranscript').checked;
     const forceRegenerate = document.getElementById('forceRegenerate').checked;
@@ -119,6 +335,13 @@ async function submitBatch() {
         force_regenerate: forceRegenerate
     };
     
+    // Add keyterms if provided (independent of transcript generation)
+    const keyTerms = document.getElementById('keyTerms').value.trim();
+    if (keyTerms) {
+        // Split by comma and clean up whitespace
+        requestBody.key_terms = keyTerms.split(',').map(t => t.trim()).filter(t => t.length > 0);
+    }
+    
     // Add transcript-related fields if enabled
     if (enableTranscript) {
         requestBody.enable_transcript = true;
@@ -126,12 +349,6 @@ async function submitBatch() {
         const speakerMap = document.getElementById('speakerMap').value.trim();
         if (speakerMap) {
             requestBody.speaker_map = speakerMap;
-        }
-        
-        const keyTerms = document.getElementById('keyTerms').value.trim();
-        if (keyTerms) {
-            // Split by comma and clean up whitespace
-            requestBody.key_terms = keyTerms.split(',').map(t => t.trim()).filter(t => t.length > 0);
         }
     }
     
@@ -244,6 +461,7 @@ function updateJobDisplay(data) {
     const statusDiv = document.getElementById('jobStatus');
     const statsDiv = document.getElementById('jobStats');
     const cancelBtn = document.getElementById('cancelBtn');
+    const fileProgressDiv = document.getElementById('fileProgress');
     
     let statusHtml = '';
     let statsHtml = '';
@@ -255,9 +473,21 @@ function updateJobDisplay(data) {
     } else if (data.state === 'STARTED') {
         statusHtml = '<div class="loader"></div>Processing videos...';
         cancelBtn.style.display = 'inline-block';
+        
+        // Show detailed file progress if children data available
+        if (data.children && data.children.length > 0) {
+            fileProgressDiv.style.display = 'block';
+            updateFileProgress(data.children);
+        }
     } else if (data.state === 'SUCCESS') {
         statusHtml = '✅ Batch complete!';
         cancelBtn.style.display = 'none';
+        
+        // Show final file progress
+        if (data.children && data.children.length > 0) {
+            fileProgressDiv.style.display = 'block';
+            updateFileProgress(data.children);
+        }
         
         // Show results if available
         if (data.data && data.data.results) {
@@ -303,13 +533,65 @@ function updateJobDisplay(data) {
     statsDiv.innerHTML = statsHtml;
 }
 
+// Update file progress display
+function updateFileProgress(children) {
+    const fileProgressList = document.getElementById('fileProgressList');
+    let html = '';
+    
+    children.forEach(child => {
+        let statusClass = 'pending';
+        let statusText = 'Pending';
+        let stageText = '';
+        let filename = child.filename || child.current_file || 'Unknown file';
+        
+        if (child.state === 'PROGRESS') {
+            statusClass = 'processing';
+            statusText = '⏳ Processing';
+            const stage = child.stage || '';
+            const stageMap = {
+                'checking': 'Checking existing files',
+                'extracting_audio': 'Extracting audio',
+                'transcribing': 'Transcribing with Deepgram',
+                'generating_srt': 'Generating subtitles',
+                'generating_transcript': 'Generating transcript'
+            };
+            stageText = stageMap[stage] || stage;
+        } else if (child.state === 'SUCCESS') {
+            if (child.status === 'ok') {
+                statusClass = 'completed';
+                statusText = '✅ Completed';
+            } else if (child.status === 'skipped') {
+                statusClass = 'skipped';
+                statusText = '⏭️ Skipped';
+            }
+        } else if (child.state === 'FAILURE') {
+            statusClass = 'error';
+            statusText = '❌ Error';
+        }
+        
+        // Extract just the filename from path
+        if (filename.includes('/')) {
+            filename = filename.split('/').pop();
+        }
+        
+        html += `
+            <div class="file-progress-item ${statusClass}">
+                <div class="progress-filename">${filename}</div>
+                ${stageText ? `<div class="progress-stage">${stageText}</div>` : ''}
+                <div class="progress-status">${statusText}</div>
+            </div>
+        `;
+    });
+    
+    fileProgressList.innerHTML = html || '<div style="color: #888; text-align: center;">No file details available</div>';
+}
+
 // Initialize page
 document.addEventListener('DOMContentLoaded', function() {
     // Load config
     fetch('/api/config')
         .then(r => r.json())
         .then(config => {
-            document.getElementById('model').value = config.default_model;
             document.getElementById('language').value = config.default_language;
         })
         .catch(err => console.error('Failed to load config:', err));

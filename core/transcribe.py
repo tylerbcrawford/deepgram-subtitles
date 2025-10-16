@@ -12,9 +12,13 @@ from deepgram_captions import DeepgramConverter, srt
 import subprocess
 import tempfile
 import os
+import json
 
 # Supported video file extensions
 VIDEO_EXTS = {'.mkv', '.mp4', '.avi', '.mov', '.m4v', '.wmv', '.flv'}
+
+# Supported audio file extensions (Deepgram compatible)
+AUDIO_EXTS = {'.mp3', '.wav', '.flac', '.ogg', '.opus', '.m4a', '.aac', '.wma'}
 
 
 def is_video(p: Path) -> bool:
@@ -28,6 +32,56 @@ def is_video(p: Path) -> bool:
         True if the file has a supported video extension
     """
     return p.suffix.lower() in VIDEO_EXTS
+
+
+def is_audio(p: Path) -> bool:
+    """
+    Check if a path points to a supported audio file.
+    
+    Args:
+        p: Path to check
+        
+    Returns:
+        True if the file has a supported audio extension
+    """
+    return p.suffix.lower() in AUDIO_EXTS
+
+
+def is_media(p: Path) -> bool:
+    """
+    Check if a path points to a supported media file (video or audio).
+    
+    Args:
+        p: Path to check
+        
+    Returns:
+        True if the file has a supported media extension
+    """
+    return is_video(p) or is_audio(p)
+
+
+def get_video_duration(video: Path) -> float:
+    """
+    Get video duration in seconds using ffprobe.
+    
+    Args:
+        video: Path to video file
+        
+    Returns:
+        Duration in seconds, or 0 if unable to determine
+    """
+    try:
+        cmd = [
+            "ffprobe", "-v", "error",
+            "-show_entries", "format=duration",
+            "-of", "json",
+            str(video)
+        ]
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        data = json.loads(result.stdout)
+        return float(data.get("format", {}).get("duration", 0))
+    except Exception:
+        return 0.0
 
 
 def extract_audio(video: Path) -> Path:

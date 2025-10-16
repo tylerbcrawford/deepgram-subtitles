@@ -77,10 +77,13 @@ def transcribe_task(self, video_path: str, model=DEFAULT_MODEL, language=DEFAULT
     vp = Path(video_path)
     srt_out = vp.with_suffix(".srt")
     txt_out = vp.with_suffix(".txt") if enable_transcript else None
-    meta = {"video": str(vp), "srt": str(srt_out)}
+    meta = {"video": str(vp), "srt": str(srt_out), "filename": vp.name}
     
     if enable_transcript:
         meta["transcript"] = str(txt_out)
+    
+    # Update task state to show current file
+    self.update_state(state='PROGRESS', meta={'current_file': vp.name, 'stage': 'checking'})
     
     # Skip if SRT already exists (unless force_regenerate)
     if srt_out.exists() and not force_regenerate:
@@ -89,9 +92,11 @@ def transcribe_task(self, video_path: str, model=DEFAULT_MODEL, language=DEFAULT
     audio_tmp = None
     try:
         # Extract audio
+        self.update_state(state='PROGRESS', meta={'current_file': vp.name, 'stage': 'extracting_audio'})
         audio_tmp = extract_audio(vp)
         
         # Transcribe with optional parameters
+        self.update_state(state='PROGRESS', meta={'current_file': vp.name, 'stage': 'transcribing'})
         with open(audio_tmp, "rb") as f:
             resp = transcribe_file(
                 f.read(),
@@ -103,10 +108,12 @@ def transcribe_task(self, video_path: str, model=DEFAULT_MODEL, language=DEFAULT
             )
         
         # Generate SRT
+        self.update_state(state='PROGRESS', meta={'current_file': vp.name, 'stage': 'generating_srt'})
         write_srt(resp, srt_out)
         
         # Generate transcript if requested
         if enable_transcript:
+            self.update_state(state='PROGRESS', meta={'current_file': vp.name, 'stage': 'generating_transcript'})
             from core.transcribe import write_transcript
             write_transcript(resp, txt_out, speaker_map)
         
