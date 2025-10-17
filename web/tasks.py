@@ -49,7 +49,7 @@ def _save_job_log(payload: dict):
 
 @celery_app.task(bind=True, name="transcribe_task")
 def transcribe_task(self, video_path: str, model=DEFAULT_MODEL, language=DEFAULT_LANGUAGE,
-                    force_regenerate=False, enable_transcript=False, speaker_map=None, key_terms=None):
+                    force_regenerate=False, enable_transcript=False, speaker_map=None, keyterms=None):
     """
     Transcribe a single video file.
     
@@ -60,7 +60,7 @@ def transcribe_task(self, video_path: str, model=DEFAULT_MODEL, language=DEFAULT
         force_regenerate: Force overwrite existing subtitles
         enable_transcript: Generate transcript file in addition to subtitles
         speaker_map: Optional speaker map name for diarization
-        key_terms: Optional list of key terms for better recognition
+        keyterms: Optional list of keyterms for better recognition (Nova-3, monolingual)
         
     Returns:
         dict: Status and file paths
@@ -104,7 +104,7 @@ def transcribe_task(self, video_path: str, model=DEFAULT_MODEL, language=DEFAULT
                 model,
                 language,
                 diarize=enable_transcript,
-                keywords=key_terms
+                keywords=keyterms
             )
         
         # Generate SRT
@@ -167,7 +167,7 @@ def batch_finalize(results):
 
 
 def make_batch(files, model, language, force_regenerate=False, enable_transcript=False,
-               speaker_map=None, key_terms=None):
+               speaker_map=None, keyterms=None):
     """
     Create a batch of transcription jobs.
     
@@ -181,7 +181,7 @@ def make_batch(files, model, language, force_regenerate=False, enable_transcript
         force_regenerate: Force overwrite existing subtitles
         enable_transcript: Generate transcript files in addition to subtitles
         speaker_map: Optional speaker map name for diarization
-        key_terms: Optional list of key terms for better recognition
+        keyterms: Optional list of keyterms for better recognition (Nova-3, monolingual)
         
     Returns:
         AsyncResult: Celery async result for tracking batch progress
@@ -194,7 +194,7 @@ def make_batch(files, model, language, force_regenerate=False, enable_transcript
             force_regenerate,
             enable_transcript,
             speaker_map,
-            key_terms
+            keyterms
         ) for f in files
     ]
     return chord(group(jobs))(batch_finalize.s())

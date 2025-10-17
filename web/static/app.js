@@ -178,12 +178,12 @@ function updateKeyTermCount() {
     const estimatedTokens = Math.ceil(totalWords * 1.3);
     
     const countEl = document.getElementById('keyTermCount');
-    countEl.textContent = `${termCount} terms, ~${estimatedTokens} tokens`;
+    countEl.textContent = `${termCount} keyterms, ~${estimatedTokens} tokens`;
     
     // Warn if limits exceeded
     if (termCount > 100) {
         countEl.style.color = '#ff4a4a';
-        countEl.textContent += ' ⚠️ Exceeds 100 term limit';
+        countEl.textContent += ' ⚠️ Exceeds 100 keyterm limit';
     } else if (estimatedTokens > 500) {
         countEl.style.color = '#ff9a4a';
         countEl.textContent += ' ⚠️ May exceed 500 token limit';
@@ -365,7 +365,7 @@ async function submitBatch() {
     const keyTerms = document.getElementById('keyTerms').value.trim();
     if (keyTerms) {
         // Split by comma and clean up whitespace
-        requestBody.key_terms = keyTerms.split(',').map(t => t.trim()).filter(t => t.length > 0);
+        requestBody.keyterms = keyTerms.split(',').map(t => t.trim()).filter(t => t.length > 0);
     }
     
     // Add transcript-related fields if enabled

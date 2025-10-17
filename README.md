@@ -4,15 +4,16 @@ Automatically generate high-quality SRT subtitle files for your video library us
 
 ## Features
 
-- 🎯 **Automatic subtitle generation** - Transcribes audio from video files and creates SRT subtitle files
+- 🎯 **Automatic subtitle generation** - Transcribes audio from video and audio files and creates SRT subtitle files
 - 🗣️ **Speaker-labeled transcripts** - Optional generation of transcripts with speaker diarization and character name mapping
 - � **Docker-based** - Easy deployment with Docker and Docker Compose
-- 📁 **Flexible processing** - Process entire directories, specific shows/movies, or files from a list
+- 📁 **Flexible processing** - Process entire directories, specific shows/movies/audiobooks, or files from a list
 - 💰 **Cost tracking** - Real-time cost estimation and detailed processing logs
 - ⚡ **Smart skipping** - Automatically skips videos that already have subtitles
 - 🌍 **Multi-language support** - Supports various languages via Deepgram API
 - 🤖 **Nova-3 model** - Uses Deepgram's latest flagship model for best accuracy
 - 📊 **Detailed logging** - JSON logs with processing statistics and costs
+- 🔑 **Keyterm Prompting** - Boost accuracy up to 90% for important terminology (Nova-3, monolingual only)
 
 ## Platform Compatibility
 
@@ -31,7 +32,9 @@ The application runs in a Linux container via Docker, ensuring consistent behavi
   - **macOS**: [Docker Desktop for Mac](https://www.docker.com/products/docker-desktop/)
   - **Windows**: [Docker Desktop for Windows](https://www.docker.com/products/docker-desktop/) with WSL2 enabled
 - A Deepgram API key ([Get one here](https://console.deepgram.com/))
-- Video files in supported formats (MKV, MP4, AVI, MOV, M4V, WMV, FLV)
+- Media files in supported formats:
+  - **Video**: MKV, MP4, AVI, MOV, M4V, WMV, FLV
+  - **Audio**: MP3, WAV, FLAC, OGG, Opus, M4A, AAC, WMA
 
 ## Installation
 
@@ -202,8 +205,8 @@ docker compose run --rm -e ENABLE_TRANSCRIPT=1 deepgram-subtitles
 
 This will generate:
 - Standard `.srt` subtitle files (as usual)
-- `.transcript.speakers.txt` files with speaker-labeled dialogue
-- `.deepgram.json` debug files with raw API responses
+- `.transcript.speakers.txt` files with speaker-labeled dialogue (if diarization is enabled)
+- `.deepgram.json` debug files with raw API responses (if enabled in code)
 
 To use character name mapping, create speaker map CSV files in the `speaker_maps/` directory. See [Speaker Maps](#speaker-maps) for details.
 
@@ -238,6 +241,45 @@ docker compose run --rm -e FORCE_REGENERATE=1 -e FILE_LIST_PATH=/config/problem-
 ```
 
 **Note:** Force regeneration will incur API costs for all processed videos, so use with care. Consider using BATCH_SIZE to limit costs.
+
+## Keyterm Prompting
+
+Keyterm Prompting allows you to improve Keyword Recall Rate (KRR) for important keyterms or phrases by up to 90%. This feature is available for **Nova-3 model with monolingual transcription only**.
+
+### What to Include as Keyterms
+
+**Good keyterm examples:**
+- **Industry-specific terminology**: Medical terms (tretinoin, diagnosis), technical jargon (escalation, API)
+- **Product and company names**: Brand names, service names, competitor names
+- **Multi-word phrases**: Common phrases in your domain (account number, customer service)
+- **Proper nouns**: Names, brands, titles with appropriate capitalization (Deepgram, iPhone, Dr. Smith)
+- **Common non-proper nouns**: Use lowercase (algorithm, protocol, refill)
+
+**What to avoid:**
+- **Generic common words**: Very common words rarely misrecognized (the, and, is)
+- **Overly broad terms**: Words that appear in many contexts without specific meaning
+- **Excessive keyterms**: Stay well under the 500 token limit; focus on the most important 20-50 terms
+- **Inconsistent formatting**: Ensure capitalization matches your desired output
+
+### Keyterm Limits
+
+- **Maximum**: 500 tokens per request
+- **Recommended**: 20-50 focused keyterms for best results
+- **Token estimation**: Approximately 1.3 tokens per word
+
+### Using Keyterms with CLI
+
+When using the CLI tool, keyterms can be added programmatically in the code. See [`core/transcribe.py`](core/transcribe.py) for implementation details.
+
+### Using Keyterms with Web UI
+
+The Web UI provides a textarea input for keyterms with:
+- Real-time token counter
+- Warning indicators when approaching the 500 token limit
+- Tooltip with best practices
+- Support for comma-delimited entries
+
+See [Web UI](#web-ui-optional) section for more details.
 
 ## Pricing
 
@@ -449,12 +491,16 @@ The Web UI provides a browser-based interface for managing subtitle generation j
 ### Features
 
 - 🌐 **Remote access** - Manage transcription from any device via web browser
-- 🔐 **Google OAuth** - Secure authentication via OAuth2 proxy
+- 🔐 **Authentication** - Secure access via OAuth2 proxy (optional)
 - ⚡ **Background processing** - Jobs run asynchronously using Celery workers
-- 📊 **Real-time progress** - Server-Sent Events (SSE) for live job status
+- 📊 **Real-time progress** - Detailed job status with per-file progress tracking
 - 🔄 **Bazarr integration** - Auto-trigger subtitle rescans after batch completion
-- 📁 **Directory scanning** - Browse and select videos from your media library
-- 🎯 **Batch submission** - Queue multiple videos for processing
+- 📁 **Directory browser** - Interactive file selection from your media library
+- 🎯 **Batch submission** - Queue multiple videos/audio files for processing
+- 💰 **Cost estimation** - Pre-job cost and time estimates using ffprobe
+- 🔑 **Keyterm prompting** - Add custom terminology for improved accuracy (Nova-3, monolingual)
+- ❌ **Job cancellation** - Cancel in-progress jobs from the UI
+- 🌍 **29 Languages** - Support for all Deepgram-supported languages
 
 ### Performance & Scaling
 
@@ -512,23 +558,33 @@ docker compose up -d redis deepgram-web deepgram-worker
 
 4. **Configure reverse proxy:**
 
-Point your OAuth-protected subdomain (e.g., `subs.yourdomain.com`) to `http://deepgram-web:5000`. See [`deepgram-ui.md`](./deepgram-ui.md) for nginx configuration example with OAuth2 integration.
+Point your subdomain (e.g., `subs.yourdomain.com`) to `http://localhost:5000` (or `http://deepgram-web:5000` if using Docker networks). Configure OAuth2 proxy if you want authentication protection. See [`deepgram-ui-update.md`](./deepgram-ui-update.md) for implementation notes.
 
 ### Usage
 
-**Access the API endpoints:**
+**Access the Web UI:**
+
+Visit your configured subdomain in a web browser to access the interactive interface.
+
+**API endpoints (for programmatic access):**
 
 - `GET /api/config` - Get default model and language settings
-- `GET /api/scan?root=/media/tv` - Scan directory for videos without subtitles
-- `POST /api/submit` - Submit batch of videos for processing
+- `GET /api/browse?path=/media&show_all=false` - Browse directories and media files
+- `GET /api/scan?root=/media/tv` - Scan directory for media without subtitles
+- `POST /api/estimate` - Get cost and time estimates for selected files
+- `POST /api/submit` - Submit batch of files for processing
   ```json
   {
-    "model": "nova-3",
     "language": "en",
-    "files": ["/media/tv/Show/episode.mkv"]
+    "files": ["/media/tv/Show/episode.mkv"],
+    "force_regenerate": false,
+    "enable_transcript": false,
+    "speaker_map": null,
+    "keyterms": ["ProductName", "TechnicalTerm", "account number"]
   }
   ```
-- `GET /api/job/<batch_id>` - Check job status
+- `GET /api/job/<batch_id>` - Check job status with child task details
+- `POST /api/job/<batch_id>/cancel` - Cancel a running job
 - `GET /api/progress` - SSE stream for real-time updates
 
 **View logs:**
@@ -573,15 +629,21 @@ Both CLI and Web UI can run simultaneously on the same media directory. SRT file
 
 ### Security Notes
 
-- Web UI requires OAuth authentication (configured at reverse proxy)
-- Media mounts are **read-only** for web/worker containers
-- Only SRT files are created (next to source videos)
-- Email allowlist for additional access control
+- Web UI can be protected with OAuth authentication (configured at reverse proxy level)
+- Media mounts should be **read-only** for web container, read-write for worker container (to create SRT files)
+- Only SRT and transcript files are created (next to source media files)
+- Email allowlist available for additional access control via `ALLOWED_EMAILS` environment variable
 - API key never exposed to browser (server-side only)
 
-For detailed setup instructions and nginx configuration, see [`deepgram-ui.md`](./deepgram-ui.md).
+For detailed development notes and implementation status, see [`deepgram-ui-update.md`](./deepgram-ui-update.md).
 
 ---
+
+## Additional Resources
+
+- [Keyterm Prompting Documentation](https://developers.deepgram.com/docs/keyterm) - Official Deepgram documentation on keyterm prompting
+- [Nova-3 Model Overview](https://developers.deepgram.com/docs/models-languages-overview#nova-3) - Details about Deepgram's flagship model
+- [Speaker Diarization](https://developers.deepgram.com/docs/diarization) - Guide to speaker identification features
 
 ## Acknowledgments
 

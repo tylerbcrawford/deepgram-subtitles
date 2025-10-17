@@ -221,23 +221,23 @@
 </head>
 <body>
     <div class="container">
-        <h1 style="text-align: center;">🎬 Deepgram Subtitle Generator</h1>
+        <h1 style="text-align: center;">Deepgram Subtitle Generator</h1>
         <p class="subtitle" style="text-align: center;">Web UI for batch subtitle generation using Deepgram Nova-3 API</p>
 
-        <!-- Submit Section -->
+        <!-- Transcribe Button -->
+        <div style="text-align: center; margin-bottom: 15px;">
+            <button onclick="submitBatch()" id="submitBtn" disabled>Transcribe</button>
+        </div>
+        
+        <!-- Stats/Estimates -->
+        <div id="estimatesBox" style="text-align: center; margin-bottom: 20px;">
+            <small style="color: #4a9eff; font-size: 0.9em; line-height: 1.5;">
+                <span id="estSummary">0 files • 0:00 duration<br>~$0.00 cost • ~0:00 processing time</span>
+            </small>
+        </div>
+
+        <!-- Main Card -->
         <div class="card" style="text-align: center;">
-            <!-- Transcribe Button at top -->
-            <div style="margin-bottom: 20px;">
-                <button onclick="submitBatch()" id="submitBtn" disabled>Transcribe</button>
-            </div>
-            
-            <!-- Stats/Estimates -->
-            <div id="estimatesBox" style="margin-bottom: 20px;">
-                <small style="color: #4a9eff; font-size: 0.9em; line-height: 1.5;">
-                    <span id="estSummary">0 files • 0:00 duration<br>~$0.00 cost • ~0:00 processing time</span>
-                </small>
-            </div>
-            
             <!-- Directory Browser Section -->
             <div class="form-group">
                 <label for="scanPath">

@@ -253,7 +253,7 @@ def api_submit():
     force_regenerate = body.get("force_regenerate", False)
     enable_transcript = body.get("enable_transcript", False)
     speaker_map = body.get("speaker_map")
-    key_terms = body.get("key_terms")
+    keyterms = body.get("keyterms")
     
     # Validate and filter files
     files = []
@@ -273,7 +273,7 @@ def api_submit():
         force_regenerate=force_regenerate,
         enable_transcript=enable_transcript,
         speaker_map=speaker_map,
-        key_terms=key_terms
+        keyterms=keyterms
     )
     
     return jsonify({
