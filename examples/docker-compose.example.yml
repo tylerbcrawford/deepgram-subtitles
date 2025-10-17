@@ -3,11 +3,11 @@ services:
   # CLI Tool (Phase 1)
   # ============================================================================
   # Run manually for batch subtitle generation
-  # Usage: docker compose run --rm deepgram-subtitles
+  # Usage: docker compose run --rm deepgram-cli
   
-  deepgram-subtitles:
-    build: ./deepgram-subtitles
-    container_name: deepgram-subtitles
+  deepgram-cli:
+    build: ./cli
+    container_name: deepgram-cli
     environment:
       # Required: Your Deepgram API key (set in .env file)
       - DEEPGRAM_API_KEY=${DEEPGRAM_API_KEY}
@@ -181,9 +181,9 @@ services:
 # ============================================================================
 #
 # CLI Tool (Phase 1):
-#   docker compose run --rm deepgram-subtitles
-#   docker compose run --rm -e BATCH_SIZE=10 deepgram-subtitles
-#   docker compose run --rm -e MEDIA_PATH=/media/tv/ShowName deepgram-subtitles
+#   docker compose run --rm deepgram-cli
+#   docker compose run --rm -e BATCH_SIZE=10 deepgram-cli
+#   docker compose run --rm -e MEDIA_PATH=/media/tv/ShowName deepgram-cli
 #
 # Web UI (Phase 2):
 #   docker compose up -d redis deepgram-web deepgram-worker

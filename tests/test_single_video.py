@@ -11,6 +11,10 @@ Usage:
 
 import sys
 from pathlib import Path
+
+# Add CLI directory to path
+sys.path.insert(0, str(Path(__file__).parent.parent / 'cli'))
+
 from generate_subtitles import SubtitleGenerator
 
 # Default video path - update this to test with your video

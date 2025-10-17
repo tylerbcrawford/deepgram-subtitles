@@ -115,11 +115,11 @@ def api_browse():
                 })
             elif item.is_file() and is_media(item):
                 # Only include if showing all OR subtitle doesn't exist
-                if show_all or not item.with_suffix(".srt").exists():
+                if show_all or not item.with_suffix(".eng.srt").exists():
                     files.append({
                         "name": item.name,
                         "path": str(item),
-                        "has_subtitles": item.with_suffix(".srt").exists()
+                        "has_subtitles": item.with_suffix(".eng.srt").exists()
                     })
     except PermissionError:
         abort(403, "Permission denied")
@@ -162,7 +162,7 @@ def api_scan():
     for p in root.rglob("*"):
         if p.is_file() and is_media(p):
             # Only include if showing all OR subtitle doesn't exist
-            if show_all or not p.with_suffix(".srt").exists():
+            if show_all or not p.with_suffix(".eng.srt").exists():
                 files.append(str(p))
                 if len(files) >= 500:
                     break

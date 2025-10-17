@@ -183,7 +183,7 @@ class SubtitleGenerator:
             raise Exception(f"SRT generation error: {str(e)}")
     
     def process_video(self, video_path: Path) -> bool:
-        srt_path = video_path.with_suffix('.srt')
+        srt_path = video_path.with_suffix('.eng.srt')
         transcript_path = video_path.with_suffix('.transcript.speakers.txt')
         
         # Skip logic depends on whether transcript generation is enabled and force regenerate flag
@@ -337,7 +337,7 @@ class SubtitleGenerator:
                         continue
                     
                     # Check if files already exist based on mode (unless force regenerate is enabled)
-                    srt_path = video_path.with_suffix('.srt')
+                    srt_path = video_path.with_suffix('.eng.srt')
                     transcript_path = video_path.with_suffix('.transcript.speakers.txt')
                     
                     if not Config.FORCE_REGENERATE:
@@ -374,7 +374,7 @@ class SubtitleGenerator:
             for file in files:
                 if Path(file).suffix.lower() in Config.VIDEO_EXTENSIONS:
                     video_path = Path(root) / file
-                    srt_path = video_path.with_suffix('.srt')
+                    srt_path = video_path.with_suffix('.eng.srt')
                     transcript_path = video_path.with_suffix('.transcript.speakers.txt')
                     
                     if Config.FORCE_REGENERATE:

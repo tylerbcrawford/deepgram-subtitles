@@ -143,17 +143,22 @@ def transcribe_file(buf: bytes, api_key: str, model: str, language: str,
     return client.listen.rest.v("1").transcribe_file({"buffer": buf}, opts)
 
 
-def write_srt(resp: dict, dest: Path):
+def write_srt(resp: dict, dest: Path, lang: str = "eng"):
     """
     Generate and write SRT subtitle file from Deepgram response.
     
     Args:
         resp: Deepgram transcription response
         dest: Path where SRT file should be written
+        lang: Language code for subtitle file (default: "eng" for English)
         
     Raises:
         Exception: If SRT generation or writing fails
     """
+    # Ensure the destination has the proper .lang.srt extension
+    if not dest.name.endswith(f".{lang}.srt"):
+        dest = dest.parent / f"{dest.stem}.{lang}.srt"
+    
     srt_content = srt(DeepgramConverter(resp))
     dest.write_text(srt_content, encoding="utf-8")
 

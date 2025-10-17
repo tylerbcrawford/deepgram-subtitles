@@ -29,11 +29,11 @@ build:
 
 # Run CLI tool to process all videos
 cli:
-	docker compose run --rm deepgram-subtitles
+	docker compose run --rm deepgram-cli
 
 # Run CLI with batch size limit
 cli-batch:
-	docker compose run --rm -e BATCH_SIZE=10 deepgram-subtitles
+	docker compose run --rm -e BATCH_SIZE=10 deepgram-cli
 
 # ============================================================================
 # Web UI Commands

@@ -1,6 +1,6 @@
 # Deepgram Subtitle Generator
 
-Automatically generate high-quality SRT subtitle files for your video library using [Deepgram's](https://deepgram.com/) AI-powered speech recognition API.
+Transform your media library into a fully accessible experience! This tool uses [Deepgram's](https://deepgram.com/) cutting-edge AI to automatically generate crystal-clear subtitles for your videos and audio files. Whether you're building subtitles for your personal Plex server, adding accessibility to your content library, or creating transcripts for podcasts and audiobooks, this tool makes it effortless. With support for 29 languages, speaker identification, and seamless integration with popular media servers like Plex and Jellyfin, you'll have professional-quality subtitles in minutes—not hours.
 
 ## Features
 
@@ -84,28 +84,13 @@ Configure the application using environment variables:
 
 ### Docker Compose Configuration
 
-Create a `docker-compose.yml` file (or add to your existing one):
+A complete `docker-compose.example.yml` is provided in the [`examples/`](examples/) directory with both CLI and Web UI services configured. Copy it to `docker-compose.yml` and customize the media paths:
 
-```yaml
-services:
-  deepgram-subtitles:
-    build: ./deepgram-subtitles
-    container_name: deepgram-subtitles
-    environment:
-      - DEEPGRAM_API_KEY=${DEEPGRAM_API_KEY}
-      - PUID=1000
-      - PGID=1000
-    volumes:
-      # Mount your media directory
-      - /path/to/your/media:/media
-      # Mount logs directory
-      - ./deepgram-subtitles/deepgram-logs:/logs
-      # Mount config directory for file lists
-      - ./deepgram-subtitles:/config
-    restart: "no"
+```bash
+cp examples/docker-compose.example.yml docker-compose.yml
 ```
 
-**Important:** Update `/path/to/your/media` to point to your actual media directory.
+**Important:** Update `/path/to/your/media` in `docker-compose.yml` to point to your actual media directory.
 
 #### Platform-Specific Volume Paths
 
@@ -140,6 +125,48 @@ volumes:
 
 **Note:** The `PUID` and `PGID` environment variables are primarily for Linux file permissions. On Windows and macOS with Docker Desktop, you can keep the default values (1000) or omit them entirely.
 
+## Subtitle File Naming
+
+This tool generates subtitle files with proper ISO-639-2 language tags (e.g., `.eng.srt`) to ensure automatic recognition by Plex, Jellyfin, and other media servers. This prevents subtitles from appearing as "Unknown (SRT External)" and instead displays them as "English (SRT External)" or the appropriate language.
+
+### Generated Files
+
+For a video file `Movie.mkv`, the following files are created:
+- `Movie.eng.srt` - English subtitles (automatically recognized by media servers)
+- `Movie.transcript.speakers.txt` - Speaker-labeled transcript (if `ENABLE_TRANSCRIPT=1`)
+- `Movie.deepgram.json` - Raw API response (debug file, if enabled)
+
+### Renaming Existing Subtitles
+
+If you have existing subtitle files without language tags or with incorrect tags, use the included [`scripts/postprocess_subtitles.py`](scripts/postprocess_subtitles.py) script:
+
+```bash
+# Preview what would be renamed (dry run)
+python3 scripts/postprocess_subtitles.py --dry-run /path/to/media/
+
+# Rename a single file
+python3 scripts/postprocess_subtitles.py /path/to/Movie.srt
+
+# Rename all subtitles in a directory
+python3 scripts/postprocess_subtitles.py /path/to/media/
+
+# Process specific files
+python3 scripts/postprocess_subtitles.py file1.srt file2.en.srt file3.srt
+```
+
+The script will:
+- Convert `*.srt` → `*.eng.srt` (if no other language subtitles exist)
+- Convert `*.en.srt` → `*.eng.srt`
+- Skip files that already have proper `.eng.srt` naming
+- Provide detailed feedback on what was renamed or skipped
+
+After renaming, you may need to refresh your Plex or Jellyfin library and clear the transcode cache:
+
+```bash
+# For Plex (Docker):
+docker exec -it plex rm -rf "/config/Library/Application Support/Plex Media Server/Cache/Transcode/*"
+```
+
 ## Usage
 
 ### Process Entire Media Library
@@ -147,7 +174,7 @@ volumes:
 Scan and process all videos without subtitles:
 
 ```bash
-docker compose run --rm deepgram-subtitles
+docker compose run --rm deepgram-cli
 ```
 
 ### Process Specific Directory
@@ -155,13 +182,13 @@ docker compose run --rm deepgram-subtitles
 Process a specific show or directory:
 
 ```bash
-docker compose run --rm -e MEDIA_PATH=/media/tv/ShowName deepgram-subtitles
+docker compose run --rm -e MEDIA_PATH=/media/tv/ShowName deepgram-cli
 ```
 
 ### Process Specific Season
 
 ```bash
-docker compose run --rm -e MEDIA_PATH=/media/tv/ShowName/Season\ 01 deepgram-subtitles
+docker compose run --rm -e MEDIA_PATH=/media/tv/ShowName/Season\ 01 deepgram-cli
 ```
 
 ### Process From File List
@@ -178,7 +205,7 @@ Create a text file with video paths (one per line):
 Then process:
 
 ```bash
-docker compose run --rm -e FILE_LIST_PATH=/config/video-list.txt deepgram-subtitles
+docker compose run --rm -e FILE_LIST_PATH=/config/video-list.txt deepgram-cli
 ```
 
 ### Batch Processing
@@ -186,13 +213,13 @@ docker compose run --rm -e FILE_LIST_PATH=/config/video-list.txt deepgram-subtit
 Limit processing to a specific number of videos:
 
 ```bash
-docker compose run --rm -e BATCH_SIZE=10 deepgram-subtitles
+docker compose run --rm -e BATCH_SIZE=10 deepgram-cli
 ```
 
 ### Process Non-English Content
 
 ```bash
-docker compose run --rm -e LANGUAGE=es deepgram-subtitles
+docker compose run --rm -e LANGUAGE=es deepgram-cli
 ```
 
 ### Generate Speaker-Labeled Transcripts
@@ -200,12 +227,12 @@ docker compose run --rm -e LANGUAGE=es deepgram-subtitles
 Enable transcript generation with speaker diarization:
 
 ```bash
-docker compose run --rm -e ENABLE_TRANSCRIPT=1 deepgram-subtitles
+docker compose run --rm -e ENABLE_TRANSCRIPT=1 deepgram-cli
 ```
 
 This will generate:
-- Standard `.srt` subtitle files (as usual)
-- `.transcript.speakers.txt` files with speaker-labeled dialogue (if diarization is enabled)
+- Standard `.eng.srt` subtitle files (properly tagged for media servers)
+- `.transcript.speakers.txt` files with speaker-labeled dialogue (with speaker diarization)
 - `.deepgram.json` debug files with raw API responses (if enabled in code)
 
 To use character name mapping, create speaker map CSV files in the `speaker_maps/` directory. See [Speaker Maps](#speaker-maps) for details.
@@ -215,7 +242,7 @@ To use character name mapping, create speaker map CSV files in the `speaker_maps
 If you have videos with existing SRT files that have errors, missing parts, or other problems, you can force regeneration:
 
 ```bash
-docker compose run --rm -e FORCE_REGENERATE=1 deepgram-subtitles
+docker compose run --rm -e FORCE_REGENERATE=1 deepgram-cli
 ```
 
 This will:
@@ -232,12 +259,12 @@ This will:
 
 **Example: Regenerate for a specific show**
 ```bash
-docker compose run --rm -e FORCE_REGENERATE=1 -e MEDIA_PATH=/media/tv/ShowName deepgram-subtitles
+docker compose run --rm -e FORCE_REGENERATE=1 -e MEDIA_PATH=/media/tv/ShowName deepgram-cli
 ```
 
 **Example: Regenerate from a file list**
 ```bash
-docker compose run --rm -e FORCE_REGENERATE=1 -e FILE_LIST_PATH=/config/problem-files.txt deepgram-subtitles
+docker compose run --rm -e FORCE_REGENERATE=1 -e FILE_LIST_PATH=/config/problem-files.txt deepgram-cli
 ```
 
 **Note:** Force regeneration will incur API costs for all processed videos, so use with care. Consider using BATCH_SIZE to limit costs.
@@ -269,7 +296,7 @@ Keyterm Prompting allows you to improve Keyword Recall Rate (KRR) for important 
 
 ### Using Keyterms with CLI
 
-When using the CLI tool, keyterms can be added programmatically in the code. See [`core/transcribe.py`](core/transcribe.py) for implementation details.
+When using the CLI tool, keyterms can be added programmatically in the code. See [`core/transcribe.py`](core/transcribe.py) for implementation details. The CLI implementation is in the [`cli/`](cli/) directory.
 
 ### Using Keyterms with Web UI
 
@@ -376,7 +403,7 @@ Create text files with video paths for batch processing:
 /media/movies/Movie Title (2024).mp4
 ```
 
-See [`video-list-example.txt`](./video-list-example.txt) for a complete example.
+See [`examples/video-list-example.txt`](examples/video-list-example.txt) for a complete example.
 
 ## Logs and Statistics
 
@@ -400,9 +427,9 @@ Processing statistics are saved to `deepgram-logs/` in JSON format:
 
 ### Videos Being Skipped
 
-The application skips videos that already have `.srt` files. To reprocess:
+The application skips videos that already have `.eng.srt` files. To reprocess:
 1. Use the `FORCE_REGENERATE=1` flag to regenerate without deleting files
-2. Or manually delete the existing `.srt` file and run again
+2. Or manually delete the existing `.eng.srt` file and run again
 
 ### Permission Errors
 
@@ -441,9 +468,10 @@ Some videos may fail if:
 ### Integration with Media Servers
 
 This tool works great alongside:
-- **Plex** - Automatically serves generated subtitles
-- **Jellyfin** - Picks up SRT files automatically
+- **Plex** - Automatically recognizes `.eng.srt` files as "English (SRT External)"
+- **Jellyfin** - Picks up properly tagged SRT files automatically
 - **Bazarr** - Use as a fallback when online subtitles aren't available
+- **Emby** - Supports ISO-639-2 language codes for subtitle recognition
 
 ### Automation
 
@@ -451,7 +479,7 @@ You can automate subtitle generation using cron:
 
 ```bash
 # Process new videos daily at 5 AM
-0 5 * * * cd /path/to/project && docker compose run --rm -e BATCH_SIZE=50 deepgram-subtitles
+0 5 * * * cd /path/to/project && docker compose run --rm -e BATCH_SIZE=50 deepgram-cli
 ```
 
 ## Contributing
@@ -519,7 +547,7 @@ The Web UI provides a browser-based interface for managing subtitle generation j
 - Modest hardware: Works on Intel NUC, Raspberry Pi 4, or similar
 - Recommended: 2-4GB RAM, 2+ CPU cores
 - Start with `WORKER_CONCURRENCY=1`, scale to 2-3 if system allows
-- Storage: Minimal (only SRT files created, ~50KB per episode)
+- Storage: Minimal (only `.eng.srt` subtitle files created, ~50KB per episode)
 
 ### Setup
 
@@ -558,7 +586,7 @@ docker compose up -d redis deepgram-web deepgram-worker
 
 4. **Configure reverse proxy:**
 
-Point your subdomain (e.g., `subs.yourdomain.com`) to `http://localhost:5000` (or `http://deepgram-web:5000` if using Docker networks). Configure OAuth2 proxy if you want authentication protection. See [`deepgram-ui-update.md`](./deepgram-ui-update.md) for implementation notes.
+Point your subdomain (e.g., `subs.yourdomain.com`) to `http://localhost:5000` (or `http://deepgram-web:5000` if using Docker networks). Configure OAuth2 proxy if you want authentication protection. See [`docs/deepgram-ui-update.md`](docs/deepgram-ui-update.md) for implementation notes.
 
 ### Usage
 
@@ -610,7 +638,7 @@ make web-down
 - **Redis** - Message queue and result backend
 - **Shared Core** - Same transcription logic as CLI tool
 
-Both CLI and Web UI can run simultaneously on the same media directory. SRT files are created next to video files, accessible to both Plex/Jellyfin and the Web UI.
+Both CLI and Web UI can run simultaneously on the same media directory. Properly tagged `.eng.srt` files are created next to video files, automatically recognized by Plex, Jellyfin, and other media servers.
 
 ### Example Workflows
 
@@ -630,12 +658,60 @@ Both CLI and Web UI can run simultaneously on the same media directory. SRT file
 ### Security Notes
 
 - Web UI can be protected with OAuth authentication (configured at reverse proxy level)
-- Media mounts should be **read-only** for web container, read-write for worker container (to create SRT files)
-- Only SRT and transcript files are created (next to source media files)
+- Media mounts should be **read-only** for web container, read-write for worker container (to create `.eng.srt` files)
+- Only `.eng.srt` subtitle and transcript files are created (next to source media files)
 - Email allowlist available for additional access control via `ALLOWED_EMAILS` environment variable
 - API key never exposed to browser (server-side only)
 
-For detailed development notes and implementation status, see [`deepgram-ui-update.md`](./deepgram-ui-update.md).
+## Project Structure
+
+```
+deepgram-subtitles/
+├── cli/                          # CLI tool for batch processing
+│   ├── generate_subtitles.py    # Main CLI script
+│   ├── config.py                 # Configuration management
+│   ├── transcript_generator.py  # Transcript generation with speaker maps
+│   ├── Dockerfile                # CLI container definition
+│   ├── entrypoint.sh            # Container entrypoint script
+│   └── requirements.txt          # CLI dependencies
+├── core/                         # Shared core functionality
+│   ├── __init__.py
+│   └── transcribe.py            # Reusable transcription functions
+├── web/                          # Web UI (optional)
+│   ├── app.py                   # Flask API server
+│   ├── tasks.py                 # Celery background workers
+│   ├── requirements.txt          # Web dependencies
+│   ├── static/                  # Frontend assets
+│   │   └── app.js
+│   └── templates/               # HTML templates
+│       └── index.html
+├── scripts/                      # Utility scripts
+│   ├── postprocess_subtitles.py # Rename existing subtitle files
+│   └── validate_setup.py        # Setup validation tool
+├── docs/                         # Documentation
+│   ├── deepgram-ui-update.md    # Web UI implementation notes
+│   ├── embedded-subtitles-implementation-guide.md
+│   ├── keyterm-info.md          # Keyterm prompting guide
+│   └── name-fix.md
+├── examples/                     # Example configurations
+│   ├── docker-compose.example.yml  # Full docker-compose template
+│   ├── video-list-example.txt   # Example file list
+│   └── test-video.txt
+├── tests/                        # Test scripts
+│   └── test_single_video.py     # Single video test script
+├── speaker_maps/                 # Speaker name mappings
+│   ├── README.md
+│   └── [Show Name]/
+│       └── speakers.csv
+├── deepgram-logs/               # Processing logs (gitignored)
+├── .env.example                 # Environment template
+├── .gitignore
+├── LICENSE
+├── Makefile                     # Command shortcuts
+└── README.md                    # This file
+```
+
+For detailed development notes and implementation status, see [`docs/deepgram-ui-update.md`](docs/deepgram-ui-update.md).
 
 ---
 

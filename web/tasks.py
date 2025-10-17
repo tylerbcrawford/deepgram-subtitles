@@ -75,7 +75,7 @@ def transcribe_task(self, video_path: str, model=DEFAULT_MODEL, language=DEFAULT
     7. Clean up temporary audio file
     """
     vp = Path(video_path)
-    srt_out = vp.with_suffix(".srt")
+    srt_out = vp.with_suffix(".eng.srt")
     txt_out = vp.with_suffix(".txt") if enable_transcript else None
     meta = {"video": str(vp), "srt": str(srt_out), "filename": vp.name}
     
