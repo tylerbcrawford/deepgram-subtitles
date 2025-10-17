@@ -226,16 +226,50 @@
 
         <!-- Submit Section -->
         <div class="card" style="text-align: center;">
-            <h2 style="margin-bottom: 10px;">🚀 Submit Transcription Batch</h2>
-            <div id="estimatesBox" style="margin-bottom: 15px;">
+            <!-- Transcribe Button at top -->
+            <div style="margin-bottom: 20px;">
+                <button onclick="submitBatch()" id="submitBtn" disabled>Transcribe</button>
+            </div>
+            
+            <!-- Stats/Estimates -->
+            <div id="estimatesBox" style="margin-bottom: 20px;">
                 <small style="color: #4a9eff; font-size: 0.9em; line-height: 1.5;">
                     <span id="estSummary">0 files • 0:00 duration<br>~$0.00 cost • ~0:00 processing time</span>
                 </small>
             </div>
-            <div style="margin-bottom: 20px;">
-                <button onclick="submitBatch()" id="submitBtn" disabled>Transcribe</button>
+            
+            <!-- Directory Browser Section -->
+            <div class="form-group">
+                <label for="scanPath">
+                    Current Directory
+                    <span onclick="refreshBrowser()" style="cursor: pointer; margin-left: 8px; font-size: 1.4em; color: #4a9eff; font-weight: bold;" title="Refresh directory">↻</span>
+                </label>
+                <input type="text" id="scanPath" value="/media" placeholder="/media/tv/ShowName" readonly
+                       style="background: #1a1a1a; cursor: default; color: #4a9eff; font-weight: bold; text-align: center;">
             </div>
+            
+            <div style="margin-bottom: 10px;">
+                <div style="color: #888; font-size: 0.9em; margin-bottom: 5px;">
+                    ⚠️ = Missing subtitles | ✓ = Has subtitles
+                </div>
+                <div style="display: flex; justify-content: center; gap: 10px; font-size: 0.85em;">
+                    <a href="#" onclick="selectAll(); return false;" style="color: #4a9eff; text-decoration: none; cursor: pointer;">Select All</a>
+                    <span style="color: #555;">|</span>
+                    <a href="#" onclick="selectNone(); return false;" style="color: #4a9eff; text-decoration: none; cursor: pointer;">Select None</a>
+                </div>
+            </div>
+            
+            <!-- Directory Browser -->
+            <div id="directoryBrowser" style="margin-bottom: 15px;">
+                <div id="directoryList" style="height: 400px; overflow-y: auto; background: #1a1a1a; border: 1px solid #3a3a3a; border-radius: 4px; padding: 10px;">
+                </div>
+            </div>
+            
+            <div id="scanStatus" class="status"></div>
+            
             <div id="submitStatus" class="status"></div>
+            
+            <!-- Configuration Section -->
             <div class="form-group">
                 <label for="language">Language</label>
                 <select id="language">
@@ -312,41 +346,6 @@
                     </div>
                 </div>
             </div>
-            
-        </div>
-
-        <!-- Scan Section -->
-        <div class="card" style="text-align: center;">
-            <h2>📁 Select Media Files</h2>
-            
-            <!-- Selected Path at Top -->
-            <div class="form-group">
-                <label for="scanPath">
-                    Current Directory
-                    <span onclick="refreshBrowser()" style="cursor: pointer; margin-left: 8px; font-size: 1.4em; color: #4a9eff; font-weight: bold;" title="Refresh directory">↻</span>
-                </label>
-                <input type="text" id="scanPath" value="/media" placeholder="/media/tv/ShowName" readonly
-                       style="background: #1a1a1a; cursor: default; color: #4a9eff; font-weight: bold; text-align: center;">
-            </div>
-            
-            <div style="margin-bottom: 10px;">
-                <div style="color: #888; font-size: 0.9em; margin-bottom: 5px;">
-                    ⚠️ = Missing subtitles | ✓ = Has subtitles
-                </div>
-                <div style="display: flex; justify-content: center; gap: 10px; font-size: 0.85em;">
-                    <a href="#" onclick="selectAll(); return false;" style="color: #4a9eff; text-decoration: none; cursor: pointer;">Select All</a>
-                    <span style="color: #555;">|</span>
-                    <a href="#" onclick="selectNone(); return false;" style="color: #4a9eff; text-decoration: none; cursor: pointer;">Select None</a>
-                </div>
-            </div>
-            
-            <!-- Directory Browser -->
-            <div id="directoryBrowser" style="margin-bottom: 15px;">
-                <div id="directoryList" style="height: 400px; overflow-y: auto; background: #1a1a1a; border: 1px solid #3a3a3a; border-radius: 4px; padding: 10px;">
-                </div>
-            </div>
-            
-            <div id="scanStatus" class="status"></div>
         </div>
 
         <!-- Job Status Section -->
