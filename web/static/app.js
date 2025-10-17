@@ -19,6 +19,22 @@ function toggleTranscriptOptions() {
     const checkbox = document.getElementById('enableTranscript');
     const options = document.getElementById('transcriptOptions');
     options.style.display = checkbox.checked ? 'block' : 'none';
+    
+    // Reset speaker map checkbox when transcript is disabled
+    if (!checkbox.checked) {
+        const speakerMapCheckbox = document.getElementById('enableSpeakerMap');
+        if (speakerMapCheckbox) {
+            speakerMapCheckbox.checked = false;
+            toggleSpeakerMapInput();
+        }
+    }
+}
+
+// Toggle speaker map input visibility
+function toggleSpeakerMapInput() {
+    const checkbox = document.getElementById('enableSpeakerMap');
+    const input = document.getElementById('speakerMapInput');
+    input.style.display = checkbox.checked ? 'block' : 'none';
 }
 
 // Browse directories and show files
@@ -26,7 +42,7 @@ async function browseDirectories(path) {
     currentPath = path;
     const directoryList = document.getElementById('directoryList');
     const scanPath = document.getElementById('scanPath');
-    const showAll = document.getElementById('showAllVideos').checked;
+    const showAll = true;  // Always show all videos
     
     scanPath.value = path;
     directoryList.innerHTML = '<div style="color: #888; text-align: center; padding: 20px;">Loading...</div>';
@@ -125,22 +141,27 @@ function toggleFileSelection(filePath) {
     }
     console.log('Total selected files:', selectedFiles.length);
     updateSelectionStatus();
+    
+    // Automatically calculate estimates
+    if (selectedFiles.length > 0) {
+        calculateEstimatesAuto();
+    } else {
+        // Show zeros when no files selected
+        document.getElementById('estSummary').innerHTML = '0 files • 0:00 duration<br>~$0.00 cost • ~0:00 processing time';
+    }
 }
 
 // Update selection status display
 function updateSelectionStatus() {
     const count = selectedFiles.length;
     const submitBtn = document.getElementById('submitBtn');
-    const estimateBtn = document.getElementById('estimateBtn');
     
     if (count > 0) {
         showStatus('scanStatus', `✅ ${count} file${count > 1 ? 's' : ''} selected`, 'success');
         if (submitBtn) submitBtn.disabled = false;
-        if (estimateBtn) estimateBtn.disabled = false;
     } else {
         showStatus('scanStatus', 'Select files to continue', 'info');
         if (submitBtn) submitBtn.disabled = true;
-        if (estimateBtn) estimateBtn.disabled = true;
     }
     
     console.log('Selection updated:', count, 'files selected');
@@ -174,7 +195,7 @@ function updateKeyTermCount() {
 // Scan directory for videos
 async function scanDirectory() {
     const path = document.getElementById('scanPath').value;
-    const showAll = document.getElementById('showAllVideos').checked;
+    const showAll = true;  // Always show all videos
     showStatus('scanStatus', '🔍 Scanning directory...', 'info');
     
     try {
@@ -243,30 +264,36 @@ function displayFiles(files) {
 
 // Select all files
 function selectAll() {
+    selectedFiles = [];
     document.querySelectorAll('.file-item input[type="checkbox"]').forEach(cb => {
         cb.checked = true;
+        const filePath = cb.value;
+        if (!selectedFiles.includes(filePath)) {
+            selectedFiles.push(filePath);
+        }
     });
+    updateSelectionStatus();
+    if (selectedFiles.length > 0) {
+        calculateEstimatesAuto();
+    }
 }
 
 // Deselect all files
 function selectNone() {
+    selectedFiles = [];
     document.querySelectorAll('.file-item input[type="checkbox"]').forEach(cb => {
         cb.checked = false;
     });
+    updateSelectionStatus();
+    document.getElementById('estSummary').innerHTML = '0 files • 0:00 duration<br>~$0.00 cost • ~0:00 processing time';
 }
 
-// Calculate cost and time estimates
-async function calculateEstimates() {
-    const selectedFiles = Array.from(
-        document.querySelectorAll('.file-item input[type="checkbox"]:checked')
-    ).map(cb => cb.value);
-    
+// Automatically calculate cost and time estimates
+async function calculateEstimatesAuto() {
     if (selectedFiles.length === 0) {
-        showStatus('submitStatus', '⚠️ Please select at least one file', 'error');
+        document.getElementById('estSummary').innerHTML = '0 files • 0:00 duration<br>~$0.00 cost • ~0:00 processing time';
         return;
     }
-    
-    showStatus('submitStatus', '🔍 Calculating estimates...', 'info');
     
     try {
         const response = await fetch('/api/estimate', {
@@ -281,20 +308,18 @@ async function calculateEstimates() {
         
         const data = await response.json();
         displayEstimates(data);
-        showStatus('submitStatus', '✅ Estimates calculated', 'success');
         
     } catch (error) {
-        showStatus('submitStatus', `❌ Error: ${error.message}`, 'error');
         console.error('Estimate error:', error);
+        document.getElementById('estSummary').innerHTML = '0 files • 0:00 duration<br>~$0.00 cost • ~0:00 processing time';
     }
 }
 
-// Display cost and time estimates
+// Display cost and time estimates in compact format
 function displayEstimates(data) {
-    const estimatesBox = document.getElementById('estimatesBox');
-    estimatesBox.style.display = 'block';
+    const estSummary = document.getElementById('estSummary');
     
-    // Format duration as HH:MM:SS
+    // Format duration as HH:MM:SS or MM:SS
     function formatDuration(seconds) {
         const h = Math.floor(seconds / 3600);
         const m = Math.floor((seconds % 3600) / 60);
@@ -305,10 +330,11 @@ function displayEstimates(data) {
         return `${m}:${String(s).padStart(2, '0')}`;
     }
     
-    document.getElementById('estFiles').textContent = data.total_files;
-    document.getElementById('estDuration').textContent = formatDuration(data.total_duration_seconds);
-    document.getElementById('estCost').textContent = `$${data.estimated_cost_usd.toFixed(2)}`;
-    document.getElementById('estTime').textContent = formatDuration(data.estimated_processing_time_seconds);
+    const fileText = data.total_files === 1 ? 'file' : 'files';
+    const line1 = `${data.total_files} ${fileText} • ${formatDuration(data.total_duration_seconds)} duration`;
+    const line2 = `~$${data.estimated_cost_usd.toFixed(2)} cost • ~${formatDuration(data.estimated_processing_time_seconds)} processing time`;
+    
+    estSummary.innerHTML = `${line1}<br>${line2}`;
 }
 
 // Submit batch for transcription
@@ -346,9 +372,13 @@ async function submitBatch() {
     if (enableTranscript) {
         requestBody.enable_transcript = true;
         
-        const speakerMap = document.getElementById('speakerMap').value.trim();
-        if (speakerMap) {
-            requestBody.speaker_map = speakerMap;
+        // Only add speaker map if the checkbox is checked
+        const enableSpeakerMap = document.getElementById('enableSpeakerMap').checked;
+        if (enableSpeakerMap) {
+            const speakerMap = document.getElementById('speakerMap').value.trim();
+            if (speakerMap) {
+                requestBody.speaker_map = speakerMap;
+            }
         }
     }
     
@@ -595,6 +625,18 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('language').value = config.default_language;
         })
         .catch(err => console.error('Failed to load config:', err));
+    
+    // Reset all checkboxes to default (unchecked) state
+    document.getElementById('enableTranscript').checked = false;
+    document.getElementById('enableSpeakerMap').checked = false;
+    document.getElementById('forceRegenerate').checked = false;
+    
+    // Hide transcript and speaker map options
+    document.getElementById('transcriptOptions').style.display = 'none';
+    document.getElementById('speakerMapInput').style.display = 'none';
+    
+    // Clear speaker map field
+    document.getElementById('speakerMap').value = '';
     
     // Automatically load /media directory on page load
     browseDirectories('/media');

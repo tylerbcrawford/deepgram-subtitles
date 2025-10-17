@@ -13,7 +13,7 @@
             padding: 20px;
             line-height: 1.6;
         }
-        .container { max-width: 1200px; margin: 0 auto; }
+        .container { max-width: 900px; margin: 0 auto; }
         h1 {
             color: #4a9eff;
             margin-bottom: 10px;
@@ -49,6 +49,7 @@
             border-radius: 4px;
             color: #e0e0e0;
             font-size: 1em;
+            text-align: center;
         }
         button {
             background: #4a9eff;
@@ -220,51 +221,21 @@
 </head>
 <body>
     <div class="container">
-        <h1>🎬 Deepgram Subtitle Generator</h1>
-        <p class="subtitle">Web UI for batch subtitle generation</p>
-
-        <!-- Scan Section -->
-        <div class="card">
-            <h2>📁 Select Media Files</h2>
-            
-            <!-- Selected Path at Top -->
-            <div class="form-group">
-                <label for="scanPath">
-                    Current Directory
-                    <span onclick="refreshBrowser()" style="cursor: pointer; margin-left: 8px; font-size: 1.1em;" title="Refresh directory">🔄</span>
-                </label>
-                <input type="text" id="scanPath" value="/media" placeholder="/media/tv/ShowName" readonly
-                       style="background: #1a1a1a; cursor: default; color: #4a9eff; font-weight: bold;">
-            </div>
-            
-            <div class="form-group checkbox-group">
-                <label class="checkbox-label">
-                    <input type="checkbox" id="showAllVideos" onchange="refreshBrowser()" checked>
-                    <span>Show all videos (including those with existing subtitles)</span>
-                </label>
-                <small style="color: #888; display: block; margin-top: 5px; margin-left: 30px;">
-                    ⚠️ = Missing subtitles | ✓ = Has subtitles
-                </small>
-            </div>
-            
-            <!-- Directory Browser -->
-            <div id="directoryBrowser" style="margin-bottom: 15px;">
-                <div id="directoryList" style="max-height: 400px; overflow-y: auto; background: #1a1a1a; border: 1px solid #3a3a3a; border-radius: 4px; padding: 10px;">
-                </div>
-            </div>
-            
-            <div id="scanStatus" class="status"></div>
-        </div>
+        <h1 style="text-align: center;">🎬 Deepgram Subtitle Generator</h1>
+        <p class="subtitle" style="text-align: center;">Web UI for batch subtitle generation using Deepgram Nova-3 API</p>
 
         <!-- Submit Section -->
-        <div class="card">
-            <h2>🚀 Submit Transcription Batch</h2>
-            <div class="form-group">
-                <label>Model</label>
-                <div style="padding: 10px; background: #1a1a1a; border: 1px solid #3a3a3a; border-radius: 4px; color: #4a9eff;">
-                    Nova-3 (Latest)
-                </div>
+        <div class="card" style="text-align: center;">
+            <h2 style="margin-bottom: 10px;">🚀 Submit Transcription Batch</h2>
+            <div id="estimatesBox" style="margin-bottom: 15px;">
+                <small style="color: #4a9eff; font-size: 0.9em; line-height: 1.5;">
+                    <span id="estSummary">0 files • 0:00 duration<br>~$0.00 cost • ~0:00 processing time</span>
+                </small>
             </div>
+            <div style="margin-bottom: 20px;">
+                <button onclick="submitBatch()" id="submitBtn" disabled>Transcribe</button>
+            </div>
+            <div id="submitStatus" class="status"></div>
             <div class="form-group">
                 <label for="language">Language</label>
                 <select id="language">
@@ -301,79 +272,81 @@
             
             <div class="form-group">
                 <label for="keyTerms">
-                    Key Terms (optional, Nova-3 only)
-                    <span class="info-icon" title="Keyterms can improve accuracy up to 90% for important terminology">ℹ️</span>
+                    Keyterm Prompting (optional)
+                    <a href="https://developers.deepgram.com/docs/keyterm" target="_blank" rel="noopener noreferrer"
+                       style="margin-left: 5px; color: #4a9eff; text-decoration: none; font-size: 1.1em; cursor: pointer; font-weight: bold;"
+                       title="Learn more about keyterm prompting">?</a>
                 </label>
-                <textarea id="keyTerms" rows="3" placeholder="e.g., Deepgram, iPhone, customer service, Dr. Smith"
-                          oninput="updateKeyTermCount()" style="resize: vertical; font-family: inherit;"></textarea>
-                <div style="display: flex; justify-content: space-between; align-items: start; margin-top: 5px;">
-                    <small style="color: #888;">
-                        <strong>Best practices:</strong><br>
-                        ✓ Product/company names, technical jargon, proper nouns<br>
-                        ✓ Multi-word phrases (account number, customer service)<br>
-                        ✗ Generic words (the, and), overly broad terms<br>
-                        Limit: 100 keyterms, 500 tokens max
-                    </small>
-                    <small id="keyTermCount" style="color: #4a9eff; white-space: nowrap; margin-left: 10px;">
-                        0 terms, ~0 tokens
-                    </small>
-                </div>
+                <input type="text" id="keyTerms" placeholder="e.g., Deepgram, iPhone, customer service, Dr. Smith">
             </div>
             
-            <div class="form-group checkbox-group">
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; margin-bottom: 15px;">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="forceRegenerate">
+                    <span>Overwrite Existing Subtitles</span>
+                </label>
                 <label class="checkbox-label">
                     <input type="checkbox" id="enableTranscript" onchange="toggleTranscriptOptions()">
                     <span>Generate Transcript</span>
                 </label>
             </div>
             
-            <div id="transcriptOptions" style="display: none; margin-left: 20px; padding: 15px; background: #1a1a1a; border-radius: 4px; margin-bottom: 15px;">
-                <div class="form-group">
-                    <label for="speakerMap">Speaker Map Name (optional)</label>
-                    <input type="text" id="speakerMap" placeholder="e.g., Breaking Bad">
-                    <small style="color: #888; display: block; margin-top: 5px;">
-                        Speaker map files should be located in speaker_maps/ directory
-                    </small>
+            <div id="transcriptOptions" style="display: none; margin-bottom: 15px;">
+                <div class="checkbox-group" style="display: flex; justify-content: center;">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="enableSpeakerMap" onchange="toggleSpeakerMapInput()">
+                        <span>Use Speaker Map
+                            <a href="https://developers.deepgram.com/docs/diarization" target="_blank" rel="noopener noreferrer"
+                               style="margin-left: 5px; color: #4a9eff; text-decoration: none; font-size: 1.1em; cursor: pointer; font-weight: bold;"
+                               title="Learn more about speaker diarization">?</a>
+                        </span>
+                    </label>
+                </div>
+                <div id="speakerMapInput" style="display: none; max-width: 400px; margin: 10px auto 0;">
+                    <div class="form-group">
+                        <label for="speakerMap">Speaker Map Name</label>
+                        <input type="text" id="speakerMap" placeholder="e.g., Breaking Bad" autocomplete="off">
+                        <small style="color: #888; display: block; margin-top: 5px;">
+                            Speaker map files should be located in speaker_maps/ directory
+                        </small>
+                    </div>
                 </div>
             </div>
             
-            <div class="form-group checkbox-group">
-                <label class="checkbox-label">
-                    <input type="checkbox" id="forceRegenerate">
-                    <span>Force Regenerate (overwrite existing subtitles)</span>
+        </div>
+
+        <!-- Scan Section -->
+        <div class="card" style="text-align: center;">
+            <h2>📁 Select Media Files</h2>
+            
+            <!-- Selected Path at Top -->
+            <div class="form-group">
+                <label for="scanPath">
+                    Current Directory
+                    <span onclick="refreshBrowser()" style="cursor: pointer; margin-left: 8px; font-size: 1.4em; color: #4a9eff; font-weight: bold;" title="Refresh directory">↻</span>
                 </label>
+                <input type="text" id="scanPath" value="/media" placeholder="/media/tv/ShowName" readonly
+                       style="background: #1a1a1a; cursor: default; color: #4a9eff; font-weight: bold; text-align: center;">
             </div>
             
-            <div id="estimatesBox" style="display: none; margin-bottom: 15px; padding: 15px; background: #1a1a1a; border-radius: 4px; border: 1px solid #3a3a3a;">
-                <h3 style="color: #4a9eff; margin-bottom: 10px; font-size: 1.1em;">📊 Batch Estimates</h3>
-                <div class="stats">
-                    <div class="stat-box">
-                        <div class="stat-value" id="estFiles">0</div>
-                        <div class="stat-label">Files</div>
-                    </div>
-                    <div class="stat-box">
-                        <div class="stat-value" id="estDuration">0:00</div>
-                        <div class="stat-label">Total Duration</div>
-                    </div>
-                    <div class="stat-box">
-                        <div class="stat-value" id="estCost">$0.00</div>
-                        <div class="stat-label">Estimated Cost</div>
-                    </div>
-                    <div class="stat-box">
-                        <div class="stat-value" id="estTime">0:00</div>
-                        <div class="stat-label">Est. Processing Time</div>
-                    </div>
+            <div style="margin-bottom: 10px;">
+                <div style="color: #888; font-size: 0.9em; margin-bottom: 5px;">
+                    ⚠️ = Missing subtitles | ✓ = Has subtitles
                 </div>
-                <small style="color: #888; display: block; margin-top: 10px;">
-                    Nova-3 pricing: $0.0043/min • Processing estimate: ~10% of video duration
-                </small>
+                <div style="display: flex; justify-content: center; gap: 10px; font-size: 0.85em;">
+                    <a href="#" onclick="selectAll(); return false;" style="color: #4a9eff; text-decoration: none; cursor: pointer;">Select All</a>
+                    <span style="color: #555;">|</span>
+                    <a href="#" onclick="selectNone(); return false;" style="color: #4a9eff; text-decoration: none; cursor: pointer;">Select None</a>
+                </div>
             </div>
             
-            <button onclick="submitBatch()" id="submitBtn" disabled>Submit Selected Files</button>
-            <button onclick="selectAll()">Select All</button>
-            <button onclick="selectNone()">Select None</button>
-            <button onclick="calculateEstimates()" id="estimateBtn" style="background: #6a5acd;" disabled>Calculate Estimates</button>
-            <div id="submitStatus" class="status"></div>
+            <!-- Directory Browser -->
+            <div id="directoryBrowser" style="margin-bottom: 15px;">
+                <div id="directoryList" style="height: 400px; overflow-y: auto; background: #1a1a1a; border: 1px solid #3a3a3a; border-radius: 4px; padding: 10px;">
+                </div>
+            </div>
+            
+            <div id="scanStatus" class="status"></div>
         </div>
 
         <!-- Job Status Section -->
