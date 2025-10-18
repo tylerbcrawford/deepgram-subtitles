@@ -165,7 +165,7 @@ Based on the new screenshot and design system documentation, here's a comprehens
 
 ### 1.2 Fix Cost Display (Negative Numbers)
 **Effort: 10 minutes**
-
+**Note: It's possible the negative signs are tildes, verify before making modifications.**
 **Current Issue:** Shows `-$0.01 cost • -0:36 processing time`
 
 **Fix:**
