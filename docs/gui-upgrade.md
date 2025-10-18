@@ -3,6 +3,88 @@
 Based on the new screenshot and design system documentation, here's a comprehensive, prioritized implementation roadmap:
 
 ---
+## **Implementation Checklist**
+
+### Phase 1: Critical UX Fixes + Design Token Foundation
+- [ ] Establish design system foundation (CSS variables)
+- [ ] Extract inline CSS to external stylesheet
+- [ ] Replace hardcoded colors with CSS variables
+- [ ] Set data-theme="dark" on HTML by default
+- [ ] Fix cost display (remove negative numbers)
+- [ ] Improve selection status bar
+- [ ] Add expandable panel for selected files
+- [ ] Add "view files" and "clear all" buttons
+- [ ] Add hover states to folders & files
+- [ ] Add visual feedback for clickable items
+- [ ] Add selection highlighting with blue accent
+- [ ] Improve button states (primary button styling)
+- [ ] Add hover, active, and disabled states
+- [ ] Add focus-visible outline for accessibility
+- [ ] Update transcribe button text dynamically
+
+### Phase 2: Navigation & Layout Improvements
+- [ ] Add breadcrumb navigation
+- [ ] Implement clickable path segments
+- [ ] Add home icon for root navigation
+- [ ] Style current breadcrumb item
+- [ ] Make action bar sticky
+- [ ] Implement two-column layout (optional)
+- [ ] Create collapsible sidebar for directory browser
+- [ ] Add responsive grid layout
+- [ ] Optimize for mobile/tablet views
+
+### Phase 3: Enhanced Feedback & Micro-interactions
+- [ ] Improve status icons with color-coded meanings
+- [ ] Replace generic warning triangles
+- [ ] Add meaningful status labels (missing subtitle, has subtitle, processing, error)
+- [ ] Add loading states for folder navigation
+- [ ] Implement skeleton loader
+- [ ] Add loading animation
+- [ ] Implement toast notifications
+- [ ] Create success, error, warning, and info toast types
+- [ ] Add auto-dismiss for non-error toasts
+- [ ] Add progress tracking section
+- [ ] Create collapsible progress panel
+- [ ] Show real-time file progress with progress bars
+- [ ] Display ETA and percentage complete
+
+### Phase 4: Theme Toggle & Polish
+- [ ] Implement theme toggle functionality
+- [ ] Add moon/sun icon toggle button
+- [ ] Save theme preference to localStorage
+- [ ] Add smooth transition animations
+- [ ] Announce theme changes to screen readers
+- [ ] Add keyboard shortcuts
+- [ ] Implement Ctrl/Cmd + A for select all
+- [ ] Implement Escape for clear selection
+- [ ] Implement Enter for start transcription
+- [ ] Implement Ctrl/Cmd + T for theme toggle
+- [ ] Create keyboard shortcuts help panel
+- [ ] Add filter for empty folders
+- [ ] Implement "hide empty folders" toggle
+- [ ] Fix input field placeholders
+- [ ] Move example text from value to placeholder
+- [ ] Add proper labels and ARIA attributes
+- [ ] Add info tooltips for input fields
+
+### Phase 5: Accessibility & Responsive
+- [ ] Fix semantic HTML structure
+- [ ] Add proper header, main, and footer tags
+- [ ] Use section elements with ARIA labels
+- [ ] Add ARIA labels & screen reader support
+- [ ] Add ARIA labels to icon-only buttons
+- [ ] Implement live region for status updates
+- [ ] Add sr-only class for screen reader text
+- [ ] Test with screen readers
+- [ ] Implement mobile responsive layout
+- [ ] Add mobile breakpoint styles
+- [ ] Optimize typography for mobile
+- [ ] Make buttons full-width on mobile
+- [ ] Add touch-friendly target sizes
+- [ ] Test on various mobile devices
+
+---
+
 
 ## **PHASE 1: Critical UX Fixes + Design Token Foundation** (1-2 days)
 
