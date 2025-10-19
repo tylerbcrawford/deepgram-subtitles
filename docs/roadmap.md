@@ -91,6 +91,15 @@ FORCE_REGENERATE=0|1            # Overwrite existing
 
 ## 🔮 Future Features (Post-Beta)
 
+### Nova-3 Quality Enhancements (Low Priority)
+From Nova-3 review - optional improvements for specific use cases:
+- [ ] Add `numerals=True` parameter (convert "twenty twenty four" → "2024")
+- [ ] Add `filler_words` toggle (optional transcription of "uh", "um" - default OFF for subtitles)
+- [ ] Add `detect_language=True` (auto-detect language for international content)
+- [ ] Add `measurements=True` (convert "fifty meters" → "50m" for sports/science content)
+
+**Decision:** These are quality-of-life improvements, not critical. Current implementation covers all essential Nova-3 features for movie/TV subtitle generation.
+
 ### Translation
 - [ ] LLM-powered subtitle translation (Anthropic/OpenAI)
 - [ ] Multi-language support with timing preservation
@@ -132,7 +141,7 @@ MIN_AGE_HOURS=24  # For scheduled scan
 
 ### Nova 3 Configuration Reference
 
-Current implementation in [`core/transcribe.py`](../core/transcribe.py):
+**UPDATED** implementation in [`core/transcribe.py`](../core/transcribe.py) (2025-10-19):
 
 ```python
 opts = PrerecordedOptions(
@@ -140,17 +149,24 @@ opts = PrerecordedOptions(
     smart_format=True,
     utterances=True,
     punctuate=True,
-    paragraphs=True,           # ✅ Added
-    timestamps=True,           # ✅ Added
+    paragraphs=True,           # ✅ Added for better text segmentation
+    timestamps=True,           # ✅ Added for word-level timing
     diarize=enable_diarization,
     language=language,
     profanity_filter=profanity_filter  # ✅ Added
 )
 
-# Keywords support (Nova-3 feature)
-if keywords and model == "nova-3":
-    opts.keywords = keywords
+# Keyterm support (Nova-3 feature - up to 90% accuracy improvement)
+# FIXED: Changed from opts.keywords to opts.keyterm
+if keyterms and model == "nova-3":
+    opts.keyterm = keyterms  # ✅ FIXED: Was opts.keywords
 ```
+
+**Key Changes:**
+- ✅ **Parameter name:** `keywords` → `keyterms` (function signature)
+- ✅ **API parameter:** `opts.keywords` → `opts.keyterm` (Nova-3 specific)
+- ✅ **Added:** `paragraphs=True` for better readability
+- ✅ **Added:** `timestamps=True` for accurate subtitle timing
 
 ### Complete Nova 3 Configuration (JSON Reference)
 
@@ -219,6 +235,8 @@ if keywords and model == "nova-3":
 ## Notes
 
 ### Recently Completed (2025-10-19)
+
+**Morning Session:**
 - ✅ Subsyncarr marker file removal (both CLI and Web UI)
 - ✅ Profanity filter implementation (Web UI, CLI, Core)
 - ✅ Nova 3 configuration update (paragraphs, timestamps)
@@ -227,12 +245,24 @@ if keywords and model == "nova-3":
 - ✅ Environment variable documentation
 - ✅ Roadmap comprehensive update
 
+**Afternoon Session - Nova-3 Best Practices Review:**
+- ✅ Comprehensive codebase review using Context7 and Exa MCP tools
+- ✅ Researched Deepgram Nova-3 features and best practices
+- ✅ Identified critical keyterm implementation issue (`keywords` vs `keyterm`)
+- ✅ **FIXED:** Changed `keywords` parameter to `keyterm` in [`core/transcribe.py`](../core/transcribe.py:144)
+- ✅ **FIXED:** Updated Web UI task handler in [`web/tasks.py`](../web/tasks.py:126)
+- ✅ **ADDED:** Missing Nova-3 parameters (`paragraphs`, `timestamps`) to core
+- ✅ **STANDARDIZED:** Parameters across CLI and Web implementations
+- ✅ Created comprehensive review document (`DEEPGRAM_NOVA3_REVIEW.md`)
+
 ### Decision Log
 1. **Keyterms CSV Import/Export:** Deferred to post-beta - manual entry is sufficient for beta testing
 2. **README Redesign:** Deferred to post-beta - better to incorporate user feedback first
 3. **GUI Overhaul:** Deferred entirely as separate task - all backend features complete first
 4. **Transcripts Folder Structure:** COMPLETED - improves organization and debugging capability
 5. **Raw JSON Output:** COMPLETED - useful for debugging and advanced users
+6. **Nova-3 Keyterm Fix:** COMPLETED (2025-10-19) - Critical for character name accuracy
+7. **Nova-3 Optional Features:** Deferred to post-beta - numerals, filler_words, language detection are non-critical
 
 ### Beta Success Criteria
 - ✅ No critical bugs in core transcription

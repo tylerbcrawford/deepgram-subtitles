@@ -67,7 +67,7 @@ def transcribe_task(self, video_path: str, model=DEFAULT_MODEL, language=DEFAULT
         force_regenerate: Force overwrite existing subtitles
         enable_transcript: Generate transcript file in addition to subtitles
         speaker_map: Optional speaker map name for diarization
-        keyterms: Optional list of keyterms for better recognition (Nova-3, monolingual)
+        keyterms: Optional list of keyterms for better recognition (Nova-3, monolingual only)
         save_raw_json: Save raw Deepgram API response for debugging (default: false)
         
     Returns:
@@ -123,7 +123,7 @@ def transcribe_task(self, video_path: str, model=DEFAULT_MODEL, language=DEFAULT
                 language,
                 profanity_filter=profanity_filter,
                 diarize=enable_transcript,
-                keywords=keyterms
+                keyterms=keyterms
             )
         
         # Generate SRT

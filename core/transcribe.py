@@ -109,7 +109,7 @@ def extract_audio(video: Path) -> Path:
 
 
 def transcribe_file(buf: bytes, api_key: str, model: str, language: str,
-                    profanity_filter: str = "off", diarize: bool = False, keywords: list = None) -> dict:
+                    profanity_filter: str = "off", diarize: bool = False, keyterms: list = None) -> dict:
     """
     Transcribe audio buffer using Deepgram API.
     
@@ -120,7 +120,7 @@ def transcribe_file(buf: bytes, api_key: str, model: str, language: str,
         language: Language code (e.g., 'en')
         profanity_filter: Profanity filter mode - "off", "tag", or "remove" (default: off)
         diarize: Enable speaker diarization
-        keywords: List of keywords for better recognition (Nova-3 only)
+        keyterms: List of keyterms for better recognition (Nova-3 only, monolingual)
         
     Returns:
         Deepgram response object
@@ -134,14 +134,16 @@ def transcribe_file(buf: bytes, api_key: str, model: str, language: str,
         smart_format=True,
         utterances=True,
         punctuate=True,
+        paragraphs=True,
+        timestamps=True,
         diarize=diarize,
         language=language,
         profanity_filter=profanity_filter
     )
     
-    # Add keywords if provided (Nova-3 feature)
-    if keywords and model == "nova-3":
-        opts.keywords = keywords
+    # Add keyterms if provided (Nova-3 feature - monolingual only)
+    if keyterms and model == "nova-3":
+        opts.keyterm = keyterms
     
     return client.listen.rest.v("1").transcribe_file({"buffer": buf}, opts)
 
