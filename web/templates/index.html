@@ -271,6 +271,20 @@
             
             <!-- Configuration Section -->
             <div class="form-group">
+                <label for="profanityFilter">
+                    Profanity Filter
+                    <a href="https://developers.deepgram.com/docs/profanity-filter" target="_blank" rel="noopener noreferrer"
+                       style="margin-left: 5px; color: #4a9eff; text-decoration: none; font-size: 1.1em; cursor: pointer; font-weight: bold;"
+                       title="Learn more about profanity filtering">?</a>
+                </label>
+                <select id="profanityFilter">
+                    <option value="off">Off (no filtering)</option>
+                    <option value="tag">Tag (mark but keep words)</option>
+                    <option value="remove">Remove (censor completely)</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
                 <label for="language">Language</label>
                 <select id="language">
                     <option value="en">English</option>
@@ -322,6 +336,14 @@
                 <label class="checkbox-label">
                     <input type="checkbox" id="enableTranscript" onchange="toggleTranscriptOptions()">
                     <span>Generate Transcript</span>
+                </label>
+                <label class="checkbox-label">
+                    <input type="checkbox" id="saveRawJson">
+                    <span>Save Raw JSON
+                        <a href="https://developers.deepgram.com/docs/getting-started-with-pre-recorded-audio" target="_blank" rel="noopener noreferrer"
+                           style="margin-left: 5px; color: #4a9eff; text-decoration: none; font-size: 1.1em; cursor: pointer; font-weight: bold;"
+                           title="Debug mode: saves raw API response to Transcripts/JSON/">?</a>
+                    </span>
                 </label>
             </div>
             

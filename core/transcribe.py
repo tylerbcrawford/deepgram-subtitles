@@ -109,7 +109,7 @@ def extract_audio(video: Path) -> Path:
 
 
 def transcribe_file(buf: bytes, api_key: str, model: str, language: str,
-                    diarize: bool = False, keywords: list = None) -> dict:
+                    profanity_filter: str = "off", diarize: bool = False, keywords: list = None) -> dict:
     """
     Transcribe audio buffer using Deepgram API.
     
@@ -118,6 +118,7 @@ def transcribe_file(buf: bytes, api_key: str, model: str, language: str,
         api_key: Deepgram API key
         model: Model to use (e.g., 'nova-3')
         language: Language code (e.g., 'en')
+        profanity_filter: Profanity filter mode - "off", "tag", or "remove" (default: off)
         diarize: Enable speaker diarization
         keywords: List of keywords for better recognition (Nova-3 only)
         
@@ -132,8 +133,10 @@ def transcribe_file(buf: bytes, api_key: str, model: str, language: str,
         model=model,
         smart_format=True,
         utterances=True,
+        punctuate=True,
         diarize=diarize,
-        language=language
+        language=language,
+        profanity_filter=profanity_filter
     )
     
     # Add keywords if provided (Nova-3 feature)
@@ -161,6 +164,61 @@ def write_srt(resp: dict, dest: Path, lang: str = "eng"):
     
     srt_content = srt(DeepgramConverter(resp))
     dest.write_text(srt_content, encoding="utf-8")
+
+
+def get_transcripts_folder(video_path: Path) -> Path:
+    """
+    Determine the appropriate Transcripts folder for a video file.
+    
+    Creates folder structure:
+    - TV Shows: /media/tv/Show/Season 01/Transcripts/
+    - Movies: /media/movies/Movie (2024)/Transcripts/
+    
+    Args:
+        video_path: Path to the video file
+        
+    Returns:
+        Path to the Transcripts folder (created if doesn't exist)
+    """
+    # Get the parent directory of the video file
+    video_parent = video_path.parent
+    
+    # Try to detect if this is a TV show (has "Season" in path) or movie
+    path_str = str(video_path).lower()
+    
+    # For TV shows, Transcripts folder should be at the season level
+    # Path pattern: /media/tv/Show Name/Season 01/episode.mkv
+    # Transcripts: /media/tv/Show Name/Season 01/Transcripts/
+    if 'season' in path_str or video_parent.name.lower().startswith('season'):
+        transcripts_folder = video_parent / "Transcripts"
+    else:
+        # For movies, Transcripts folder at the movie directory level
+        # Path pattern: /media/movies/Movie (2024)/movie.mkv
+        # Transcripts: /media/movies/Movie (2024)/Transcripts/
+        transcripts_folder = video_parent / "Transcripts"
+    
+    # Create folder if it doesn't exist
+    transcripts_folder.mkdir(parents=True, exist_ok=True)
+    
+    return transcripts_folder
+
+
+def get_json_folder(video_path: Path) -> Path:
+    """
+    Get the JSON subfolder within the Transcripts folder.
+    
+    Creates: Transcripts/JSON/
+    
+    Args:
+        video_path: Path to the video file
+        
+    Returns:
+        Path to the JSON folder (created if doesn't exist)
+    """
+    transcripts_folder = get_transcripts_folder(video_path)
+    json_folder = transcripts_folder / "JSON"
+    json_folder.mkdir(parents=True, exist_ok=True)
+    return json_folder
 
 
 def write_transcript(resp: dict, dest: Path, speaker_map_name: str = None):
@@ -232,3 +290,27 @@ def write_transcript(resp: dict, dest: Path, speaker_map_name: str = None):
     
     # Write transcript to file
     dest.write_text('\n\n'.join(transcript_lines), encoding='utf-8')
+
+
+def write_raw_json(resp: dict, video_path: Path):
+    """
+    Save raw Deepgram API response as JSON for debugging.
+    
+    Saves to: Transcripts/JSON/{video_name}.deepgram.json
+    
+    Args:
+        resp: Deepgram transcription response
+        video_path: Path to the original video file
+        
+    Raises:
+        Exception: If JSON writing fails
+    """
+    json_folder = get_json_folder(video_path)
+    json_path = json_folder / f"{video_path.stem}.deepgram.json"
+    
+    try:
+        # Convert response to dict if it has to_dict method
+        response_data = resp.to_dict() if hasattr(resp, 'to_dict') else resp
+        json_path.write_text(json.dumps(response_data, indent=2), encoding='utf-8')
+    except Exception as e:
+        raise Exception(f"Failed to write raw JSON: {e}")

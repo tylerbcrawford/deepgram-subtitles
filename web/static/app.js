@@ -350,15 +350,19 @@ async function submitBatch() {
     
     const model = 'nova-3'; // Hardcoded to Nova-3
     const language = document.getElementById('language').value;
+    const profanityFilter = document.getElementById('profanityFilter').value;
     const enableTranscript = document.getElementById('enableTranscript').checked;
     const forceRegenerate = document.getElementById('forceRegenerate').checked;
+    const saveRawJson = document.getElementById('saveRawJson').checked;
     
     // Build request body
     const requestBody = {
         files: selectedFiles,
         model: model,
         language: language,
-        force_regenerate: forceRegenerate
+        profanity_filter: profanityFilter,
+        force_regenerate: forceRegenerate,
+        save_raw_json: saveRawJson
     };
     
     // Add keyterms if provided (independent of transcript generation)
@@ -583,7 +587,8 @@ function updateFileProgress(children) {
                 'extracting_audio': 'Extracting audio',
                 'transcribing': 'Transcribing with Deepgram',
                 'generating_srt': 'Generating subtitles',
-                'generating_transcript': 'Generating transcript'
+                'generating_transcript': 'Generating transcript',
+                'saving_raw_json': 'Saving raw JSON'
             };
             stageText = stageMap[stage] || stage;
         } else if (child.state === 'SUCCESS') {
@@ -630,6 +635,10 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('enableTranscript').checked = false;
     document.getElementById('enableSpeakerMap').checked = false;
     document.getElementById('forceRegenerate').checked = false;
+    document.getElementById('saveRawJson').checked = false;
+    
+    // Reset profanity filter to default (off)
+    document.getElementById('profanityFilter').value = 'off';
     
     // Hide transcript and speaker map options
     document.getElementById('transcriptOptions').style.display = 'none';

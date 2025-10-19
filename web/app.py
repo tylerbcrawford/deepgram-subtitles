@@ -230,11 +230,13 @@ def api_submit():
     Request Body (JSON):
         model: Deepgram model to use (default: nova-3)
         language: Language code (default: en)
+        profanity_filter: Profanity filter mode - "off", "tag", or "remove" (default: off)
         files: List of video file paths to process
         force_regenerate: Force overwrite existing subtitles (default: false)
         enable_transcript: Generate transcript in addition to subtitles (default: false)
         speaker_map: Optional speaker map name for diarization
         key_terms: Optional list of key terms for better recognition (Nova-3)
+        save_raw_json: Save raw Deepgram API response for debugging (default: false)
         
     Returns:
         JSON with batch_id, count of enqueued files, and submitter email
@@ -249,11 +251,13 @@ def api_submit():
     
     model = "nova-3"  # Hardcoded to Nova-3
     language = body.get("language", DEFAULT_LANGUAGE)
+    profanity_filter = body.get("profanity_filter", "off")
     raw_files = body.get("files", [])
     force_regenerate = body.get("force_regenerate", False)
     enable_transcript = body.get("enable_transcript", False)
     speaker_map = body.get("speaker_map")
     keyterms = body.get("keyterms")
+    save_raw_json = body.get("save_raw_json", False)
     
     # Validate and filter files
     files = []
@@ -270,10 +274,12 @@ def api_submit():
         files,
         model,
         language,
+        profanity_filter=profanity_filter,
         force_regenerate=force_regenerate,
         enable_transcript=enable_transcript,
         speaker_map=speaker_map,
-        keyterms=keyterms
+        keyterms=keyterms,
+        save_raw_json=save_raw_json
     )
     
     return jsonify({

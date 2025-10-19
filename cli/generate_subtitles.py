@@ -27,6 +27,9 @@ from deepgram_captions import DeepgramConverter, srt
 
 from config import Config
 from transcript_generator import TranscriptGenerator, find_speaker_map
+import sys
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+from core.transcribe import get_transcripts_folder, get_json_folder, write_raw_json
 
 
 class SubtitleGenerator:
@@ -120,8 +123,11 @@ class SubtitleGenerator:
                 smart_format=True,
                 utterances=True,
                 punctuate=True,
+                paragraphs=True,
+                timestamps=True,
                 diarize=enable_diarization,
-                language=Config.LANGUAGE
+                language=Config.LANGUAGE,
+                profanity_filter=Config.PROFANITY_FILTER
             )
             
             response = self.client.listen.rest.v("1").transcribe_file(
@@ -184,7 +190,15 @@ class SubtitleGenerator:
     
     def process_video(self, video_path: Path) -> bool:
         srt_path = video_path.with_suffix('.eng.srt')
-        transcript_path = video_path.with_suffix('.transcript.speakers.txt')
+        
+        # Determine transcript path based on Transcripts folder structure
+        if Config.ENABLE_TRANSCRIPT:
+            transcripts_folder = get_transcripts_folder(video_path)
+            transcript_path = transcripts_folder / f"{video_path.stem}.transcript.speakers.txt"
+        else:
+            transcript_path = video_path.with_suffix('.transcript.speakers.txt')
+        
+        synced_marker_path = video_path.with_suffix('.eng.synced')
         
         # Skip logic depends on whether transcript generation is enabled and force regenerate flag
         if not Config.FORCE_REGENERATE:
@@ -232,6 +246,11 @@ class SubtitleGenerator:
                 with open(srt_path, 'w', encoding='utf-8') as f:
                     f.write(srt_content)
                 
+                # Remove Subsyncarr marker file if it exists so Subsyncarr knows to reprocess
+                if synced_marker_path.exists():
+                    synced_marker_path.unlink()
+                    self.log(f"  🗑️  Removed Subsyncarr marker: {synced_marker_path.name}")
+                
                 self.log(f"  ✅ SRT {'regenerated' if srt_already_existed else 'created'}: {srt_path.name}")
                 self.stats["processed"] += 1
                 self.stats["total_minutes"] += duration
@@ -241,7 +260,7 @@ class SubtitleGenerator:
             # Generate transcript if enabled
             if Config.ENABLE_TRANSCRIPT:
                 self.log("  🗣️  Transcript feature enabled — generating diarized transcript...")
-                transcript_generated = self._generate_transcript(video_path)
+                transcript_generated = self._generate_transcript(video_path, response if not srt_already_existed or Config.FORCE_REGENERATE else None)
                 # Count as processed if we generated a transcript for an existing SRT
                 if transcript_generated and srt_already_existed:
                     self.stats["processed"] += 1
@@ -262,17 +281,22 @@ class SubtitleGenerator:
             
             return False
     
-    def _generate_transcript(self, video_path: Path) -> bool:
+    def _generate_transcript(self, video_path: Path, existing_response: dict = None) -> bool:
         """
         Generate speaker-labeled transcript for a video.
         
         Args:
             video_path: Path to the video file
+            existing_response: Optional existing Deepgram response (reuse if provided)
             
         Returns:
             True if transcript was successfully generated, False otherwise
         """
         try:
+            # Get Transcripts folder
+            transcripts_folder = get_transcripts_folder(video_path)
+            transcript_path = transcripts_folder / f"{video_path.stem}.transcript.speakers.txt"
+            
             # Find speaker map for this video
             speaker_map_path = find_speaker_map(video_path, Config.SPEAKER_MAPS_PATH)
             if speaker_map_path:
@@ -280,28 +304,35 @@ class SubtitleGenerator:
             else:
                 self.log(f"  📋 No speaker map found, using generic labels")
             
-            # Transcribe with diarization enabled
-            self.log(f"  🎤 Transcribing with speaker diarization...")
-            response = self.transcribe_audio(Config.TEMP_AUDIO_PATH, enable_diarization=True)
-            if not response:
-                self.log(f"  ⚠️  Transcript transcription failed")
-                return False
+            # Use existing response or transcribe with diarization enabled
+            if existing_response:
+                self.log(f"  🎤 Using existing transcription response for transcript...")
+                response = existing_response
+            else:
+                self.log(f"  🎤 Transcribing with speaker diarization...")
+                response = self.transcribe_audio(Config.TEMP_AUDIO_PATH, enable_diarization=True)
+                if not response:
+                    self.log(f"  ⚠️  Transcript transcription failed")
+                    return False
             
             # Generate transcript
             transcript_gen = TranscriptGenerator(speaker_map_path)
             
-            # Save transcript
-            transcript_path = video_path.with_suffix('.transcript.speakers.txt')
+            # Save transcript to Transcripts folder
             if transcript_gen.generate_transcript(response, str(transcript_path)):
-                self.log(f"  ✅ Transcript created: {transcript_path.name}")
+                self.log(f"  ✅ Transcript created: {transcript_path}")
             else:
                 self.log(f"  ⚠️  Transcript generation failed")
                 return False
             
-            # Save debug JSON
-            debug_json_path = video_path.with_suffix('.deepgram.json')
-            transcript_gen.save_debug_json(response, str(debug_json_path))
-            self.log(f"  🐛 Debug JSON saved: {debug_json_path.name}")
+            # Save raw JSON if enabled
+            if Config.SAVE_RAW_JSON:
+                try:
+                    write_raw_json(response, video_path)
+                    json_folder = get_json_folder(video_path)
+                    self.log(f"  🐛 Raw JSON saved to: {json_folder}")
+                except Exception as e:
+                    self.log(f"  ⚠️  Raw JSON save failed: {e}")
             
             return True
             
@@ -338,7 +369,13 @@ class SubtitleGenerator:
                     
                     # Check if files already exist based on mode (unless force regenerate is enabled)
                     srt_path = video_path.with_suffix('.eng.srt')
-                    transcript_path = video_path.with_suffix('.transcript.speakers.txt')
+                    
+                    # Check for transcript in Transcripts folder if transcript mode is enabled
+                    if Config.ENABLE_TRANSCRIPT:
+                        transcripts_folder = get_transcripts_folder(video_path)
+                        transcript_path = transcripts_folder / f"{video_path.stem}.transcript.speakers.txt"
+                    else:
+                        transcript_path = video_path.with_suffix('.transcript.speakers.txt')
                     
                     if not Config.FORCE_REGENERATE:
                         if Config.ENABLE_TRANSCRIPT:
@@ -375,7 +412,13 @@ class SubtitleGenerator:
                 if Path(file).suffix.lower() in Config.VIDEO_EXTENSIONS:
                     video_path = Path(root) / file
                     srt_path = video_path.with_suffix('.eng.srt')
-                    transcript_path = video_path.with_suffix('.transcript.speakers.txt')
+                    
+                    # Check for transcript in Transcripts folder if transcript mode is enabled
+                    if Config.ENABLE_TRANSCRIPT:
+                        transcripts_folder = get_transcripts_folder(video_path)
+                        transcript_path = transcripts_folder / f"{video_path.stem}.transcript.speakers.txt"
+                    else:
+                        transcript_path = video_path.with_suffix('.transcript.speakers.txt')
                     
                     if Config.FORCE_REGENERATE:
                         # Force regenerate mode - include all videos
