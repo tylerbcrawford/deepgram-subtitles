@@ -26,10 +26,13 @@ from deepgram import DeepgramClient, PrerecordedOptions
 from deepgram_captions import DeepgramConverter, srt
 
 from config import Config
-from transcript_generator import TranscriptGenerator, find_speaker_map
+from transcript_generator import TranscriptGenerator
 import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-from core.transcribe import get_transcripts_folder, get_json_folder, write_raw_json
+from core.transcribe import (
+    get_transcripts_folder, get_json_folder, write_raw_json,
+    load_keyterms_from_csv, save_keyterms_to_csv, find_speaker_map
+)
 
 
 class SubtitleGenerator:
@@ -103,13 +106,14 @@ class SubtitleGenerator:
         except Exception:
             return 0
     
-    def transcribe_audio(self, audio_path: str, enable_diarization: bool = False) -> Optional[dict]:
+    def transcribe_audio(self, audio_path: str, enable_diarization: bool = False, keyterms: list = None) -> Optional[dict]:
         """
         Transcribe audio file using Deepgram API.
         
         Args:
             audio_path: Path to audio file to transcribe
             enable_diarization: Enable speaker diarization for transcripts
+            keyterms: Optional list of keyterms for better recognition (Nova-3)
             
         Returns:
             Deepgram response object, or None if transcription failed
@@ -129,6 +133,10 @@ class SubtitleGenerator:
                 language=Config.LANGUAGE,
                 profanity_filter=Config.PROFANITY_FILTER
             )
+            
+            # Add keyterms if provided (Nova-3 feature)
+            if keyterms and Config.MODEL == "nova-3":
+                options.keyterm = keyterms
             
             response = self.client.listen.rest.v("1").transcribe_file(
                 {"buffer": buffer_data}, options
@@ -221,6 +229,11 @@ class SubtitleGenerator:
         
         self.log(f"🎬 Processing: {video_path.name}")
         
+        # Auto-load keyterms from CSV if available
+        keyterms = load_keyterms_from_csv(video_path)
+        if keyterms:
+            self.log(f"  📋 Auto-loaded {len(keyterms)} keyterms from CSV")
+        
         try:
             duration = self.get_video_duration(str(video_path))
             cost = duration * Config.COST_PER_MINUTE
@@ -236,7 +249,7 @@ class SubtitleGenerator:
             # Generate SRT if it doesn't exist OR if force regenerate is enabled
             if not srt_already_existed or Config.FORCE_REGENERATE:
                 self.log(f"  🧠 Transcribing (nova-3)...")
-                response = self.transcribe_audio(Config.TEMP_AUDIO_PATH)
+                response = self.transcribe_audio(Config.TEMP_AUDIO_PATH, keyterms=keyterms)
                 if not response:
                     raise Exception("Transcription failed")
                 
@@ -260,7 +273,11 @@ class SubtitleGenerator:
             # Generate transcript if enabled
             if Config.ENABLE_TRANSCRIPT:
                 self.log("  🗣️  Transcript feature enabled — generating diarized transcript...")
-                transcript_generated = self._generate_transcript(video_path, response if not srt_already_existed or Config.FORCE_REGENERATE else None)
+                transcript_generated = self._generate_transcript(
+                    video_path,
+                    response if not srt_already_existed or Config.FORCE_REGENERATE else None,
+                    keyterms=keyterms
+                )
                 # Count as processed if we generated a transcript for an existing SRT
                 if transcript_generated and srt_already_existed:
                     self.stats["processed"] += 1
@@ -281,13 +298,14 @@ class SubtitleGenerator:
             
             return False
     
-    def _generate_transcript(self, video_path: Path, existing_response: dict = None) -> bool:
+    def _generate_transcript(self, video_path: Path, existing_response: dict = None, keyterms: list = None) -> bool:
         """
         Generate speaker-labeled transcript for a video.
         
         Args:
             video_path: Path to the video file
             existing_response: Optional existing Deepgram response (reuse if provided)
+            keyterms: Optional keyterms for transcription
             
         Returns:
             True if transcript was successfully generated, False otherwise
@@ -297,8 +315,8 @@ class SubtitleGenerator:
             transcripts_folder = get_transcripts_folder(video_path)
             transcript_path = transcripts_folder / f"{video_path.stem}.transcript.speakers.txt"
             
-            # Find speaker map for this video
-            speaker_map_path = find_speaker_map(video_path, Config.SPEAKER_MAPS_PATH)
+            # Auto-detect speaker map (checks Transcripts/Speakermap/ and falls back to speaker_maps/)
+            speaker_map_path = find_speaker_map(video_path, fallback_path=Config.SPEAKER_MAPS_PATH)
             if speaker_map_path:
                 self.log(f"  📋 Using speaker map: {speaker_map_path}")
             else:
@@ -310,20 +328,15 @@ class SubtitleGenerator:
                 response = existing_response
             else:
                 self.log(f"  🎤 Transcribing with speaker diarization...")
-                response = self.transcribe_audio(Config.TEMP_AUDIO_PATH, enable_diarization=True)
+                response = self.transcribe_audio(Config.TEMP_AUDIO_PATH, enable_diarization=True, keyterms=keyterms)
                 if not response:
                     self.log(f"  ⚠️  Transcript transcription failed")
                     return False
             
-            # Generate transcript
-            transcript_gen = TranscriptGenerator(speaker_map_path)
-            
-            # Save transcript to Transcripts folder
-            if transcript_gen.generate_transcript(response, str(transcript_path)):
-                self.log(f"  ✅ Transcript created: {transcript_path}")
-            else:
-                self.log(f"  ⚠️  Transcript generation failed")
-                return False
+            # Generate transcript using new write_transcript from core
+            from core.transcribe import write_transcript
+            write_transcript(response, transcript_path, speaker_map_path)
+            self.log(f"  ✅ Transcript created: {transcript_path}")
             
             # Save raw JSON if enabled
             if Config.SAVE_RAW_JSON:

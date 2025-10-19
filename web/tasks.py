@@ -16,7 +16,11 @@ from celery import group, chord
 
 # Add parent directory to path to import core module
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-from core.transcribe import is_video, extract_audio, transcribe_file, write_srt, get_transcripts_folder, get_json_folder, write_raw_json
+from core.transcribe import (
+    is_video, extract_audio, transcribe_file, write_srt, get_transcripts_folder,
+    get_json_folder, write_raw_json, load_keyterms_from_csv, save_keyterms_to_csv,
+    find_speaker_map, write_transcript
+)
 
 # Configuration from environment
 REDIS_URL = os.environ.get("REDIS_URL", "redis://redis:6379/0")
@@ -55,7 +59,7 @@ def _save_job_log(payload: dict):
 @celery_app.task(bind=True, name="transcribe_task")
 def transcribe_task(self, video_path: str, model=DEFAULT_MODEL, language=DEFAULT_LANGUAGE,
                     profanity_filter="off", force_regenerate=False, enable_transcript=False,
-                    speaker_map=None, keyterms=None, save_raw_json=False):
+                    speaker_map=None, keyterms=None, save_raw_json=False, auto_save_keyterms=False):
     """
     Transcribe a single video file.
     
@@ -66,23 +70,26 @@ def transcribe_task(self, video_path: str, model=DEFAULT_MODEL, language=DEFAULT
         profanity_filter: Profanity filter mode - "off", "tag", or "remove" (default: off)
         force_regenerate: Force overwrite existing subtitles
         enable_transcript: Generate transcript file in addition to subtitles
-        speaker_map: Optional speaker map name for diarization
+        speaker_map: Optional speaker map name for diarization (deprecated - auto-detected now)
         keyterms: Optional list of keyterms for better recognition (Nova-3, monolingual only)
         save_raw_json: Save raw Deepgram API response for debugging (default: false)
+        auto_save_keyterms: Automatically save keyterms to CSV in Transcripts/Keyterms/ (default: false)
         
     Returns:
         dict: Status and file paths
         
     The task will:
     1. Check if SRT already exists (skip if yes unless force_regenerate)
-    2. Extract audio from video
-    3. Transcribe with Deepgram API
-    4. Generate and save SRT file
-    5. Remove Subsyncarr marker file if present (so Subsyncarr knows to reprocess)
-    6. Optionally generate transcript file to Transcripts folder
-    7. Optionally save raw JSON to Transcripts/JSON folder
-    8. Log the result
-    9. Clean up temporary audio file
+    2. Auto-load keyterms from CSV if available (or use provided keyterms)
+    3. Extract audio from video
+    4. Transcribe with Deepgram API
+    5. Generate and save SRT file
+    6. Remove Subsyncarr marker file if present (so Subsyncarr knows to reprocess)
+    7. Optionally save keyterms to CSV in Transcripts/Keyterms/
+    8. Optionally generate transcript file to Transcripts folder with auto-detected speaker map
+    9. Optionally save raw JSON to Transcripts/JSON folder
+    10. Log the result
+    11. Clean up temporary audio file
     """
     vp = Path(video_path)
     srt_out = vp.with_suffix(".eng.srt")
@@ -106,6 +113,13 @@ def transcribe_task(self, video_path: str, model=DEFAULT_MODEL, language=DEFAULT
     # Skip if SRT already exists (unless force_regenerate)
     if srt_out.exists() and not force_regenerate:
         return {"status": "skipped", **meta}
+    
+    # Auto-load keyterms from CSV if no keyterms provided
+    if not keyterms:
+        csv_keyterms = load_keyterms_from_csv(vp)
+        if csv_keyterms:
+            keyterms = csv_keyterms
+            print(f"Auto-loaded {len(keyterms)} keyterms from CSV")
     
     audio_tmp = None
     try:
@@ -135,11 +149,27 @@ def transcribe_task(self, video_path: str, model=DEFAULT_MODEL, language=DEFAULT
             synced_marker.unlink()
             print(f"Removed Subsyncarr marker: {synced_marker}")
         
+        # Save keyterms to CSV if enabled and keyterms were provided
+        if auto_save_keyterms and keyterms:
+            self.update_state(state='PROGRESS', meta={'current_file': vp.name, 'stage': 'saving_keyterms'})
+            try:
+                if save_keyterms_to_csv(vp, keyterms):
+                    print(f"Saved {len(keyterms)} keyterms to CSV")
+            except Exception as e:
+                print(f"Warning: Failed to save keyterms: {e}")
+        
         # Generate transcript if requested
         if enable_transcript:
             self.update_state(state='PROGRESS', meta={'current_file': vp.name, 'stage': 'generating_transcript'})
-            from core.transcribe import write_transcript
-            write_transcript(resp, txt_out, speaker_map)
+            
+            # Auto-detect speaker map (checks Transcripts/Speakermap/ and falls back to speaker_maps/)
+            speaker_maps_root = Path(os.environ.get("SPEAKER_MAPS_PATH", "/config/speaker_maps"))
+            speaker_map_path = find_speaker_map(vp, fallback_path=speaker_maps_root)
+            
+            if speaker_map_path:
+                print(f"Using speaker map: {speaker_map_path}")
+            
+            write_transcript(resp, txt_out, speaker_map_path)
         
         # Save raw JSON if enabled (either globally or per-request)
         if SAVE_RAW_JSON or save_raw_json:
@@ -199,7 +229,8 @@ def batch_finalize(results):
 
 
 def make_batch(files, model, language, profanity_filter="off", force_regenerate=False,
-               enable_transcript=False, speaker_map=None, keyterms=None, save_raw_json=False):
+               enable_transcript=False, speaker_map=None, keyterms=None, save_raw_json=False,
+               auto_save_keyterms=False):
     """
     Create a batch of transcription jobs.
     
@@ -213,9 +244,10 @@ def make_batch(files, model, language, profanity_filter="off", force_regenerate=
         profanity_filter: Profanity filter mode - "off", "tag", or "remove"
         force_regenerate: Force overwrite existing subtitles
         enable_transcript: Generate transcript files in addition to subtitles
-        speaker_map: Optional speaker map name for diarization
+        speaker_map: Optional speaker map name for diarization (deprecated - auto-detected now)
         keyterms: Optional list of keyterms for better recognition (Nova-3, monolingual)
         save_raw_json: Save raw Deepgram API response for debugging (default: false)
+        auto_save_keyterms: Automatically save keyterms to CSV in Transcripts/Keyterms/ (default: false)
         
     Returns:
         AsyncResult: Celery async result for tracking batch progress
@@ -230,7 +262,8 @@ def make_batch(files, model, language, profanity_filter="off", force_regenerate=
             enable_transcript,
             speaker_map,
             keyterms,
-            save_raw_json
+            save_raw_json,
+            auto_save_keyterms
         ) for f in files
     ]
     return chord(group(jobs))(batch_finalize.s())

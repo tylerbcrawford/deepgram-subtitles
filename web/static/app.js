@@ -354,6 +354,7 @@ async function submitBatch() {
     const enableTranscript = document.getElementById('enableTranscript').checked;
     const forceRegenerate = document.getElementById('forceRegenerate').checked;
     const saveRawJson = document.getElementById('saveRawJson').checked;
+    const autoSaveKeyterms = document.getElementById('autoSaveKeyterms').checked;
     
     // Build request body
     const requestBody = {
@@ -362,7 +363,8 @@ async function submitBatch() {
         language: language,
         profanity_filter: profanityFilter,
         force_regenerate: forceRegenerate,
-        save_raw_json: saveRawJson
+        save_raw_json: saveRawJson,
+        auto_save_keyterms: autoSaveKeyterms
     };
     
     // Add keyterms if provided (independent of transcript generation)
@@ -375,15 +377,6 @@ async function submitBatch() {
     // Add transcript-related fields if enabled
     if (enableTranscript) {
         requestBody.enable_transcript = true;
-        
-        // Only add speaker map if the checkbox is checked
-        const enableSpeakerMap = document.getElementById('enableSpeakerMap').checked;
-        if (enableSpeakerMap) {
-            const speakerMap = document.getElementById('speakerMap').value.trim();
-            if (speakerMap) {
-                requestBody.speaker_map = speakerMap;
-            }
-        }
     }
     
     showStatus('submitStatus', '🚀 Submitting batch...', 'info');
@@ -588,7 +581,8 @@ function updateFileProgress(children) {
                 'transcribing': 'Transcribing with Deepgram',
                 'generating_srt': 'Generating subtitles',
                 'generating_transcript': 'Generating transcript',
-                'saving_raw_json': 'Saving raw JSON'
+                'saving_raw_json': 'Saving raw JSON',
+                'saving_keyterms': 'Saving keyterms to CSV'
             };
             stageText = stageMap[stage] || stage;
         } else if (child.state === 'SUCCESS') {
@@ -633,19 +627,15 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Reset all checkboxes to default (unchecked) state
     document.getElementById('enableTranscript').checked = false;
-    document.getElementById('enableSpeakerMap').checked = false;
     document.getElementById('forceRegenerate').checked = false;
     document.getElementById('saveRawJson').checked = false;
+    document.getElementById('autoSaveKeyterms').checked = false;
     
     // Reset profanity filter to default (off)
     document.getElementById('profanityFilter').value = 'off';
     
-    // Hide transcript and speaker map options
+    // Hide transcript options
     document.getElementById('transcriptOptions').style.display = 'none';
-    document.getElementById('speakerMapInput').style.display = 'none';
-    
-    // Clear speaker map field
-    document.getElementById('speakerMap').value = '';
     
     // Automatically load /media directory on page load
     browseDirectories('/media');

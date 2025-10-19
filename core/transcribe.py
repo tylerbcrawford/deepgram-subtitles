@@ -13,6 +13,8 @@ import subprocess
 import tempfile
 import os
 import json
+import csv
+from typing import Optional, List
 
 # Supported video file extensions
 VIDEO_EXTS = {'.mkv', '.mp4', '.avi', '.mov', '.m4v', '.wmv', '.flv'}
@@ -223,28 +225,220 @@ def get_json_folder(video_path: Path) -> Path:
     return json_folder
 
 
-def write_transcript(resp: dict, dest: Path, speaker_map_name: str = None):
+def get_keyterms_folder(video_path: Path) -> Path:
+    """
+    Get the Keyterms subfolder within the Transcripts folder.
+    
+    Creates: Transcripts/Keyterms/
+    
+    Args:
+        video_path: Path to the video file
+        
+    Returns:
+        Path to the Keyterms folder (created if doesn't exist)
+    """
+    transcripts_folder = get_transcripts_folder(video_path)
+    keyterms_folder = transcripts_folder / "Keyterms"
+    keyterms_folder.mkdir(parents=True, exist_ok=True)
+    return keyterms_folder
+
+
+def get_speakermap_folder(video_path: Path) -> Path:
+    """
+    Get the Speakermap subfolder within the Transcripts folder.
+    
+    Creates: Transcripts/Speakermap/
+    
+    Args:
+        video_path: Path to the video file
+        
+    Returns:
+        Path to the Speakermap folder (created if doesn't exist)
+    """
+    transcripts_folder = get_transcripts_folder(video_path)
+    speakermap_folder = transcripts_folder / "Speakermap"
+    speakermap_folder.mkdir(parents=True, exist_ok=True)
+    return speakermap_folder
+
+
+def load_keyterms_from_csv(video_path: Path) -> Optional[List[str]]:
+    """
+    Load keyterms from CSV file in Transcripts/Keyterms/ folder.
+    
+    Looks for: Transcripts/Keyterms/{show_or_movie_name}_keyterms.csv
+    
+    CSV Format (one keyterm per line):
+    ```
+    Walter White
+    Jesse Pinkman
+    Heisenberg
+    Albuquerque
+    ```
+    
+    Args:
+        video_path: Path to the video file
+        
+    Returns:
+        List of keyterms if CSV exists, None otherwise
+    """
+    try:
+        keyterms_folder = get_keyterms_folder(video_path)
+        
+        # Determine show/movie name from path
+        # For TV: /media/tv/Show Name/Season XX/episode.mkv -> "Show Name"
+        # For Movies: /media/movies/Movie (2024)/movie.mkv -> "Movie (2024)"
+        path_parts = video_path.parts
+        
+        # Try to find the show/movie name
+        show_or_movie_name = None
+        for i, part in enumerate(path_parts):
+            if 'season' in part.lower():
+                # TV show - name is one level up from season
+                if i > 0:
+                    show_or_movie_name = path_parts[i - 1]
+                break
+        
+        if not show_or_movie_name:
+            # Movie - parent directory of video file
+            show_or_movie_name = video_path.parent.name
+        
+        # Look for keyterms CSV
+        csv_path = keyterms_folder / f"{show_or_movie_name}_keyterms.csv"
+        
+        if not csv_path.exists():
+            return None
+        
+        # Read keyterms from CSV
+        keyterms = []
+        with open(csv_path, 'r', encoding='utf-8') as f:
+            reader = csv.reader(f)
+            for row in reader:
+                if row and row[0].strip() and not row[0].strip().startswith('#'):
+                    keyterms.append(row[0].strip())
+        
+        return keyterms if keyterms else None
+        
+    except Exception as e:
+        print(f"Warning: Failed to load keyterms from CSV: {e}")
+        return None
+
+
+def save_keyterms_to_csv(video_path: Path, keyterms: List[str]) -> bool:
+    """
+    Save keyterms to CSV file in Transcripts/Keyterms/ folder.
+    
+    Saves to: Transcripts/Keyterms/{show_or_movie_name}_keyterms.csv
+    
+    Args:
+        video_path: Path to the video file
+        keyterms: List of keyterms to save
+        
+    Returns:
+        True if saved successfully, False otherwise
+    """
+    try:
+        keyterms_folder = get_keyterms_folder(video_path)
+        
+        # Determine show/movie name from path
+        path_parts = video_path.parts
+        show_or_movie_name = None
+        for i, part in enumerate(path_parts):
+            if 'season' in part.lower():
+                if i > 0:
+                    show_or_movie_name = path_parts[i - 1]
+                break
+        
+        if not show_or_movie_name:
+            show_or_movie_name = video_path.parent.name
+        
+        # Save keyterms to CSV
+        csv_path = keyterms_folder / f"{show_or_movie_name}_keyterms.csv"
+        
+        with open(csv_path, 'w', encoding='utf-8', newline='') as f:
+            writer = csv.writer(f)
+            for keyterm in keyterms:
+                if keyterm.strip():
+                    writer.writerow([keyterm.strip()])
+        
+        return True
+        
+    except Exception as e:
+        print(f"Warning: Failed to save keyterms to CSV: {e}")
+        return False
+
+
+def find_speaker_map(video_path: Path, fallback_path: Optional[Path] = None) -> Optional[Path]:
+    """
+    Find speaker map for a video file.
+    
+    Search order:
+    1. Transcripts/Speakermap/speakers.csv (per show/movie)
+    2. Root speaker_maps/{show_or_movie_name}/speakers.csv (backwards compatibility)
+    
+    Args:
+        video_path: Path to the video file
+        fallback_path: Optional fallback path to root speaker_maps directory
+        
+    Returns:
+        Path to speakers.csv if found, None otherwise
+    """
+    try:
+        # First check Transcripts/Speakermap/ folder
+        speakermap_folder = get_speakermap_folder(video_path)
+        local_map = speakermap_folder / "speakers.csv"
+        
+        if local_map.exists():
+            return local_map
+        
+        # Fallback to root speaker_maps directory
+        if fallback_path:
+            # Determine show/movie name from path
+            path_parts = video_path.parts
+            show_or_movie_name = None
+            
+            for i, part in enumerate(path_parts):
+                if 'season' in part.lower():
+                    if i > 0:
+                        show_or_movie_name = path_parts[i - 1]
+                    break
+            
+            if not show_or_movie_name:
+                show_or_movie_name = video_path.parent.name
+            
+            # Check root speaker_maps directory
+            root_map = fallback_path / show_or_movie_name / "speakers.csv"
+            if root_map.exists():
+                return root_map
+        
+        return None
+        
+    except Exception as e:
+        print(f"Warning: Failed to find speaker map: {e}")
+        return None
+
+
+def write_transcript(resp: dict, dest: Path, speaker_map_path: Optional[Path] = None):
     """
     Generate and write transcript text file from Deepgram response.
     
     Args:
         resp: Deepgram transcription response with diarization
         dest: Path where transcript file should be written
-        speaker_map_name: Optional speaker map name for mapping speaker IDs to names
+        speaker_map_path: Optional path to speaker map CSV file
         
     Raises:
         Exception: If transcript generation or writing fails
     """
     # Load speaker map if provided
     speaker_map = {}
-    if speaker_map_name:
-        speaker_map_path = Path(os.environ.get("SPEAKER_MAPS_PATH", "/config/speaker_maps")) / speaker_map_name / "speakers.csv"
-        if speaker_map_path.exists():
-            import csv
-            with open(speaker_map_path, 'r') as f:
+    if speaker_map_path and speaker_map_path.exists():
+        try:
+            with open(speaker_map_path, 'r', encoding='utf-8') as f:
                 reader = csv.DictReader(f)
                 for row in reader:
                     speaker_map[int(row['speaker_id'])] = row['name']
+        except Exception as e:
+            print(f"Warning: Failed to load speaker map: {e}")
     
     # Generate transcript with speaker labels
     transcript_lines = []

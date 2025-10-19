@@ -38,6 +38,21 @@ FORCE_REGENERATE=0|1            # Overwrite existing
 
 ## 🎯 Active Development
 
+### Keyterms Enhancement ✅ COMPLETED (2025-10-19)
+- [x] CSV import/export for keyterms
+- [x] Auto-store keyterms in `Transcripts/Keyterms/` folder per show/movie
+- [x] Web UI CSV upload/download support
+- [x] Auto-load keyterms from CSV when available
+- [x] CLI auto-detection and loading
+- **Status:** COMPLETE - Significantly improves accuracy for character names and terminology
+
+### Speaker Maps Enhancement ✅ COMPLETED (2025-10-19)
+- [x] Auto-detect speaker maps by show/movie directory
+- [x] Store in `Transcripts/Speakermap/` per show
+- [x] Fallback to root `speaker_maps/` directory for backwards compatibility
+- [x] CLI and Web UI integration
+- **Status:** COMPLETE - Improves transcript quality with automatic speaker map detection
+
 ### GUI Visual Overhaul (Deferred)
 - [ ] See [`gui-upgrade.md`](gui-upgrade.md) for full specification
 - **Priority:** HIGH for UX, but non-blocking for beta
@@ -51,15 +66,6 @@ FORCE_REGENERATE=0|1            # Overwrite existing
 ---
 
 ## 📋 Deferred Features (Post-Beta)
-
-### Keyterms Enhancement
-- [ ] CSV import/export for keyterms
-- [ ] Auto-store keyterms in `Transcripts/` folder
-- **Reason:** Manual entry sufficient, adds complexity without critical value
-
-### Speaker Maps
-- [ ] Auto-detect speaker maps by show/movie directory
-- [ ] Store in `Transcripts/Speakermap/` per show
 
 ---
 
@@ -255,14 +261,29 @@ if keyterms and model == "nova-3":
 - ✅ **STANDARDIZED:** Parameters across CLI and Web implementations
 - ✅ Created comprehensive review document (`DEEPGRAM_NOVA3_REVIEW.md`)
 
+**Evening Session - Keyterms & Speaker Maps Enhancement:**
+- ✅ Implemented CSV keyterms storage in `Transcripts/Keyterms/` per show/movie
+- ✅ Added auto-load functionality for keyterms from CSV
+- ✅ Created API endpoints for keyterms CSV upload/download
+- ✅ Implemented auto-detection of speaker maps from `Transcripts/Speakermap/`
+- ✅ Added fallback to root `speaker_maps/` directory for backwards compatibility
+- ✅ Updated CLI to auto-detect and use both keyterms and speaker maps
+- ✅ Updated Web UI with auto-save keyterms checkbox
+- ✅ Removed deprecated speaker map name input (now auto-detected)
+- ✅ Updated [`core/transcribe.py`](../core/transcribe.py) with new helper functions
+- ✅ Updated [`web/tasks.py`](../web/tasks.py) and [`web/app.py`](../web/app.py) with new features
+- ✅ Updated [`cli/generate_subtitles.py`](../cli/generate_subtitles.py) to support auto-detection
+
 ### Decision Log
-1. **Keyterms CSV Import/Export:** Deferred to post-beta - manual entry is sufficient for beta testing
+1. ~~**Keyterms CSV Import/Export:** Deferred to post-beta~~ → **COMPLETED (2025-10-19)** - Implemented with auto-save and auto-load
 2. **README Redesign:** Deferred to post-beta - better to incorporate user feedback first
 3. **GUI Overhaul:** Deferred entirely as separate task - all backend features complete first
 4. **Transcripts Folder Structure:** COMPLETED - improves organization and debugging capability
 5. **Raw JSON Output:** COMPLETED - useful for debugging and advanced users
 6. **Nova-3 Keyterm Fix:** COMPLETED (2025-10-19) - Critical for character name accuracy
 7. **Nova-3 Optional Features:** Deferred to post-beta - numerals, filler_words, language detection are non-critical
+8. **Speaker Maps Auto-Detection:** COMPLETED (2025-10-19) - Now checks `Transcripts/Speakermap/` first, then falls back to root directory
+9. **Keyterms CSV Management:** COMPLETED (2025-10-19) - Full CSV import/export with API endpoints and UI integration
 
 ### Beta Success Criteria
 - ✅ No critical bugs in core transcription

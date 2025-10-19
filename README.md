@@ -133,8 +133,21 @@ This tool generates subtitle files with proper ISO-639-2 language tags (e.g., `.
 
 For a video file `Movie.mkv`, the following files are created:
 - `Movie.eng.srt` - English subtitles (automatically recognized by media servers)
-- `Movie.transcript.speakers.txt` - Speaker-labeled transcript (if `ENABLE_TRANSCRIPT=1`)
-- `Movie.deepgram.json` - Raw API response (debug file, if enabled)
+
+If transcript generation is enabled (`ENABLE_TRANSCRIPT=1`), a `Transcripts/` folder is created:
+```
+Movie Directory/
+├── Movie.mkv
+├── Movie.eng.srt
+└── Transcripts/
+    ├── Movie.transcript.speakers.txt  # Speaker-labeled transcript
+    ├── JSON/
+    │   └── Movie.deepgram.json        # Raw API response (if enabled)
+    ├── Keyterms/
+    │   └── Movie_keyterms.csv         # Auto-saved keyterms (if enabled)
+    └── Speakermap/
+        └── speakers.csv                # Per-show/movie speaker map (optional)
+```
 
 ### Renaming Existing Subtitles
 
@@ -276,17 +289,16 @@ Keyterm Prompting allows you to improve Keyword Recall Rate (KRR) for important 
 ### What to Include as Keyterms
 
 **Good keyterm examples:**
+- **Character names**: Walter White, Daenerys Targaryen, Michael Scott
+- **Show-specific terms**: TARDIS, Vibranium, Dunder Mifflin, Heisenberg
+- **Location names**: Westeros, Albuquerque, King's Landing
 - **Industry-specific terminology**: Medical terms (tretinoin, diagnosis), technical jargon (escalation, API)
-- **Product and company names**: Brand names, service names, competitor names
-- **Multi-word phrases**: Common phrases in your domain (account number, customer service)
+- **Product and company names**: Brand names, service names
 - **Proper nouns**: Names, brands, titles with appropriate capitalization (Deepgram, iPhone, Dr. Smith)
-- **Common non-proper nouns**: Use lowercase (algorithm, protocol, refill)
 
 **What to avoid:**
 - **Generic common words**: Very common words rarely misrecognized (the, and, is)
-- **Overly broad terms**: Words that appear in many contexts without specific meaning
 - **Excessive keyterms**: Stay well under the 500 token limit; focus on the most important 20-50 terms
-- **Inconsistent formatting**: Ensure capitalization matches your desired output
 
 ### Keyterm Limits
 
@@ -294,19 +306,47 @@ Keyterm Prompting allows you to improve Keyword Recall Rate (KRR) for important 
 - **Recommended**: 20-50 focused keyterms for best results
 - **Token estimation**: Approximately 1.3 tokens per word
 
+### CSV Keyterms Management (New!)
+
+Keyterms can now be stored and automatically loaded from CSV files:
+
+**Storage Location:** `Transcripts/Keyterms/{show_or_movie_name}_keyterms.csv`
+
+**CSV Format:** One keyterm per line
+```csv
+Walter White
+Jesse Pinkman
+Heisenberg
+Los Pollos Hermanos
+Albuquerque
+methylamine
+```
+
+**Features:**
+- **Auto-load**: Keyterms are automatically loaded from CSV when available
+- **Auto-save**: Web UI can automatically save keyterms to CSV for reuse
+- **Per-show organization**: Each show/movie has its own keyterms file
+- **API endpoints**: Upload/download keyterms via Web UI API
+
 ### Using Keyterms with CLI
 
-When using the CLI tool, keyterms can be added programmatically in the code. See [`core/transcribe.py`](core/transcribe.py) for implementation details. The CLI implementation is in the [`cli/`](cli/) directory.
+The CLI automatically detects and loads keyterms from CSV files. No manual configuration needed!
+
+```bash
+# Keyterms will be auto-loaded from Transcripts/Keyterms/ if available
+docker compose run --rm deepgram-cli
+```
 
 ### Using Keyterms with Web UI
 
-The Web UI provides a textarea input for keyterms with:
-- Real-time token counter
-- Warning indicators when approaching the 500 token limit
-- Tooltip with best practices
-- Support for comma-delimited entries
+The Web UI provides:
+- Textarea input for manual keyterm entry
+- Auto-save checkbox to store keyterms in CSV
+- Auto-load from existing CSV files
+- API endpoints for CSV upload/download
+- Real-time feedback on keyterm count
 
-See [Web UI](#web-ui-optional) section for more details.
+When "Auto-save Keyterms to CSV" is checked, entered keyterms are automatically saved to `Transcripts/Keyterms/` for future use.
 
 ## Pricing
 
@@ -336,21 +376,34 @@ The application displays estimated costs before processing and logs actual costs
 
 Speaker maps allow you to replace generic "Speaker 0", "Speaker 1" labels with character names in transcripts.
 
+### Auto-Detection (New!)
+
+Speaker maps are now **automatically detected** from two locations (in priority order):
+
+1. **Per-show/movie location (Recommended):** `Transcripts/Speakermap/speakers.csv`
+2. **Root directory (Legacy):** `speaker_maps/{ShowName}/speakers.csv`
+
+No manual configuration needed - the system finds and applies speaker maps automatically!
+
 ### Directory Structure
 
-Create speaker maps in the `speaker_maps/` directory:
+**Option 1: Per-Show/Movie (Recommended)**
+```
+/media/tv/Breaking Bad/Season 01/
+├── Transcripts/
+│   └── Speakermap/
+│       └── speakers.csv    # Auto-detected here first
+└── episode.mkv
+```
 
+**Option 2: Root Directory (Legacy - Still Supported)**
 ```
 speaker_maps/
 ├── Breaking Bad/
-│   └── speakers.csv
-├── The Sopranos/
-│   └── speakers.csv
-└── Movie Title (2024)/
+│   └── speakers.csv        # Fallback location
+└── The Sopranos/
     └── speakers.csv
 ```
-
-The directory name must match your show/movie directory name in your media library.
 
 ### CSV Format
 
@@ -358,33 +411,68 @@ Each `speakers.csv` file maps speaker IDs to character names:
 
 ```csv
 speaker_id,name
-0,Walter
-1,Jesse
-2,Skyler
-3,Hank
+0,Walter White
+1,Jesse Pinkman
+2,Skyler White
+3,Hank Schrader
 ```
 
 ### How to Create Speaker Maps
 
-1. Generate a transcript without a speaker map first to see speaker IDs
-2. Create a directory matching your show/movie name in `speaker_maps/`
-3. Create a `speakers.csv` file with the ID mappings
-4. Reprocess with `ENABLE_TRANSCRIPT=1`
+**Method 1: Per-Show Location (Recommended)**
 
-**Note:** Speaker IDs are assigned based on voice characteristics and may vary between episodes. You may need to adjust mappings per season or episode range.
+1. Generate a transcript to see speaker IDs
+2. Create `Transcripts/Speakermap/speakers.csv` in the show's directory
+3. Add speaker ID mappings
+4. Reprocess - the speaker map will be auto-detected
+
+**Example for TV Show:**
+```bash
+cd "/media/tv/Breaking Bad/Season 01"
+mkdir -p Transcripts/Speakermap
+cat > Transcripts/Speakermap/speakers.csv << EOF
+speaker_id,name
+0,Walter White
+1,Jesse Pinkman
+2,Skyler White
+EOF
+```
+
+**Method 2: Root Directory (Legacy)**
+
+1. Create directory in `speaker_maps/` matching show name
+2. Create `speakers.csv` with mappings
+
+```bash
+mkdir -p speaker_maps/"Breaking Bad"
+cat > speaker_maps/"Breaking Bad"/speakers.csv << EOF
+speaker_id,name
+0,Walter White
+1,Jesse Pinkman
+EOF
+```
+
+### Features
+
+- **Auto-detection**: No configuration needed, works automatically
+- **Per-show organization**: Better file organization alongside transcripts
+- **Backwards compatibility**: Legacy `speaker_maps/` directory still works
+- **CLI & Web UI support**: Works with both interfaces
+
+**Note:** Speaker IDs are assigned based on voice characteristics and may vary between episodes.
 
 ### Example Output
 
 **Without speaker map:**
 ```
-[00:01:23] Speaker 0: I am the one who knocks.
-[00:01:28] Speaker 1: Yeah, science!
+Speaker 0: I am the one who knocks.
+Speaker 1: Yeah, science!
 ```
 
 **With speaker map:**
 ```
-[00:01:23] Walter: I am the one who knocks.
-[00:01:28] Jesse: Yeah, science!
+Walter White: I am the one who knocks.
+Jesse Pinkman: Yeah, science!
 ```
 
 ## File List Format

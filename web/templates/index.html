@@ -326,6 +326,20 @@
                        title="Learn more about keyterm prompting">?</a>
                 </label>
                 <input type="text" id="keyTerms" placeholder="e.g., Deepgram, iPhone, customer service, Dr. Smith">
+                <small style="color: #888; display: block; margin-top: 5px;">
+                    💡 Tip: Keyterms are auto-loaded from CSV if available in Transcripts/Keyterms/
+                </small>
+            </div>
+            
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; margin-bottom: 15px;">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="autoSaveKeyterms">
+                    <span>Auto-save Keyterms to CSV
+                        <a href="#" onclick="alert('Saves keyterms to Transcripts/Keyterms/ folder for future auto-loading'); return false;"
+                           style="margin-left: 5px; color: #4a9eff; text-decoration: none; font-size: 1.1em; cursor: pointer; font-weight: bold;"
+                           title="Save keyterms for reuse">?</a>
+                    </span>
+                </label>
             </div>
             
             <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; margin-bottom: 15px;">
@@ -348,24 +362,12 @@
             </div>
             
             <div id="transcriptOptions" style="display: none; margin-bottom: 15px;">
-                <div class="checkbox-group" style="display: flex; justify-content: center;">
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="enableSpeakerMap" onchange="toggleSpeakerMapInput()">
-                        <span>Use Speaker Map
-                            <a href="https://developers.deepgram.com/docs/diarization" target="_blank" rel="noopener noreferrer"
-                               style="margin-left: 5px; color: #4a9eff; text-decoration: none; font-size: 1.1em; cursor: pointer; font-weight: bold;"
-                               title="Learn more about speaker diarization">?</a>
-                        </span>
-                    </label>
-                </div>
-                <div id="speakerMapInput" style="display: none; max-width: 400px; margin: 10px auto 0;">
-                    <div class="form-group">
-                        <label for="speakerMap">Speaker Map Name</label>
-                        <input type="text" id="speakerMap" placeholder="e.g., Breaking Bad" autocomplete="off">
-                        <small style="color: #888; display: block; margin-top: 5px;">
-                            Speaker map files should be located in speaker_maps/ directory
-                        </small>
-                    </div>
+                <div style="text-align: center; padding: 15px; background: #1a3a5a; border-radius: 4px; margin-bottom: 10px;">
+                    <span style="color: #4a9eff; font-size: 0.95em;">
+                        ℹ️ Speaker maps are now auto-detected from:
+                        <br>1. Transcripts/Speakermap/speakers.csv (per show/movie)
+                        <br>2. speaker_maps/{ShowName}/speakers.csv (legacy support)
+                    </span>
                 </div>
             </div>
         </div>

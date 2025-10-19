@@ -10,9 +10,14 @@ import os
 import json
 import time
 from pathlib import Path
-from flask import Flask, request, jsonify, Response, abort, render_template
+from flask import Flask, request, jsonify, Response, abort, render_template, send_file
+from werkzeug.utils import secure_filename
 from tasks import celery_app, make_batch
-from core.transcribe import is_video, is_media, get_video_duration
+from core.transcribe import (
+    is_video, is_media, get_video_duration,
+    load_keyterms_from_csv, save_keyterms_to_csv,
+    get_keyterms_folder
+)
 
 MEDIA_ROOT = Path(os.environ.get("MEDIA_ROOT", "/media"))
 DEFAULT_MODEL = "nova-3"  # Hardcoded to Nova-3
@@ -234,9 +239,10 @@ def api_submit():
         files: List of video file paths to process
         force_regenerate: Force overwrite existing subtitles (default: false)
         enable_transcript: Generate transcript in addition to subtitles (default: false)
-        speaker_map: Optional speaker map name for diarization
-        key_terms: Optional list of key terms for better recognition (Nova-3)
+        speaker_map: Optional speaker map name for diarization (deprecated - auto-detected)
+        keyterms: Optional list of key terms for better recognition (Nova-3)
         save_raw_json: Save raw Deepgram API response for debugging (default: false)
+        auto_save_keyterms: Automatically save keyterms to CSV (default: false)
         
     Returns:
         JSON with batch_id, count of enqueued files, and submitter email
@@ -258,6 +264,7 @@ def api_submit():
     speaker_map = body.get("speaker_map")
     keyterms = body.get("keyterms")
     save_raw_json = body.get("save_raw_json", False)
+    auto_save_keyterms = body.get("auto_save_keyterms", False)
     
     # Validate and filter files
     files = []
@@ -279,7 +286,8 @@ def api_submit():
         enable_transcript=enable_transcript,
         speaker_map=speaker_map,
         keyterms=keyterms,
-        save_raw_json=save_raw_json
+        save_raw_json=save_raw_json,
+        auto_save_keyterms=auto_save_keyterms
     )
     
     return jsonify({
@@ -377,6 +385,114 @@ def api_progress():
             time.sleep(2)
     
     return Response(stream(), mimetype="text/event-stream")
+
+
+@app.post("/api/keyterms/upload")
+def api_keyterms_upload():
+    """
+    Upload keyterms CSV file for a show/movie.
+    
+    Form Data:
+        file: CSV file with one keyterm per line
+        video_path: Path to any video file in the show/movie directory
+        
+    Returns:
+        JSON with success status and keyterms count
+    """
+    # _require_auth()
+    
+    if 'file' not in request.files:
+        return jsonify({"error": "No file provided"}), 400
+    
+    file = request.files['file']
+    video_path = request.form.get('video_path')
+    
+    if not video_path:
+        return jsonify({"error": "No video_path provided"}), 400
+    
+    vp = Path(video_path)
+    
+    # Security: Ensure path is under MEDIA_ROOT
+    if not str(vp).startswith(str(MEDIA_ROOT)):
+        return jsonify({"error": "Invalid path"}), 400
+    
+    try:
+        # Read keyterms from uploaded file
+        content = file.read().decode('utf-8')
+        keyterms = [line.strip() for line in content.split('\n') if line.strip() and not line.strip().startswith('#')]
+        
+        # Save keyterms using the core function
+        if save_keyterms_to_csv(vp, keyterms):
+            return jsonify({
+                "success": True,
+                "keyterms_count": len(keyterms),
+                "message": f"Uploaded {len(keyterms)} keyterms"
+            })
+        else:
+            return jsonify({"error": "Failed to save keyterms"}), 500
+            
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.get("/api/keyterms/download")
+def api_keyterms_download():
+    """
+    Download keyterms CSV file for a show/movie.
+    
+    Query Parameters:
+        video_path: Path to any video file in the show/movie directory
+        
+    Returns:
+        CSV file download or 404 if not found
+    """
+    # _require_auth()
+    
+    video_path = request.args.get('video_path')
+    
+    if not video_path:
+        return jsonify({"error": "No video_path provided"}), 400
+    
+    vp = Path(video_path)
+    
+    # Security: Ensure path is under MEDIA_ROOT
+    if not str(vp).startswith(str(MEDIA_ROOT)):
+        return jsonify({"error": "Invalid path"}), 400
+    
+    try:
+        # Load keyterms
+        keyterms = load_keyterms_from_csv(vp)
+        
+        if not keyterms:
+            return jsonify({"error": "No keyterms found"}), 404
+        
+        # Get the CSV file path
+        keyterms_folder = get_keyterms_folder(vp)
+        path_parts = vp.parts
+        show_or_movie_name = None
+        for i, part in enumerate(path_parts):
+            if 'season' in part.lower():
+                if i > 0:
+                    show_or_movie_name = path_parts[i - 1]
+                break
+        
+        if not show_or_movie_name:
+            show_or_movie_name = vp.parent.name
+        
+        csv_path = keyterms_folder / f"{show_or_movie_name}_keyterms.csv"
+        
+        if csv_path.exists():
+            return send_file(
+                csv_path,
+                mimetype='text/csv',
+                as_attachment=True,
+                download_name=f"{show_or_movie_name}_keyterms.csv"
+            )
+        else:
+            return jsonify({"error": "Keyterms file not found"}), 404
+            
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 if __name__ == "__main__":
