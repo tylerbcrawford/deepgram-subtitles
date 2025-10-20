@@ -131,16 +131,20 @@ def transcribe_file(buf: bytes, api_key: str, model: str, language: str,
         Exception: If transcription fails
     """
     client = DeepgramClient(api_key=api_key)
+    
+    # Convert profanity_filter to boolean for API compatibility
+    # API expects True/False, not "off"/"tag"/"remove"
+    use_profanity_filter = profanity_filter != "off"
+    
     opts = PrerecordedOptions(
         model=model,
         smart_format=True,
         utterances=True,
         punctuate=True,
         paragraphs=True,
-        timestamps=True,
         diarize=diarize,
         language=language,
-        profanity_filter=profanity_filter
+        profanity_filter=use_profanity_filter
     )
     
     # Add keyterms if provided (Nova-3 feature - monolingual only)

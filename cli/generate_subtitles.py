@@ -122,16 +122,18 @@ class SubtitleGenerator:
             with open(audio_path, "rb") as f:
                 buffer_data = f.read()
             
+            # Convert profanity_filter to boolean for API compatibility
+            use_profanity_filter = Config.PROFANITY_FILTER != "off"
+            
             options = PrerecordedOptions(
                 model=Config.MODEL,
                 smart_format=True,
                 utterances=True,
                 punctuate=True,
                 paragraphs=True,
-                timestamps=True,
                 diarize=enable_diarization,
                 language=Config.LANGUAGE,
-                profanity_filter=Config.PROFANITY_FILTER
+                profanity_filter=use_profanity_filter
             )
             
             # Add keyterms if provided (Nova-3 feature)
