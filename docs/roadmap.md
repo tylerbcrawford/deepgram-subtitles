@@ -141,6 +141,11 @@ MIN_AGE_HOURS=24  # For scheduled scan
 - [ ] Auto-correct timing drift
 - [ ] Subsyncarr workflow integration
 
+### Time Estimation Accuracy
+- [ ] Refine transcription time estimation algorithm (currently overestimates processing duration)
+- [ ] Improve cost calculation accuracy based on actual processing patterns
+- [ ] Add historical processing time tracking for better predictions
+
 ---
 
 ## Reference
