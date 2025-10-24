@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Deepgram Subtitle Generator</title>
+    <title>Subtitle Generator</title>
     <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
@@ -11,8 +11,8 @@
         <!-- Header with Theme Toggle -->
         <header>
             <div class="header-content">
-                <h1>Deepgram Subtitle Generator</h1>
-                <p class="subtitle">Web UI for batch subtitle generation using Deepgram Nova-3 API</p>
+                <h1>Subtitle Generator</h1>
+                <p class="subtitle">Batch subtitle generation using Deepgram Nova-3 API</p>
             </div>
             <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
                 <svg class="theme-icon theme-icon-dark" width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
@@ -32,6 +32,10 @@
                     <div class="cost-primary" id="costPrimary">0 files selected</div>
                     <div class="cost-secondary" id="costSecondary">Select videos to see estimates</div>
                 </div>
+                <div class="job-status-compact" id="jobStatusCompact" style="display:none;">
+                    <div class="cost-primary" id="jobStatusText">Processing...</div>
+                    <div class="cost-secondary" id="jobStatusDetails">0 / 0 completed</div>
+                </div>
                 <button onclick="submitBatch()" id="submitBtn" class="btn-primary" disabled>Select Files to Continue</button>
             </div>
 
@@ -40,7 +44,7 @@
                 <div class="card">
                     <!-- Current Directory Display -->
                     <div class="breadcrumb" id="breadcrumb">
-                        <button class="breadcrumb-item" onclick="navigateToPath('/')" aria-label="Navigate to root">🏠</button>
+                        <button class="breadcrumb-item" onclick="navigateToPath('/')" aria-label="Navigate to root">root</button>
                         <span class="breadcrumb-separator">/</span>
                         <span class="breadcrumb-item current">media</span>
                     </div>
@@ -56,10 +60,13 @@
                         </div>
                     </div>
 
-                    <!-- Selection Actions -->
-                    <div class="browser-toolbar" style="border-top: 1px solid var(--border); border-bottom: none; padding-top: var(--space-m);">
+                    <!-- Selection Actions with Overwrite Option -->
+                    <div class="browser-toolbar" style="border-bottom: none; padding-top: var(--space-m);">
                         <div class="toolbar-left">
-                            <span id="scanStatus" style="font-size: var(--font-caption); color: var(--text-tertiary);"></span>
+                            <label class="checkbox-label" style="margin: 0;">
+                                <input type="checkbox" id="forceRegenerate">
+                                <span>Overwrite Existing Subtitles</span>
+                            </label>
                         </div>
                         <div class="toolbar-right">
                             <button class="btn-link" onclick="selectAll()">Select All</button>
@@ -69,9 +76,9 @@
                     </div>
 
                     <!-- Configuration Options -->
-                    <div class="config-section" style="margin-top: var(--space-l); padding-top: var(--space-l); border-top: 1px solid var(--border);">
+                    <div class="config-section" style="margin-top: var(--space-l);">
                         <div class="form-group">
-                            <label for="language">Language</label>
+                            <label for="language">Audio Language</label>
                             <select id="language">
                                 <option value="en">English</option>
                                 <option value="en-US">English (US)</option>
@@ -105,23 +112,15 @@
                         </div>
                         
                         <div class="form-group">
-                            <label for="profanityFilter">Profanity Filter</label>
-                            <select id="profanityFilter">
-                                <option value="off">Off</option>
-                                <option value="tag">Tag</option>
-                                <option value="remove">Remove</option>
-                            </select>
-                        </div>
-
-                        <div class="checkbox-group" style="margin-top: var(--space-m);">
-                            <label class="checkbox-label">
-                                <input type="checkbox" id="forceRegenerate">
-                                <span>Overwrite Existing Subtitles</span>
-                            </label>
+                            <label for="keyTerms">Keyterm Prompting (optional)</label>
+                            <input type="text" id="keyTerms" placeholder="e.g., Deepgram, iPhone, customer service" aria-label="Keyterm prompting (optional)">
+                            <small style="color: var(--text-tertiary); display: block; margin-top: var(--space-xs);">
+                                Keyterms are auto-loaded and auto-saved from CSV if available
+                            </small>
                         </div>
 
                         <!-- Advanced Options Toggle -->
-                        <div style="margin-top: var(--space-l); text-align: center;">
+                        <div style="margin-top: var(--space-m); text-align: center;">
                             <button class="btn-link" onclick="toggleAdvancedOptions()" id="advancedToggle" style="font-size: var(--font-caption); color: var(--text-tertiary);">
                                 Show Advanced Options ▼
                             </button>
@@ -129,20 +128,17 @@
                     </div>
 
                     <!-- Advanced Options (Collapsible) -->
-                    <div id="advancedOptions" class="config-section hidden" style="padding-top: var(--space-l); border-top: 1px solid var(--border);">
+                    <div id="advancedOptions" class="config-section hidden" style="padding-top: var(--space-l);">
                         <div class="form-group">
-                            <label for="keyTerms">Keyterm Prompting (optional)</label>
-                            <input type="text" id="keyTerms" placeholder="e.g., Deepgram, iPhone, customer service" aria-label="Keyterm prompting (optional)">
-                            <small style="color: var(--text-tertiary); display: block; margin-top: var(--space-xs);">
-                                Keyterms are auto-loaded from CSV if available
-                            </small>
+                            <label for="profanityFilter">Profanity Filter</label>
+                            <select id="profanityFilter">
+                                <option value="off">Off</option>
+                                <option value="tag">Tag</option>
+                                <option value="remove">Remove</option>
+                            </select>
                         </div>
                         
-                        <div class="checkbox-group" style="margin-top: var(--space-m);">
-                            <label class="checkbox-label">
-                                <input type="checkbox" id="autoSaveKeyterms">
-                                <span>Auto-save Keyterms to CSV</span>
-                            </label>
+                        <div class="checkbox-group">
                             <label class="checkbox-label">
                                 <input type="checkbox" id="enableTranscript" onchange="toggleTranscriptOptions()">
                                 <span>Generate Transcript</span>
@@ -164,19 +160,6 @@
                 </div>
             </section>
 
-            <!-- Job Status Section -->
-            <section aria-label="Job progress" id="jobCard" class="card" style="display:none;">
-                <h2>📊 Job Status</h2>
-                <div id="jobStatus" class="job-status"></div>
-                <button onclick="cancelJob()" id="cancelBtn" style="display:none; background: var(--color-red); margin-top: var(--space-m);">Cancel Job</button>
-                <div class="stats" id="jobStats"></div>
-                
-                <!-- File Progress List -->
-                <div id="fileProgress" style="display:none; margin-top: var(--space-l);">
-                    <h3 style="color: var(--text-primary); margin-bottom: var(--space-m);">File Progress</h3>
-                    <div id="fileProgressList"></div>
-                </div>
-            </section>
         </main>
 
         <!-- Footer -->

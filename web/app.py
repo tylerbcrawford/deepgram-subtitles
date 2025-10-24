@@ -96,11 +96,18 @@ def api_browse():
     # _require_auth()
     path = request.args.get("path", str(MEDIA_ROOT))
     show_all = request.args.get("show_all", "false").lower() == "true"
-    path = Path(path)
+    path = Path(path).resolve()
+    media_root_resolved = MEDIA_ROOT.resolve()
     
     # Security: Ensure path is under MEDIA_ROOT
-    if not str(path).startswith(str(MEDIA_ROOT)):
-        abort(400, "Path must be under MEDIA_ROOT")
+    try:
+        # Use is_relative_to for proper path comparison (Python 3.9+)
+        if not path.is_relative_to(media_root_resolved):
+            abort(400, "Path must be under MEDIA_ROOT")
+    except (ValueError, AttributeError):
+        # Fallback for older Python or path comparison issues
+        if not str(path).startswith(str(media_root_resolved)):
+            abort(400, "Path must be under MEDIA_ROOT")
     
     if not path.exists() or not path.is_dir():
         abort(404, "Directory not found")

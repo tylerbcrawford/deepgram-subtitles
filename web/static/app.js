@@ -23,13 +23,17 @@ document.addEventListener('DOMContentLoaded', function() {
         .catch(err => console.error('Failed to load config:', err));
     
     // Reset all checkboxes to default (unchecked) state
-    document.getElementById('enableTranscript').checked = false;
-    document.getElementById('forceRegenerate').checked = false;
-    document.getElementById('saveRawJson').checked = false;
-    document.getElementById('autoSaveKeyterms').checked = false;
+    const enableTranscript = document.getElementById('enableTranscript');
+    const forceRegenerate = document.getElementById('forceRegenerate');
+    const saveRawJson = document.getElementById('saveRawJson');
+    const profanityFilter = document.getElementById('profanityFilter');
+    
+    if (enableTranscript) enableTranscript.checked = false;
+    if (forceRegenerate) forceRegenerate.checked = false;
+    if (saveRawJson) saveRawJson.checked = false;
     
     // Reset profanity filter to default (off)
-    document.getElementById('profanityFilter').value = 'off';
+    if (profanityFilter) profanityFilter.value = 'off';
     
     // Hide transcript options
     document.getElementById('transcriptOptions').style.display = 'none';
@@ -73,7 +77,7 @@ function updateBreadcrumb(path) {
     const parts = path.split('/').filter(p => p.length > 0);
     let html = `
         <button class="breadcrumb-item" onclick="navigateToPath('/')" aria-label="Navigate to root">
-            🏠
+            root
         </button>
     `;
     
@@ -108,6 +112,7 @@ async function browseDirectories(path) {
     const directoryList = document.getElementById('directoryList');
     const showAll = true;
     
+    console.log('Browsing directory:', path);
     updateBreadcrumb(path);
     
     // Show skeleton loader
@@ -120,21 +125,25 @@ async function browseDirectories(path) {
         directoryList.appendChild(skeleton);
     }
     skeleton.classList.remove('hidden');
+    skeleton.style.display = 'block';
     directoryList.style.display = 'block';
     
     try {
         const response = await fetch(`/api/browse?path=${encodeURIComponent(path)}&show_all=${showAll}`);
+        console.log('API Response status:', response.status);
         
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
         
         const data = await response.json();
+        console.log('API Response data:', data);
         
         // Hide skeleton loader
         skeleton = document.getElementById('skeleton');
         if (skeleton) {
             skeleton.classList.add('hidden');
+            skeleton.style.display = 'none';
         }
         
         let html = '';
@@ -201,16 +210,19 @@ async function browseDirectories(path) {
             `;
         }
         
+        console.log('Setting innerHTML with', html.length, 'characters');
         directoryList.innerHTML = html;
+        console.log('Updated directory list, now has', directoryList.children.length, 'children');
         updateSelectionStatus();
         
     } catch (error) {
+        console.error('Browse error:', error);
         const skeletonEl = document.getElementById('skeleton');
         if (skeletonEl) {
             skeletonEl.classList.add('hidden');
+            skeletonEl.style.display = 'none';
         }
         directoryList.innerHTML = `<div style="color: var(--color-red); text-align: center; padding: var(--space-l);">Error: ${error.message}</div>`;
-        console.error('Browse error:', error);
         showToast('error', `Failed to browse directory: ${error.message}`);
     }
 }
@@ -537,7 +549,6 @@ async function submitBatch() {
     const enableTranscript = document.getElementById('enableTranscript').checked;
     const forceRegenerate = document.getElementById('forceRegenerate').checked;
     const saveRawJson = document.getElementById('saveRawJson').checked;
-    const autoSaveKeyterms = document.getElementById('autoSaveKeyterms').checked;
     
     const requestBody = {
         files: selectedFilesList,
@@ -545,13 +556,14 @@ async function submitBatch() {
         language: language,
         profanity_filter: profanityFilter,
         force_regenerate: forceRegenerate,
-        save_raw_json: saveRawJson,
-        auto_save_keyterms: autoSaveKeyterms
+        save_raw_json: saveRawJson
     };
     
     const keyTerms = document.getElementById('keyTerms').value.trim();
     if (keyTerms) {
         requestBody.keyterms = keyTerms.split(',').map(t => t.trim()).filter(t => t.length > 0);
+        // Auto-save keyterms whenever they are provided
+        requestBody.auto_save_keyterms = true;
     }
     
     if (enableTranscript) {
@@ -575,11 +587,14 @@ async function submitBatch() {
         const data = await response.json();
         currentBatchId = data.batch_id;
         
-        showToast('success', `Batch submitted: ${data.enqueued} files queued`);
-        announceToScreenReader(`Batch submitted: ${data.enqueued} files queued`);
+        showToast('info', `Processing ${data.enqueued} files...`);
+        announceToScreenReader(`Processing ${data.enqueued} files`);
         
-        document.getElementById('jobCard').style.display = 'block';
-        document.getElementById('fileProgress').style.display = 'block';
+        // Show compact job status in action bar
+        const costSummary = document.querySelector('.cost-summary');
+        if (costSummary) costSummary.style.display = 'none';
+        document.getElementById('jobStatusCompact').style.display = 'flex';
+        
         startJobMonitoring(currentBatchId);
         
     } catch (error) {
@@ -628,12 +643,25 @@ async function checkJobStatus(batchId) {
             }
             document.getElementById('submitBtn').disabled = false;
             
+            // Hide job status and show cost summary again
+            document.getElementById('jobStatusCompact').style.display = 'none';
+            const costSummary = document.querySelector('.cost-summary');
+            if (costSummary) costSummary.style.display = 'flex';
+            
             if (data.state === 'SUCCESS') {
-                showToast('success', 'Batch processing completed!');
+                const results = data.data?.results || [];
+                const successful = results.filter(r => r.status === 'ok').length;
+                const skipped = results.filter(r => r.status === 'skipped').length;
+                const failed = results.filter(r => r.status === 'error').length;
+                
+                showToast('success', `Batch complete! ${successful} processed, ${skipped} skipped, ${failed} failed`);
                 announceToScreenReader('Batch processing completed');
             } else if (data.state === 'FAILURE') {
                 showToast('error', 'Batch processing failed');
                 announceToScreenReader('Batch processing failed');
+            } else if (data.state === 'REVOKED') {
+                showToast('info', 'Job cancelled');
+                announceToScreenReader('Job cancelled');
             }
         }
         
@@ -666,126 +694,37 @@ async function cancelJob() {
 }
 
 function updateJobDisplay(data) {
-    const statusDiv = document.getElementById('jobStatus');
-    const statsDiv = document.getElementById('jobStats');
-    const cancelBtn = document.getElementById('cancelBtn');
-    const fileProgressDiv = document.getElementById('fileProgress');
+    const jobStatusText = document.getElementById('jobStatusText');
+    const jobStatusDetails = document.getElementById('jobStatusDetails');
     
-    let statusHtml = '';
-    let statsHtml = '';
+    if (!jobStatusText || !jobStatusDetails) return;
     
     if (data.state === 'PENDING') {
-        statusHtml = '<div class="loader"></div>Job queued, waiting to start...';
-        cancelBtn.style.display = 'inline-block';
+        jobStatusText.textContent = 'Job queued...';
+        jobStatusDetails.textContent = 'Waiting to start';
     } else if (data.state === 'STARTED') {
-        statusHtml = '<div class="loader"></div>Processing videos...';
-        cancelBtn.style.display = 'inline-block';
+        jobStatusText.textContent = 'Processing';
         
         if (data.children && data.children.length > 0) {
-            fileProgressDiv.style.display = 'block';
-            updateFileProgress(data.children);
+            const completed = data.children.filter(c => c.state === 'SUCCESS').length;
+            const total = data.children.length;
+            jobStatusDetails.textContent = `${completed} / ${total} files`;
+        } else {
+            jobStatusDetails.textContent = 'In progress...';
         }
     } else if (data.state === 'SUCCESS') {
-        statusHtml = '✅ Batch complete!';
-        cancelBtn.style.display = 'none';
-        
-        if (data.children && data.children.length > 0) {
-            fileProgressDiv.style.display = 'block';
-            updateFileProgress(data.children);
-        }
+        jobStatusText.textContent = '✓ Complete';
         
         if (data.data && data.data.results) {
             const results = data.data.results;
             const successful = results.filter(r => r.status === 'ok').length;
-            const skipped = results.filter(r => r.status === 'skipped').length;
-            const failed = results.filter(r => r.status === 'error').length;
-            
-            statsHtml = `
-                <div class="stat-box">
-                    <div class="stat-value">${successful}</div>
-                    <div class="stat-label">Processed</div>
-                </div>
-                <div class="stat-box">
-                    <div class="stat-value">${skipped}</div>
-                    <div class="stat-label">Skipped</div>
-                </div>
-                <div class="stat-box">
-                    <div class="stat-value">${failed}</div>
-                    <div class="stat-label">Failed</div>
-                </div>
-                <div class="stat-box">
-                    <div class="stat-value">${results.length}</div>
-                    <div class="stat-label">Total</div>
-                </div>
-            `;
+            jobStatusDetails.textContent = `${successful} processed`;
         }
     } else if (data.state === 'FAILURE') {
-        statusHtml = '❌ Batch failed';
-        cancelBtn.style.display = 'none';
-        if (data.data && data.data.error) {
-            statusHtml += `: ${data.data.error}`;
-        }
+        jobStatusText.textContent = '✕ Failed';
+        jobStatusDetails.textContent = 'Check console for errors';
     } else if (data.state === 'REVOKED') {
-        statusHtml = '🛑 Job cancelled';
-        cancelBtn.style.display = 'none';
-    } else {
-        statusHtml = `State: ${data.state}`;
-        cancelBtn.style.display = 'none';
+        jobStatusText.textContent = '⊘ Cancelled';
+        jobStatusDetails.textContent = 'Job stopped';
     }
-    
-    statusDiv.innerHTML = statusHtml;
-    statsDiv.innerHTML = statsHtml;
-}
-
-function updateFileProgress(children) {
-    const fileProgressList = document.getElementById('fileProgressList');
-    let html = '';
-    
-    children.forEach(child => {
-        let statusClass = 'pending';
-        let statusText = 'Pending';
-        let stageText = '';
-        let filename = child.filename || child.current_file || 'Unknown file';
-        
-        if (child.state === 'PROGRESS') {
-            statusClass = 'processing';
-            statusText = '⏳ Processing';
-            const stage = child.stage || '';
-            const stageMap = {
-                'checking': 'Checking existing files',
-                'extracting_audio': 'Extracting audio',
-                'transcribing': 'Transcribing with Deepgram',
-                'generating_srt': 'Generating subtitles',
-                'generating_transcript': 'Generating transcript',
-                'saving_raw_json': 'Saving raw JSON',
-                'saving_keyterms': 'Saving keyterms to CSV'
-            };
-            stageText = stageMap[stage] || stage;
-        } else if (child.state === 'SUCCESS') {
-            if (child.status === 'ok') {
-                statusClass = 'completed';
-                statusText = '✅ Completed';
-            } else if (child.status === 'skipped') {
-                statusClass = 'skipped';
-                statusText = '⏭️ Skipped';
-            }
-        } else if (child.state === 'FAILURE') {
-            statusClass = 'error';
-            statusText = '❌ Error';
-        }
-        
-        if (filename.includes('/')) {
-            filename = filename.split('/').pop();
-        }
-        
-        html += `
-            <div class="file-progress-item ${statusClass}">
-                <div class="progress-filename">${filename}</div>
-                ${stageText ? `<div class="progress-stage">${stageText}</div>` : ''}
-                <div class="progress-status">${statusText}</div>
-            </div>
-        `;
-    });
-    
-    fileProgressList.innerHTML = html || '<div style="color: var(--text-tertiary); text-align: center;">No file details available</div>';
 }

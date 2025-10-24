@@ -113,9 +113,8 @@ header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--space-xl) 0;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: var(--space-xl);
+  padding: var(--space-l) 0 var(--space-m) 0;
+  margin-bottom: var(--space-m);
 }
 
 .header-content {
@@ -355,6 +354,9 @@ input[readonly] {
 /* Checkbox */
 .checkbox-group {
   margin-bottom: var(--space-m);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s);
 }
 
 .checkbox-label {
@@ -363,17 +365,27 @@ input[readonly] {
   cursor: pointer;
   color: var(--text-secondary);
   font-size: var(--font-body);
+  padding: var(--space-s);
+  border-radius: var(--radius-sm);
+  transition: background 150ms ease;
+}
+
+.checkbox-label:hover {
+  background: var(--bg-secondary);
 }
 
 .checkbox-label input[type="checkbox"] {
-  width: 20px;
-  height: 20px;
-  margin-right: var(--space-s);
+  width: 18px;
+  height: 18px;
+  margin-right: var(--space-m);
   cursor: pointer;
+  accent-color: var(--color-blue);
+  flex-shrink: 0;
 }
 
 .checkbox-label span {
   user-select: none;
+  font-size: var(--font-body);
 }
 
 /* ============================================
@@ -461,12 +473,14 @@ input[readonly] {
    ============================================ */
 
 .files-list {
+  min-height: 200px;
   max-height: 400px;
   overflow-y: auto;
   background: var(--bg-primary);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   padding: var(--space-s);
+  display: block;
 }
 
 .file-item,
@@ -526,13 +540,16 @@ input[readonly] {
 .breadcrumb {
   display: flex;
   align-items: center;
-  gap: var(--space-s);
-  padding: var(--space-m);
-  background: var(--surface);
-  border-radius: var(--radius-md);
+  gap: var(--space-xs);
+  padding: var(--space-s) var(--space-m);
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
   margin-bottom: var(--space-m);
   overflow-x: auto;
   scrollbar-width: thin;
+  font-size: var(--font-caption);
+  min-height: 32px;
 }
 
 .breadcrumb-item {
@@ -540,21 +557,20 @@ input[readonly] {
   border: none;
   color: var(--color-blue);
   cursor: pointer;
-  font-size: var(--font-body);
-  padding: var(--space-s);
-  border-radius: var(--radius-sm);
-  transition: background 150ms ease-in-out;
+  font-size: var(--font-caption);
+  padding: 0 var(--space-xs);
+  transition: opacity 150ms ease-in-out;
   white-space: nowrap;
 }
 
 .breadcrumb-item:hover:not(.current) {
-  background: var(--bg-secondary);
+  opacity: 0.7;
 }
 
 .breadcrumb-item.current {
-  color: var(--text-primary);
+  color: var(--text-secondary);
   cursor: default;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .breadcrumb-separator {
@@ -571,161 +587,6 @@ input[readonly] {
   margin-right: var(--space-s);
 }
 
-/* ============================================
-   PROGRESS & JOB STATUS
-   ============================================ */
-
-.job-status {
-  padding: var(--space-m);
-  background: var(--bg-primary);
-  border-radius: var(--radius-sm);
-  margin-top: var(--space-s);
-}
-
-.file-progress-item {
-  padding: var(--space-s);
-  margin: 4px 0;
-  background: var(--surface);
-  border-radius: var(--radius-sm);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.file-progress-item.completed {
-  border-left: 3px solid var(--color-green);
-}
-
-.file-progress-item.processing {
-  border-left: 3px solid var(--color-blue);
-}
-
-.file-progress-item.skipped {
-  border-left: 3px solid var(--color-yellow);
-}
-
-.file-progress-item.error {
-  border-left: 3px solid var(--color-red);
-}
-
-.file-progress-item.pending {
-  border-left: 3px solid var(--disabled);
-}
-
-.progress-filename {
-  flex: 1;
-  font-size: var(--font-caption);
-}
-
-.progress-stage {
-  font-size: var(--font-small);
-  color: var(--text-tertiary);
-  margin-left: var(--space-s);
-}
-
-.progress-status {
-  font-size: var(--font-caption);
-  margin-left: var(--space-s);
-}
-
-/* Progress Section */
-.progress-section {
-  background: var(--surface);
-  border-radius: var(--radius-lg);
-  padding: var(--space-l);
-  margin-top: var(--space-xl);
-  box-shadow: var(--shadow-1);
-}
-
-.progress-section.hidden {
-  display: none;
-}
-
-.progress-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: var(--space-m);
-}
-
-.progress-item {
-  padding: var(--space-m);
-  border-bottom: 1px solid var(--border);
-}
-
-.progress-item:last-child {
-  border-bottom: none;
-}
-
-.progress-item-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: var(--space-s);
-}
-
-.progress-bar {
-  height: 8px;
-  background: var(--bg-secondary);
-  border-radius: 4px;
-  overflow: hidden;
-  margin: var(--space-s) 0;
-}
-
-.progress-fill {
-  height: 100%;
-  background: var(--color-blue);
-  transition: width 300ms ease-out;
-}
-
-.progress-details {
-  display: flex;
-  justify-content: space-between;
-  font-size: var(--font-small);
-  color: var(--text-tertiary);
-}
-
-.progress-status.completed {
-  color: var(--color-green);
-}
-
-.progress-status.error {
-  color: var(--color-red);
-}
-
-.progress-status.processing {
-  color: var(--color-blue);
-}
-
-/* ============================================
-   STATS
-   ============================================ */
-
-.stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: var(--space-m);
-  margin-top: var(--space-m);
-}
-
-.stat-box {
-  background: var(--bg-primary);
-  padding: var(--space-m);
-  border-radius: var(--radius-sm);
-  text-align: center;
-}
-
-.stat-value {
-  font-size: 2em;
-  color: var(--color-blue);
-  font-weight: bold;
-}
-
-.stat-label {
-  color: var(--text-tertiary);
-  font-size: var(--font-caption);
-  margin-top: var(--space-xs);
-}
 
 /* ============================================
    LOADER
@@ -754,6 +615,11 @@ input[readonly] {
 /* Skeleton Loader */
 .skeleton-loader {
   padding: var(--space-m);
+  display: block;
+}
+
+.skeleton-loader.hidden {
+  display: none;
 }
 
 .skeleton-item {
@@ -931,6 +797,17 @@ input[readonly] {
 .cost-secondary {
   font-size: var(--font-small);
   color: var(--text-tertiary);
+}
+
+/* Compact Job Status */
+.job-status-compact {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.job-status-compact .cost-primary {
+  color: var(--color-blue);
 }
 
 /* ============================================
@@ -1273,14 +1150,10 @@ input[readonly] {
 
 .config-section {
   margin-bottom: var(--space-xl);
-  padding-bottom: var(--space-l);
-  border-bottom: 1px solid var(--border);
 }
 
 .config-section:last-child {
   margin-bottom: 0;
-  padding-bottom: 0;
-  border-bottom: none;
 }
 
 .config-header {
