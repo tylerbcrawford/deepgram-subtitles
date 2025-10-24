@@ -37,7 +37,19 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Setup event delegation for directory items
     document.getElementById('directoryList').addEventListener('click', function(e) {
-        const dirItem = e.target.closest('.directory-item[data-path]');
+        // Prevent clicks on file checkboxes and labels from triggering directory navigation
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'LABEL') {
+            return;
+        }
+        
+        // Find the directory-item, checking both the target itself and its ancestors
+        let dirItem = null;
+        if (e.target.classList && e.target.classList.contains('directory-item') && e.target.hasAttribute('data-path')) {
+            dirItem = e.target;
+        } else {
+            dirItem = e.target.closest('.directory-item[data-path]');
+        }
+        
         if (dirItem) {
             const path = dirItem.getAttribute('data-path');
             if (path) {
@@ -226,13 +238,20 @@ async function browseDirectories(path) {
     currentPath = path;
     const directoryList = document.getElementById('directoryList');
     const scanPath = document.getElementById('scanPath');
-    const skeleton = document.getElementById('skeleton');
     const showAll = true;
     
     scanPath.value = path;
     updateBreadcrumb(path);
     
-    // Show skeleton loader
+    // Show skeleton loader - create if it doesn't exist
+    let skeleton = document.getElementById('skeleton');
+    if (!skeleton) {
+        skeleton = document.createElement('div');
+        skeleton.id = 'skeleton';
+        skeleton.className = 'skeleton-loader';
+        skeleton.innerHTML = '<div class="skeleton-item"></div><div class="skeleton-item"></div><div class="skeleton-item"></div>';
+        directoryList.appendChild(skeleton);
+    }
     skeleton.classList.remove('hidden');
     directoryList.style.display = 'block';
     
@@ -245,8 +264,11 @@ async function browseDirectories(path) {
         
         const data = await response.json();
         
-        // Hide skeleton loader
-        skeleton.classList.add('hidden');
+        // Hide skeleton loader if it exists
+        skeleton = document.getElementById('skeleton');
+        if (skeleton) {
+            skeleton.classList.add('hidden');
+        }
         
         let html = '';
         
@@ -306,7 +328,11 @@ async function browseDirectories(path) {
         updateSelectionStatus();
         
     } catch (error) {
-        skeleton.classList.add('hidden');
+        // Hide skeleton loader if it exists
+        const skeletonEl = document.getElementById('skeleton');
+        if (skeletonEl) {
+            skeletonEl.classList.add('hidden');
+        }
         directoryList.innerHTML = `<div style="color: var(--color-red); text-align: center; padding: var(--space-l);">Error: ${error.message}</div>`;
         console.error('Browse error:', error);
         showToast('error', `Failed to browse directory: ${error.message}`);

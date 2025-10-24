@@ -33,41 +33,31 @@
 
 ### 🐛 Known Issues
 
-#### CRITICAL: Folder Navigation Broken
-**Problem**: Clicking on folders in the file browser does not navigate into them.
+#### ✅ RESOLVED: Folder Navigation (2025-01-24)
+**Problem**: Clicking on folders worked on first click, but subsequent clicks caused a JavaScript error: `TypeError: can't access property "classList", skeleton is null`
 
-**Current Implementation**:
-- Using event delegation with `data-path` attributes
-- Event listener attached to `#directoryList` container
-- Uses `e.target.closest('.directory-item[data-path]')` to detect clicks
+**Root Cause**:
+- The `skeleton` loader element was nested inside `#directoryList`
+- When `browseDirectories()` updated `directoryList.innerHTML`, it destroyed the skeleton element
+- Subsequent folder clicks tried to access the now-deleted skeleton element, causing the error
 
-**Attempted Solutions**:
-1. ❌ Inline `onclick` handlers with string escaping - Failed due to special characters in paths
-2. ❌ Individual event listeners per item - Failed, listeners not persisting
-3. ❌ Event delegation pattern - Currently implemented but still not working
+**Solution Implemented**:
+1. **Event Delegation Fix** [`app.js:38-57`](../web/static/app.js:38-57)
+   - Added INPUT/LABEL check to prevent checkbox clicks from triggering navigation
+   - Improved element detection using both direct class check and `closest()`
 
-**Next Steps to Debug**:
-1. Check browser console for JavaScript errors
-2. Verify `data-path` attributes are being set correctly in HTML
-3. Test if event listener is firing with `console.log()` statements
-4. Verify `browseDirectories()` function is being called with correct path
-5. Consider reverting to original working code and applying design changes incrementally
+2. **Skeleton Element Fix** [`app.js:238-265`](../web/static/app.js:238-265)
+   - Check if skeleton exists before using it
+   - Dynamically create skeleton element if it was destroyed
+   - Added null checks in error handling
 
 **Files Modified**:
-- `web/static/app.js` (lines 13-43, 242-305)
-- `web/static/styles.css` (extensive changes)
-- `web/templates/index.html` (HTML structure for toolbar and config sections)
-
-**Potential Root Causes**:
-- CSS `cursor: pointer` might be preventing click events from bubbling
-- `data-path` attributes might be getting HTML-encoded incorrectly
-- Event listener might be attached before DOM is ready
-- Container element might have changed ID or structure
+- [`web/static/app.js`](../web/static/app.js) - Lines 38-57 (event delegation), 238-265 (skeleton handling), 322-328 (error handling)
 
 ### 📋 Remaining Work
 
 #### High Priority
-- [ ] **FIX FOLDER NAVIGATION** - Critical bug blocking user workflow
+- [x] **FIX FOLDER NAVIGATION** - ✅ RESOLVED (2025-01-24)
 - [ ] Test file selection (checkboxes) still work correctly
 - [ ] Verify breadcrumb navigation works
 - [ ] Test "Select All" and "Clear" buttons
