@@ -27,7 +27,6 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('forceRegenerate').checked = false;
     document.getElementById('saveRawJson').checked = false;
     document.getElementById('autoSaveKeyterms').checked = false;
-    document.getElementById('hide-empty').checked = false;
     
     // Reset profanity filter to default (off)
     document.getElementById('profanityFilter').value = 'off';
@@ -42,7 +41,7 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        // Find the directory-item, checking both the target itself and its ancestors
+        // Find the directory-item
         let dirItem = null;
         if (e.target.classList && e.target.classList.contains('directory-item') && e.target.hasAttribute('data-path')) {
             dirItem = e.target;
@@ -64,6 +63,201 @@ document.addEventListener('DOMContentLoaded', function() {
     // Setup keyboard shortcuts
     setupKeyboardShortcuts();
 });
+
+/* ============================================
+   BREADCRUMB NAVIGATION
+   ============================================ */
+
+function updateBreadcrumb(path) {
+    const breadcrumb = document.getElementById('breadcrumb');
+    const parts = path.split('/').filter(p => p.length > 0);
+    let html = `
+        <button class="breadcrumb-item" onclick="navigateToPath('/')" aria-label="Navigate to root">
+            🏠
+        </button>
+    `;
+    
+    let currentPath = '';
+    parts.forEach((part, index) => {
+        currentPath += '/' + part;
+        const isLast = index === parts.length - 1;
+        
+        html += `<span class="breadcrumb-separator">/</span>`;
+        
+        if (isLast) {
+            html += `<span class="breadcrumb-item current">${part}</span>`;
+        } else {
+            const pathCopy = currentPath;
+            html += `<button class="breadcrumb-item" onclick="navigateToPath('${pathCopy}')">${part}</button>`;
+        }
+    });
+    
+    breadcrumb.innerHTML = html;
+}
+
+function navigateToPath(path) {
+    browseDirectories(path || '/');
+}
+
+/* ============================================
+   DIRECTORY BROWSING
+   ============================================ */
+
+async function browseDirectories(path) {
+    currentPath = path;
+    const directoryList = document.getElementById('directoryList');
+    const showAll = true;
+    
+    updateBreadcrumb(path);
+    
+    // Show skeleton loader
+    let skeleton = document.getElementById('skeleton');
+    if (!skeleton) {
+        skeleton = document.createElement('div');
+        skeleton.id = 'skeleton';
+        skeleton.className = 'skeleton-loader';
+        skeleton.innerHTML = '<div class="skeleton-item"></div><div class="skeleton-item"></div><div class="skeleton-item"></div>';
+        directoryList.appendChild(skeleton);
+    }
+    skeleton.classList.remove('hidden');
+    directoryList.style.display = 'block';
+    
+    try {
+        const response = await fetch(`/api/browse?path=${encodeURIComponent(path)}&show_all=${showAll}`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        
+        // Hide skeleton loader
+        skeleton = document.getElementById('skeleton');
+        if (skeleton) {
+            skeleton.classList.add('hidden');
+        }
+        
+        let html = '';
+        
+        // Add parent directory link if not at root
+        if (data.parent_path) {
+            html += `
+                <button class="browser-item directory-item" data-path="${data.parent_path.replace(/"/g, '&quot;')}">
+                    <span class="item-icon">↑</span>
+                    <span class="item-name">Go to parent directory</span>
+                </button>
+            `;
+        }
+        
+        // Add subdirectories
+        if (data.directories.length > 0) {
+            html += '<h3 class="section-header">Folders</h3>';
+            html += '<div class="browser-section">';
+            data.directories.forEach(dir => {
+                html += `
+                    <button class="browser-item directory-item" data-path="${dir.path.replace(/"/g, '&quot;')}" data-video-count="${dir.video_count}">
+                        <span class="item-icon">📁</span>
+                        <span class="item-name">${dir.name}</span>
+                        <span class="item-meta">${dir.video_count} videos</span>
+                        <span class="item-action">→</span>
+                    </button>
+                `;
+            });
+            html += '</div>';
+        }
+        
+        // Add video files with checkboxes
+        if (data.files.length > 0) {
+            html += '<h3 class="section-header">Videos</h3>';
+            html += '<div class="browser-section">';
+            data.files.forEach((file, index) => {
+                const isSelected = selectedFiles.includes(file.path);
+                const statusIcon = getStatusIcon(file);
+                const escapedPath = file.path.replace(/"/g, '&quot;');
+                html += `
+                    <label class="browser-item browser-file ${isSelected ? 'selected' : ''}">
+                        <input type="checkbox" class="item-checkbox" id="file-${index}" value="${escapedPath}"
+                               ${isSelected ? 'checked' : ''}
+                               onchange="toggleFileSelection(this.value)">
+                        ${statusIcon}
+                        <span class="item-name">${file.name}</span>
+                    </label>
+                `;
+            });
+            html += '</div>';
+        }
+        
+        if (data.directories.length === 0 && data.files.length === 0) {
+            html += `
+                <div class="empty-state">
+                    <div class="empty-icon">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="empty-title">No videos found</h3>
+                    <p class="empty-message">This folder doesn't contain any video files</p>
+                </div>
+            `;
+        }
+        
+        directoryList.innerHTML = html;
+        updateSelectionStatus();
+        
+    } catch (error) {
+        const skeletonEl = document.getElementById('skeleton');
+        if (skeletonEl) {
+            skeletonEl.classList.add('hidden');
+        }
+        directoryList.innerHTML = `<div style="color: var(--color-red); text-align: center; padding: var(--space-l);">Error: ${error.message}</div>`;
+        console.error('Browse error:', error);
+        showToast('error', `Failed to browse directory: ${error.message}`);
+    }
+}
+
+function getStatusIcon(file) {
+    if (file.has_subtitles) {
+        return '<span class="item-status" data-status="complete" title="Has subtitles" aria-label="Has subtitles"></span>';
+    } else {
+        return '<span class="item-status" data-status="missing" title="Missing subtitles" aria-label="Missing subtitles"></span>';
+    }
+}
+
+/* ============================================
+   FILE SELECTION
+   ============================================ */
+
+function toggleFileSelection(filePath) {
+    const index = selectedFiles.indexOf(filePath);
+    if (index > -1) {
+        selectedFiles.splice(index, 1);
+    } else {
+        selectedFiles.push(filePath);
+    }
+    updateSelectionStatus();
+    
+    // Update visual selection
+    document.querySelectorAll('.browser-file').forEach(item => {
+        const checkbox = item.querySelector('input[type="checkbox"]');
+        if (checkbox && checkbox.value === filePath) {
+            if (index === -1) {
+                item.classList.add('selected');
+            } else {
+                item.classList.remove('selected');
+            }
+        }
+    });
+    
+    // Calculate estimates
+    if (selectedFiles.length > 0) {
+        calculateEstimatesAuto();
+    } else {
+        const costPrimary = document.getElementById('costPrimary');
+        const costSecondary = document.getElementById('costSecondary');
+        costPrimary.textContent = '0 files selected';
+        costSecondary.textContent = 'Select videos to see estimates';
+    }
+}
 
 /* ============================================
    THEME MANAGEMENT
@@ -195,219 +389,42 @@ function toggleTranscriptOptions() {
     options.style.display = checkbox.checked ? 'block' : 'none';
 }
 
-/* ============================================
-   BREADCRUMB NAVIGATION
-   ============================================ */
-
-function updateBreadcrumb(path) {
-    const breadcrumb = document.getElementById('breadcrumb');
-    const parts = path.split('/').filter(p => p.length > 0);
-    let html = `
-        <button class="breadcrumb-item" onclick="navigateToPath('/')" aria-label="Navigate to root">
-            🏠
-        </button>
-    `;
+function toggleAdvancedOptions() {
+    const advancedOptions = document.getElementById('advancedOptions');
+    const toggleBtn = document.getElementById('advancedToggle');
     
-    let currentPath = '';
-    parts.forEach((part, index) => {
-        currentPath += '/' + part;
-        const isLast = index === parts.length - 1;
-        
-        html += `<span class="breadcrumb-separator">/</span>`;
-        
-        if (isLast) {
-            html += `<span class="breadcrumb-item current">${part}</span>`;
-        } else {
-            const pathCopy = currentPath;
-            html += `<button class="breadcrumb-item" onclick="navigateToPath('${pathCopy}')">${part}</button>`;
-        }
-    });
-    
-    breadcrumb.innerHTML = html;
-}
-
-function navigateToPath(path) {
-    browseDirectories(path || '/');
-}
-
-/* ============================================
-   DIRECTORY BROWSING
-   ============================================ */
-
-async function browseDirectories(path) {
-    currentPath = path;
-    const directoryList = document.getElementById('directoryList');
-    const scanPath = document.getElementById('scanPath');
-    const showAll = true;
-    
-    scanPath.value = path;
-    updateBreadcrumb(path);
-    
-    // Show skeleton loader - create if it doesn't exist
-    let skeleton = document.getElementById('skeleton');
-    if (!skeleton) {
-        skeleton = document.createElement('div');
-        skeleton.id = 'skeleton';
-        skeleton.className = 'skeleton-loader';
-        skeleton.innerHTML = '<div class="skeleton-item"></div><div class="skeleton-item"></div><div class="skeleton-item"></div>';
-        directoryList.appendChild(skeleton);
-    }
-    skeleton.classList.remove('hidden');
-    directoryList.style.display = 'block';
-    
-    try {
-        const response = await fetch(`/api/browse?path=${encodeURIComponent(path)}&show_all=${showAll}`);
-        
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        
-        const data = await response.json();
-        
-        // Hide skeleton loader if it exists
-        skeleton = document.getElementById('skeleton');
-        if (skeleton) {
-            skeleton.classList.add('hidden');
-        }
-        
-        let html = '';
-        
-        // Add parent directory link if not at root
-        if (data.parent_path) {
-            html += `
-                <div class="directory-item" data-path="${data.parent_path.replace(/"/g, '&quot;')}" style="border-bottom: 2px solid var(--border); margin-bottom: var(--space-s); cursor: pointer;">
-                    <div class="directory-item-name">
-                        📁 <strong>..</strong> (Go up to parent directory)
-                    </div>
-                </div>
-            `;
-        }
-        
-        // Add subdirectories
-        if (data.directories.length > 0) {
-            html += '<div style="color: var(--text-tertiary); font-size: var(--font-caption); margin: var(--space-s) 0; font-weight: bold;">📂 Folders:</div>';
-            data.directories.forEach(dir => {
-                html += `
-                    <div class="directory-item" data-path="${dir.path.replace(/"/g, '&quot;')}" data-video-count="${dir.video_count}" style="cursor: pointer;">
-                        <div class="directory-item-name">
-                            📁 ${dir.name}
-                        </div>
-                        <div class="directory-item-count">
-                            ${dir.video_count} videos →
-                        </div>
-                    </div>
-                `;
-            });
-        }
-        
-        // Add video files with checkboxes
-        if (data.files.length > 0) {
-            html += '<div style="color: var(--text-tertiary); font-size: var(--font-caption); margin: var(--space-m) 0 var(--space-s) 0; font-weight: bold; border-top: 2px solid var(--border); padding-top: var(--space-s);">🎬 Videos in this folder:</div>';
-            data.files.forEach((file, index) => {
-                const isSelected = selectedFiles.includes(file.path);
-                const statusIcon = getStatusIcon(file);
-                const escapedPath = file.path.replace(/"/g, '&quot;');
-                html += `
-                    <div class="file-item ${isSelected ? 'selected' : ''}">
-                        <input type="checkbox" id="file-${index}" value="${escapedPath}"
-                               ${isSelected ? 'checked' : ''}
-                               onchange="toggleFileSelection(this.value)">
-                        <label for="file-${index}" style="flex: 1; cursor: pointer; display: flex; align-items: center; gap: var(--space-s);">
-                            ${statusIcon} ${file.name}
-                        </label>
-                    </div>
-                `;
-            });
-        }
-        
-        if (data.directories.length === 0 && data.files.length === 0) {
-            html += '<div style="color: var(--text-tertiary); text-align: center; padding: var(--space-l);">No folders or videos found</div>';
-        }
-        
-        directoryList.innerHTML = html;
-        updateSelectionStatus();
-        
-    } catch (error) {
-        // Hide skeleton loader if it exists
-        const skeletonEl = document.getElementById('skeleton');
-        if (skeletonEl) {
-            skeletonEl.classList.add('hidden');
-        }
-        directoryList.innerHTML = `<div style="color: var(--color-red); text-align: center; padding: var(--space-l);">Error: ${error.message}</div>`;
-        console.error('Browse error:', error);
-        showToast('error', `Failed to browse directory: ${error.message}`);
-    }
-}
-
-function getStatusIcon(file) {
-    if (file.has_subtitles) {
-        return '<span class="status-icon" style="color: var(--color-green);" title="Has subtitles" aria-label="Has subtitles">✓</span>';
+    if (advancedOptions.classList.contains('hidden')) {
+        advancedOptions.classList.remove('hidden');
+        toggleBtn.textContent = 'Hide Advanced Options ▲';
     } else {
-        return '<span class="status-icon" style="color: var(--color-yellow);" title="Missing subtitles" aria-label="Missing subtitles">⚠️</span>';
+        advancedOptions.classList.add('hidden');
+        toggleBtn.textContent = 'Show Advanced Options ▼';
     }
-}
-
-function refreshBrowser() {
-    if (currentPath) {
-        browseDirectories(currentPath);
-        showToast('info', 'Directory refreshed');
-    }
-}
-
-/* ============================================
-   FILTER MANAGEMENT
-   ============================================ */
-
-function filterEmptyFolders() {
-    const hideEmpty = document.getElementById('hide-empty').checked;
-    const folders = document.querySelectorAll('.directory-item');
-    
-    folders.forEach(folder => {
-        const count = parseInt(folder.dataset.videoCount);
-        if (!isNaN(count)) {
-            if (hideEmpty && count === 0) {
-                folder.style.display = 'none';
-            } else {
-                folder.style.display = 'flex';
-            }
-        }
-    });
-    
-    announceToScreenReader(hideEmpty ? 'Empty folders hidden' : 'Showing all folders');
 }
 
 /* ============================================
    FILE SELECTION
    ============================================ */
 
-function toggleFileSelection(filePath) {
-    const index = selectedFiles.indexOf(filePath);
-    if (index > -1) {
-        selectedFiles.splice(index, 1);
-        console.log('Deselected:', filePath);
-    } else {
-        selectedFiles.push(filePath);
-        console.log('Selected:', filePath);
-    }
-    console.log('Total selected files:', selectedFiles.length);
-    updateSelectionStatus();
+function updateSelectionStatus() {
+    const count = selectedFiles.length;
+    const submitBtn = document.getElementById('submitBtn');
+    const scanStatus = document.getElementById('scanStatus');
     
-    // Update visual selection
-    document.querySelectorAll('.file-item').forEach(item => {
-        const checkbox = item.querySelector('input[type="checkbox"]');
-        if (checkbox && checkbox.value === filePath) {
-            if (index === -1) {
-                item.classList.add('selected');
-            } else {
-                item.classList.remove('selected');
-            }
+    if (count > 0) {
+        if (scanStatus) scanStatus.textContent = `${count} file${count > 1 ? 's' : ''} selected`;
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = `Transcribe ${count} File${count > 1 ? 's' : ''}`;
         }
-    });
-    
-    // Automatically calculate estimates
-    if (selectedFiles.length > 0) {
+        announceToScreenReader(`${count} file${count > 1 ? 's' : ''} selected`);
         calculateEstimatesAuto();
     } else {
+        if (scanStatus) scanStatus.textContent = '';
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Select Files to Continue';
+        }
         const costPrimary = document.getElementById('costPrimary');
         const costSecondary = document.getElementById('costSecondary');
         costPrimary.textContent = '0 files selected';
@@ -415,97 +432,34 @@ function toggleFileSelection(filePath) {
     }
 }
 
-function updateSelectionStatus() {
-    const count = selectedFiles.length;
-    const submitBtn = document.getElementById('submitBtn');
-    const selectionPanel = document.getElementById('selectionPanel');
-    const selectionCount = document.getElementById('selectionCount');
-    
-    if (count > 0) {
-        showStatus('scanStatus', `✅ ${count} file${count > 1 ? 's' : ''} selected`, 'success');
-        if (submitBtn) {
-            submitBtn.disabled = false;
-            submitBtn.textContent = `Transcribe ${count} File${count > 1 ? 's' : ''}`;
-        }
-        selectionPanel.classList.remove('hidden');
-        selectionCount.textContent = `✓ ${count} file${count > 1 ? 's' : ''} selected`;
-        
-        announceToScreenReader(`${count} file${count > 1 ? 's' : ''} selected`);
-    } else {
-        showStatus('scanStatus', 'Select files to continue', 'info');
-        if (submitBtn) {
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'Select Files to Continue';
-        }
-        selectionPanel.classList.add('hidden');
-    }
-    
-    console.log('Selection updated:', count, 'files selected');
-}
-
 function selectAll() {
     selectedFiles = [];
-    document.querySelectorAll('.file-item input[type="checkbox"]').forEach(cb => {
+    document.querySelectorAll('.browser-file input[type="checkbox"]').forEach(cb => {
         cb.checked = true;
         const filePath = cb.value;
         if (!selectedFiles.includes(filePath)) {
             selectedFiles.push(filePath);
         }
-        cb.closest('.file-item').classList.add('selected');
+        cb.closest('.browser-file').classList.add('selected');
     });
     updateSelectionStatus();
     if (selectedFiles.length > 0) {
-        calculateEstimatesAuto();
         showToast('success', `Selected all ${selectedFiles.length} files`);
     }
 }
 
 function selectNone() {
     selectedFiles = [];
-    document.querySelectorAll('.file-item input[type="checkbox"]').forEach(cb => {
+    document.querySelectorAll('.browser-file input[type="checkbox"]').forEach(cb => {
         cb.checked = false;
-        cb.closest('.file-item').classList.remove('selected');
+        cb.closest('.browser-file').classList.remove('selected');
     });
     updateSelectionStatus();
-    
-    const costPrimary = document.getElementById('costPrimary');
-    const costSecondary = document.getElementById('costSecondary');
-    costPrimary.textContent = '0 files selected';
-    costSecondary.textContent = 'Select videos to see estimates';
-    
     showToast('info', 'Selection cleared');
 }
 
 function clearSelection() {
     selectNone();
-}
-
-/* ============================================
-   SELECTION PANEL
-   ============================================ */
-
-function toggleSelectionList() {
-    const list = document.getElementById('selectionList');
-    const btn = document.getElementById('viewFilesBtn');
-    
-    if (list.classList.contains('hidden')) {
-        // Show list
-        list.classList.remove('hidden');
-        btn.textContent = 'hide files ▲';
-        
-        // Populate list
-        let html = '<ul style="list-style: none; padding: 0; margin: 0;">';
-        selectedFiles.forEach(file => {
-            const filename = file.split('/').pop();
-            html += `<li style="padding: var(--space-xs) 0; color: rgba(255, 255, 255, 0.9);">• ${filename}</li>`;
-        });
-        html += '</ul>';
-        list.innerHTML = html;
-    } else {
-        // Hide list
-        list.classList.add('hidden');
-        btn.textContent = 'view files ▼';
-    }
 }
 
 /* ============================================
@@ -568,7 +522,7 @@ function displayEstimates(data) {
 
 async function submitBatch() {
     const selectedFilesList = Array.from(
-        document.querySelectorAll('.file-item input[type="checkbox"]:checked')
+        document.querySelectorAll('.browser-file input[type="checkbox"]:checked')
     ).map(cb => cb.value);
     
     if (selectedFilesList.length === 0) {
@@ -604,8 +558,8 @@ async function submitBatch() {
         requestBody.enable_transcript = true;
     }
     
-    showStatus('submitStatus', '🚀 Submitting batch...', 'info');
     document.getElementById('submitBtn').disabled = true;
+    showToast('info', 'Submitting batch...');
     
     try {
         const response = await fetch('/api/submit', {
@@ -621,11 +575,6 @@ async function submitBatch() {
         const data = await response.json();
         currentBatchId = data.batch_id;
         
-        showStatus('submitStatus', 
-            `✅ Batch submitted! ${data.enqueued} files queued. Batch ID: ${currentBatchId}`, 
-            'success'
-        );
-        
         showToast('success', `Batch submitted: ${data.enqueued} files queued`);
         announceToScreenReader(`Batch submitted: ${data.enqueued} files queued`);
         
@@ -634,7 +583,6 @@ async function submitBatch() {
         startJobMonitoring(currentBatchId);
         
     } catch (error) {
-        showStatus('submitStatus', `❌ Error: ${error.message}`, 'error');
         console.error('Submit error:', error);
         showToast('error', `Failed to submit batch: ${error.message}`);
         document.getElementById('submitBtn').disabled = false;
@@ -708,7 +656,6 @@ async function cancelJob() {
         
         if (response.ok) {
             document.getElementById('cancelBtn').style.display = 'none';
-            showStatus('submitStatus', '🛑 Job cancelled', 'info');
             showToast('info', 'Job cancelled');
             announceToScreenReader('Job cancelled');
         }

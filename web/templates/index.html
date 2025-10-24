@@ -35,43 +35,16 @@
                 <button onclick="submitBatch()" id="submitBtn" class="btn-primary" disabled>Select Files to Continue</button>
             </div>
 
-            <!-- File Browser Section -->
-            <section aria-label="File browser">
+            <!-- File Selection Section -->
+            <section aria-label="File selection">
                 <div class="card">
-                    <!-- Breadcrumb Navigation -->
+                    <!-- Current Directory Display -->
                     <div class="breadcrumb" id="breadcrumb">
-                        <button class="breadcrumb-item" onclick="navigateToPath('/')" aria-label="Navigate to root">
-                            🏠
-                        </button>
+                        <button class="breadcrumb-item" onclick="navigateToPath('/')" aria-label="Navigate to root">🏠</button>
                         <span class="breadcrumb-separator">/</span>
                         <span class="breadcrumb-item current">media</span>
                     </div>
 
-                    <!-- Current Directory Display -->
-                    <div class="form-group">
-                        <label for="scanPath">
-                            Current Directory
-                            <span onclick="refreshBrowser()" style="cursor: pointer; margin-left: 8px; font-size: 1.4em; color: var(--color-blue); font-weight: bold;" title="Refresh directory">↻</span>
-                        </label>
-                        <input type="text" id="scanPath" value="/media" placeholder="/media/tv/ShowName" readonly
-                               aria-label="Current directory path">
-                    </div>
-                    
-                    <!-- Clean Toolbar -->
-                    <div class="browser-toolbar">
-                        <div class="toolbar-left">
-                            <label class="checkbox-label minimal">
-                                <input type="checkbox" id="hide-empty" onchange="filterEmptyFolders()">
-                                <span>Hide empty folders</span>
-                            </label>
-                        </div>
-                        <div class="toolbar-right">
-                            <button class="btn-link" onclick="selectAll()">Select All</button>
-                            <span class="separator">•</span>
-                            <button class="btn-link" onclick="selectNone()">Clear</button>
-                        </div>
-                    </div>
-                    
                     <!-- Directory Browser -->
                     <div id="directoryBrowser">
                         <div id="directoryList" class="files-list">
@@ -82,125 +55,93 @@
                             </div>
                         </div>
                     </div>
-                    
-                    <div id="scanStatus" class="status"></div>
-                </div>
 
-                <!-- Selection Panel -->
-                <div class="selection-panel hidden" id="selectionPanel">
-                    <div class="selection-summary">
-                        <span class="selection-count" id="selectionCount">✓ 0 files selected</span>
-                        <button class="btn-text" onclick="toggleSelectionList()" id="viewFilesBtn">
-                            view files ▼
-                        </button>
-                        <button class="btn-text" onclick="clearSelection()">
-                            clear all
-                        </button>
+                    <!-- Selection Actions -->
+                    <div class="browser-toolbar" style="border-top: 1px solid var(--border); border-bottom: none; padding-top: var(--space-m);">
+                        <div class="toolbar-left">
+                            <span id="scanStatus" style="font-size: var(--font-caption); color: var(--text-tertiary);"></span>
+                        </div>
+                        <div class="toolbar-right">
+                            <button class="btn-link" onclick="selectAll()">Select All</button>
+                            <span class="separator">•</span>
+                            <button class="btn-link" onclick="selectNone()">Clear</button>
+                        </div>
                     </div>
-                    <div class="selection-list hidden" id="selectionList">
-                        <!-- Dynamically populated with selected file names -->
-                    </div>
-                </div>
-            </section>
 
-            <!-- Configuration Section -->
-            <section aria-label="Transcription options">
-                <div class="card">
-                    <h2>Configuration</h2>
-                    
-                    <div id="submitStatus" class="status"></div>
-                    
-                    <!-- Language & Model -->
-                    <div class="config-section">
-                        <h3 class="config-header">Language & Processing</h3>
-                        
+                    <!-- Configuration Options -->
+                    <div class="config-section" style="margin-top: var(--space-l); padding-top: var(--space-l); border-top: 1px solid var(--border);">
                         <div class="form-group">
                             <label for="language">Language</label>
                             <select id="language">
-                            <option value="en">English</option>
-                            <option value="en-US">English (US)</option>
-                            <option value="en-AU">English (Australia)</option>
-                            <option value="en-GB">English (UK)</option>
-                            <option value="en-IN">English (India)</option>
-                            <option value="en-NZ">English (New Zealand)</option>
-                            <option value="en-CA">English (Canada)</option>
-                            <option value="en-IE">English (Ireland)</option>
-                            <option value="es">Spanish</option>
-                            <option value="es-419">Spanish (Latin America)</option>
-                            <option value="fr">French</option>
-                            <option value="fr-CA">French (Canada)</option>
-                            <option value="de">German</option>
-                            <option value="hi">Hindi</option>
-                            <option value="ru">Russian</option>
-                            <option value="pt">Portuguese</option>
-                            <option value="pt-BR">Portuguese (Brazil)</option>
-                            <option value="pt-PT">Portuguese (Portugal)</option>
-                            <option value="ja">Japanese</option>
-                            <option value="it">Italian</option>
-                            <option value="nl">Dutch</option>
-                            <option value="sv">Swedish</option>
-                            <option value="sv-SE">Swedish (Sweden)</option>
-                            <option value="da">Danish</option>
-                            <option value="da-DK">Danish (Denmark)</option>
-                            <option value="tr">Turkish</option>
-                            <option value="no">Norwegian</option>
-                            <option value="id">Indonesian</option>
+                                <option value="en">English</option>
+                                <option value="en-US">English (US)</option>
+                                <option value="en-AU">English (Australia)</option>
+                                <option value="en-GB">English (UK)</option>
+                                <option value="en-IN">English (India)</option>
+                                <option value="en-NZ">English (New Zealand)</option>
+                                <option value="en-CA">English (Canada)</option>
+                                <option value="en-IE">English (Ireland)</option>
+                                <option value="es">Spanish</option>
+                                <option value="es-419">Spanish (Latin America)</option>
+                                <option value="fr">French</option>
+                                <option value="fr-CA">French (Canada)</option>
+                                <option value="de">German</option>
+                                <option value="hi">Hindi</option>
+                                <option value="ru">Russian</option>
+                                <option value="pt">Portuguese</option>
+                                <option value="pt-BR">Portuguese (Brazil)</option>
+                                <option value="pt-PT">Portuguese (Portugal)</option>
+                                <option value="ja">Japanese</option>
+                                <option value="it">Italian</option>
+                                <option value="nl">Dutch</option>
+                                <option value="sv">Swedish</option>
+                                <option value="sv-SE">Swedish (Sweden)</option>
+                                <option value="da">Danish</option>
+                                <option value="da-DK">Danish (Denmark)</option>
+                                <option value="tr">Turkish</option>
+                                <option value="no">Norwegian</option>
+                                <option value="id">Indonesian</option>
                             </select>
                         </div>
                         
                         <div class="form-group">
-                            <label for="profanityFilter">
-                                Profanity Filter
-                                <a href="https://developers.deepgram.com/docs/profanity-filter" target="_blank" rel="noopener noreferrer"
-                                   class="info-tooltip"
-                                   title="Learn more about profanity filtering">?</a>
-                            </label>
+                            <label for="profanityFilter">Profanity Filter</label>
                             <select id="profanityFilter">
-                                <option value="off">Off (no filtering)</option>
-                                <option value="tag">Tag (mark but keep words)</option>
-                                <option value="remove">Remove (censor completely)</option>
+                                <option value="off">Off</option>
+                                <option value="tag">Tag</option>
+                                <option value="remove">Remove</option>
                             </select>
                         </div>
-                    </div>
-                    
-                    <!-- Advanced Options -->
-                    <div class="config-section">
-                        <h3 class="config-header">Advanced Options</h3>
-                        
-                        <div class="form-group">
-                            <label for="keyTerms" class="input-label">
-                                Keyterm Prompting (optional)
-                                <a href="https://developers.deepgram.com/docs/keyterm" target="_blank" rel="noopener noreferrer"
-                                   class="info-tooltip"
-                                   title="Learn more about keyterm prompting">?</a>
-                            </label>
-                            <input type="text" id="keyTerms" placeholder="e.g., Deepgram, iPhone, customer service, Dr. Smith"
-                                   aria-label="Keyterm prompting (optional)">
-                            <small style="color: var(--text-tertiary); display: block; margin-top: var(--space-xs);">
-                                Keyterms are auto-loaded from CSV if available in Transcripts/Keyterms/
-                            </small>
-                        </div>
-                        
-                        <div class="checkbox-group">
-                            <label class="checkbox-label">
-                                <input type="checkbox" id="autoSaveKeyterms">
-                                <span>Auto-save Keyterms to CSV
-                                    <a href="#" onclick="showToast('info', 'Saves keyterms to Transcripts/Keyterms/ folder for future auto-loading'); return false;"
-                                       class="info-tooltip"
-                                       title="Save keyterms for reuse">?</a>
-                                </span>
-                            </label>
-                        </div>
-                    </div>
-                    
-                    <!-- Generation Options -->
-                    <div class="config-section">
-                        <h3 class="config-header">Generation Options</h3>
-                        
-                        <div class="checkbox-group">
+
+                        <div class="checkbox-group" style="margin-top: var(--space-m);">
                             <label class="checkbox-label">
                                 <input type="checkbox" id="forceRegenerate">
                                 <span>Overwrite Existing Subtitles</span>
+                            </label>
+                        </div>
+
+                        <!-- Advanced Options Toggle -->
+                        <div style="margin-top: var(--space-l); text-align: center;">
+                            <button class="btn-link" onclick="toggleAdvancedOptions()" id="advancedToggle" style="font-size: var(--font-caption); color: var(--text-tertiary);">
+                                Show Advanced Options ▼
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Advanced Options (Collapsible) -->
+                    <div id="advancedOptions" class="config-section hidden" style="padding-top: var(--space-l); border-top: 1px solid var(--border);">
+                        <div class="form-group">
+                            <label for="keyTerms">Keyterm Prompting (optional)</label>
+                            <input type="text" id="keyTerms" placeholder="e.g., Deepgram, iPhone, customer service" aria-label="Keyterm prompting (optional)">
+                            <small style="color: var(--text-tertiary); display: block; margin-top: var(--space-xs);">
+                                Keyterms are auto-loaded from CSV if available
+                            </small>
+                        </div>
+                        
+                        <div class="checkbox-group" style="margin-top: var(--space-m);">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="autoSaveKeyterms">
+                                <span>Auto-save Keyterms to CSV</span>
                             </label>
                             <label class="checkbox-label">
                                 <input type="checkbox" id="enableTranscript" onchange="toggleTranscriptOptions()">
@@ -208,22 +149,16 @@
                             </label>
                             <label class="checkbox-label">
                                 <input type="checkbox" id="saveRawJson">
-                                <span>Save Raw JSON
-                                    <a href="https://developers.deepgram.com/docs/getting-started-with-pre-recorded-audio" target="_blank" rel="noopener noreferrer"
-                                       class="info-tooltip"
-                                       title="Debug mode: saves raw API response to Transcripts/JSON/">?</a>
-                                </span>
+                                <span>Save Raw JSON</span>
                             </label>
                         </div>
-                    </div>
-                    
-                    <div id="transcriptOptions" style="display: none; margin-bottom: var(--space-m);">
-                        <div class="status info">
-                            <span style="color: var(--color-blue); font-size: var(--font-caption);">
-                                ℹ️ Speaker maps are now auto-detected from:
-                                <br>1. Transcripts/Speakermap/speakers.csv (per show/movie)
-                                <br>2. speaker_maps/{ShowName}/speakers.csv (legacy support)
-                            </span>
+                        
+                        <div id="transcriptOptions" style="display: none; margin-top: var(--space-m);">
+                            <div class="status info">
+                                <span style="color: var(--color-blue); font-size: var(--font-caption);">
+                                    ℹ️ Speaker maps auto-detected from Transcripts/Speakermap/speakers.csv
+                                </span>
+                            </div>
                         </div>
                     </div>
                 </div>

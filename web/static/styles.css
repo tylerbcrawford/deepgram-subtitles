@@ -1318,6 +1318,136 @@ button:active,
 }
 
 /* ============================================
+   FILE DROP ZONE - MINIMAL DESIGN
+   ============================================ */
+
+.file-drop-zone {
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xxl);
+  text-align: center;
+  transition: all 200ms ease;
+  background: var(--bg-primary);
+  cursor: pointer;
+}
+
+.file-drop-zone:hover {
+  border-color: var(--color-blue);
+  background: var(--bg-secondary);
+}
+
+.file-drop-zone.drag-over {
+  border-color: var(--color-blue);
+  background: rgba(0, 174, 239, 0.05);
+  border-style: solid;
+}
+
+.drop-zone-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-select-files {
+  background: var(--surface);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  padding: 12px 32px;
+  border-radius: var(--radius-md);
+  font-size: var(--font-body);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 200ms ease;
+  min-height: 44px;
+}
+
+.btn-select-files:hover {
+  background: var(--bg-secondary);
+  border-color: var(--color-blue);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-1);
+}
+
+.btn-select-files:active {
+  transform: scale(0.98);
+}
+
+/* Selected Files List */
+.selected-files-list {
+  margin-top: var(--space-l);
+  padding-top: var(--space-l);
+  border-top: 1px solid var(--border);
+}
+
+.selected-files-list.hidden {
+  display: none;
+}
+
+.selected-files-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-m);
+}
+
+.selected-files-content {
+  max-height: 300px;
+  overflow-y: auto;
+  background: var(--bg-primary);
+  border-radius: var(--radius-md);
+  padding: var(--space-s);
+}
+
+.selected-file-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-m);
+  margin: 2px 0;
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+  transition: background 150ms ease;
+}
+
+.selected-file-item:hover {
+  background: var(--bg-secondary);
+}
+
+.selected-file-name {
+  flex: 1;
+  font-size: var(--font-body);
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-right: var(--space-m);
+}
+
+.selected-file-size {
+  font-size: var(--font-small);
+  color: var(--text-tertiary);
+  margin-right: var(--space-m);
+  white-space: nowrap;
+}
+
+.btn-remove-file {
+  background: transparent;
+  border: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  padding: var(--space-xs);
+  font-size: 18px;
+  line-height: 1;
+  transition: color 150ms ease;
+  margin: 0;
+}
+
+.btn-remove-file:hover {
+  color: var(--color-red);
+}
+
+/* ============================================
    IMPROVED INFO TOOLTIPS
    ============================================ */
 
