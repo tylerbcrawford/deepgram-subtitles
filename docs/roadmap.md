@@ -2,10 +2,11 @@
 
 ## 🎯 Current Status: Beta Ready
 
-**Last Updated:** 2025-10-19
+**Last Updated:** 2025-10-24
 
 ### Beta Readiness: ✅ 100% Core Features Complete
 - ✅ All critical functionality implemented and tested
+- ✅ Web UI bugs fixed and stable
 - ⚠️ GUI visual polish deferred to post-beta
 - 📋 Ready for beta deployment
 
@@ -53,11 +54,20 @@ FORCE_REGENERATE=0|1            # Overwrite existing
 - [x] CLI and Web UI integration
 - **Status:** COMPLETE - Improves transcript quality with automatic speaker map detection
 
+### GUI Stability & Bug Fixes ✅ COMPLETED (2025-10-24)
+- [x] Fixed JavaScript crash from missing DOM element references
+- [x] Fixed breadcrumb navigation to prevent filesystem root access errors
+- [x] Added null-safe DOM element initialization
+- [x] Constrained navigation to `/media` container root
+- [x] Added debugging console logs for troubleshooting
+- [x] Fixed skeleton loader CSS visibility issues
+- **Status:** COMPLETE - Web UI is stable and fully functional
+
 ### GUI Visual Overhaul (Deferred)
 - [ ] See [`gui-upgrade.md`](gui-upgrade.md) for full specification
 - **Priority:** HIGH for UX, but non-blocking for beta
 - **Effort:** 2-3 days phased approach
-- **Decision:** Complete all backend features before UI polish
+- **Decision:** Core functionality stable, visual polish deferred to post-beta
 
 ### Documentation
 - [ ] **README Redesign:** User-facing content, defer until post-beta for user feedback incorporation
@@ -245,7 +255,20 @@ if keyterms and model == "nova-3":
 
 ## Notes
 
-### Recently Completed (2025-10-19)
+### Recently Completed
+
+**2025-10-24 - Web UI Bug Fixes:**
+- ✅ Fixed critical JavaScript crash caused by missing DOM element reference (`autoSaveKeyterms`)
+- ✅ Added null-safe initialization for all DOM elements in [`web/static/app.js`](../web/static/app.js:25-34)
+- ✅ Fixed breadcrumb navigation HTTP 400 error when clicking "root"
+- ✅ Constrained breadcrumb navigation to `/media` root in [`web/static/app.js`](../web/static/app.js:71-105)
+- ✅ Updated [`navigateToPath()`](../web/static/app.js:98-105) to prevent navigation above container root
+- ✅ Simplified initial breadcrumb HTML in [`web/templates/index.html`](../web/templates/index.html:45-48)
+- ✅ Fixed skeleton loader CSS display rules in [`web/static/styles.css`](../web/static/styles.css:615-622)
+- ✅ Added comprehensive console debugging for troubleshooting
+- **Result:** Web UI fully operational after GUI changes broke file loading functionality
+
+**2025-10-19 - Morning Session:**
 
 **Morning Session:**
 - ✅ Subsyncarr marker file removal (both CLI and Web UI)
@@ -289,6 +312,7 @@ if keyterms and model == "nova-3":
 7. **Nova-3 Optional Features:** Deferred to post-beta - numerals, filler_words, language detection are non-critical
 8. **Speaker Maps Auto-Detection:** COMPLETED (2025-10-19) - Now checks `Transcripts/Speakermap/` first, then falls back to root directory
 9. **Keyterms CSV Management:** COMPLETED (2025-10-19) - Full CSV import/export with API endpoints and UI integration
+10. **Web UI Bug Fixes:** COMPLETED (2025-10-24) - Fixed JavaScript crash and navigation errors that broke file loading after GUI changes
 
 ### Beta Success Criteria
 - ✅ No critical bugs in core transcription
