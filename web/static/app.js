@@ -6,7 +6,170 @@ let currentBatchId = null;
 let eventSource = null;
 let pollInterval = null;
 
-// Utility function to show status messages
+/* ============================================
+   INITIALIZATION
+   ============================================ */
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize theme
+    initTheme();
+    
+    // Load config
+    fetch('/api/config')
+        .then(r => r.json())
+        .then(config => {
+            document.getElementById('language').value = config.default_language;
+        })
+        .catch(err => console.error('Failed to load config:', err));
+    
+    // Reset all checkboxes to default (unchecked) state
+    document.getElementById('enableTranscript').checked = false;
+    document.getElementById('forceRegenerate').checked = false;
+    document.getElementById('saveRawJson').checked = false;
+    document.getElementById('autoSaveKeyterms').checked = false;
+    document.getElementById('hide-empty').checked = false;
+    
+    // Reset profanity filter to default (off)
+    document.getElementById('profanityFilter').value = 'off';
+    
+    // Hide transcript options
+    document.getElementById('transcriptOptions').style.display = 'none';
+    
+    // Setup event delegation for directory items
+    document.getElementById('directoryList').addEventListener('click', function(e) {
+        const dirItem = e.target.closest('.directory-item[data-path]');
+        if (dirItem) {
+            const path = dirItem.getAttribute('data-path');
+            if (path) {
+                browseDirectories(path);
+            }
+        }
+    });
+    
+    // Automatically load /media directory on page load
+    browseDirectories('/media');
+    
+    // Setup keyboard shortcuts
+    setupKeyboardShortcuts();
+});
+
+/* ============================================
+   THEME MANAGEMENT
+   ============================================ */
+
+function initTheme() {
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    
+    document.querySelectorAll('.theme-icon').forEach(icon => {
+        icon.style.display = icon.classList.contains(`theme-icon-${savedTheme}`) ? 'block' : 'none';
+    });
+}
+
+function toggleTheme() {
+    const html = document.documentElement;
+    const currentTheme = html.getAttribute('data-theme');
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    
+    html.setAttribute('data-theme', newTheme);
+    localStorage.setItem('theme', newTheme);
+    
+    // Update icon visibility
+    document.querySelectorAll('.theme-icon').forEach(icon => {
+        icon.style.display = icon.classList.contains(`theme-icon-${newTheme}`) ? 'block' : 'none';
+    });
+    
+    // Announce to screen readers
+    const message = `${newTheme.charAt(0).toUpperCase() + newTheme.slice(1)} mode enabled`;
+    announceToScreenReader(message);
+    
+    showToast('info', `Switched to ${newTheme} mode`);
+}
+
+/* ============================================
+   KEYBOARD SHORTCUTS
+   ============================================ */
+
+function setupKeyboardShortcuts() {
+    document.addEventListener('keydown', (e) => {
+        // Ctrl/Cmd + A: Select All
+        if ((e.ctrlKey || e.metaKey) && e.key === 'a' && !e.target.matches('input, textarea, select')) {
+            e.preventDefault();
+            selectAll();
+        }
+        
+        // Escape: Clear selection
+        if (e.key === 'Escape') {
+            selectNone();
+        }
+        
+        // Enter: Start transcription if files selected
+        if (e.key === 'Enter' && selectedFiles.length > 0 && !e.target.matches('input, textarea, select')) {
+            submitBatch();
+        }
+        
+        // Ctrl/Cmd + T: Toggle theme
+        if ((e.ctrlKey || e.metaKey) && e.key === 't') {
+            e.preventDefault();
+            toggleTheme();
+        }
+    });
+}
+
+/* ============================================
+   TOAST NOTIFICATIONS
+   ============================================ */
+
+function showToast(type, message) {
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.innerHTML = `
+        <span class="toast-icon">${getToastIcon(type)}</span>
+        <span class="toast-message">${message}</span>
+        <button class="toast-close" onclick="this.parentElement.remove()">✕</button>
+    `;
+    
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.classList.add('show');
+    }, 10);
+    
+    if (type !== 'error') {
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 300);
+        }, 5000);
+    }
+}
+
+function getToastIcon(type) {
+    const icons = {
+        success: '✓',
+        error: '✕',
+        warning: '⚠',
+        info: 'ℹ'
+    };
+    return icons[type] || 'ℹ';
+}
+
+/* ============================================
+   SCREEN READER SUPPORT
+   ============================================ */
+
+function announceToScreenReader(message) {
+    const announcer = document.getElementById('status-announcer');
+    announcer.textContent = message;
+    
+    setTimeout(() => {
+        announcer.textContent = '';
+    }, 1000);
+}
+
+/* ============================================
+   UTILITY FUNCTIONS
+   ============================================ */
+
 function showStatus(elementId, message, type = 'info') {
     const el = document.getElementById(elementId);
     el.textContent = message;
@@ -14,38 +177,63 @@ function showStatus(elementId, message, type = 'info') {
     el.style.display = 'block';
 }
 
-// Toggle transcript options visibility
 function toggleTranscriptOptions() {
     const checkbox = document.getElementById('enableTranscript');
     const options = document.getElementById('transcriptOptions');
     options.style.display = checkbox.checked ? 'block' : 'none';
+}
+
+/* ============================================
+   BREADCRUMB NAVIGATION
+   ============================================ */
+
+function updateBreadcrumb(path) {
+    const breadcrumb = document.getElementById('breadcrumb');
+    const parts = path.split('/').filter(p => p.length > 0);
+    let html = `
+        <button class="breadcrumb-item" onclick="navigateToPath('/')" aria-label="Navigate to root">
+            🏠
+        </button>
+    `;
     
-    // Reset speaker map checkbox when transcript is disabled
-    if (!checkbox.checked) {
-        const speakerMapCheckbox = document.getElementById('enableSpeakerMap');
-        if (speakerMapCheckbox) {
-            speakerMapCheckbox.checked = false;
-            toggleSpeakerMapInput();
+    let currentPath = '';
+    parts.forEach((part, index) => {
+        currentPath += '/' + part;
+        const isLast = index === parts.length - 1;
+        
+        html += `<span class="breadcrumb-separator">/</span>`;
+        
+        if (isLast) {
+            html += `<span class="breadcrumb-item current">${part}</span>`;
+        } else {
+            const pathCopy = currentPath;
+            html += `<button class="breadcrumb-item" onclick="navigateToPath('${pathCopy}')">${part}</button>`;
         }
-    }
+    });
+    
+    breadcrumb.innerHTML = html;
 }
 
-// Toggle speaker map input visibility
-function toggleSpeakerMapInput() {
-    const checkbox = document.getElementById('enableSpeakerMap');
-    const input = document.getElementById('speakerMapInput');
-    input.style.display = checkbox.checked ? 'block' : 'none';
+function navigateToPath(path) {
+    browseDirectories(path || '/');
 }
 
-// Browse directories and show files
+/* ============================================
+   DIRECTORY BROWSING
+   ============================================ */
+
 async function browseDirectories(path) {
     currentPath = path;
     const directoryList = document.getElementById('directoryList');
     const scanPath = document.getElementById('scanPath');
-    const showAll = true;  // Always show all videos
+    const skeleton = document.getElementById('skeleton');
+    const showAll = true;
     
     scanPath.value = path;
-    directoryList.innerHTML = '<div style="color: #888; text-align: center; padding: 20px;">Loading...</div>';
+    updateBreadcrumb(path);
+    
+    // Show skeleton loader
+    skeleton.classList.remove('hidden');
     directoryList.style.display = 'block';
     
     try {
@@ -56,12 +244,16 @@ async function browseDirectories(path) {
         }
         
         const data = await response.json();
+        
+        // Hide skeleton loader
+        skeleton.classList.add('hidden');
+        
         let html = '';
         
         // Add parent directory link if not at root
         if (data.parent_path) {
             html += `
-                <div class="directory-item" onclick="browseDirectories('${data.parent_path}')" style="border-bottom: 2px solid #3a3a3a; margin-bottom: 10px;">
+                <div class="directory-item" data-path="${data.parent_path.replace(/"/g, '&quot;')}" style="border-bottom: 2px solid var(--border); margin-bottom: var(--space-s); cursor: pointer;">
                     <div class="directory-item-name">
                         📁 <strong>..</strong> (Go up to parent directory)
                     </div>
@@ -71,10 +263,10 @@ async function browseDirectories(path) {
         
         // Add subdirectories
         if (data.directories.length > 0) {
-            html += '<div style="color: #888; font-size: 0.9em; margin: 10px 0; font-weight: bold;">📂 Folders:</div>';
+            html += '<div style="color: var(--text-tertiary); font-size: var(--font-caption); margin: var(--space-s) 0; font-weight: bold;">📂 Folders:</div>';
             data.directories.forEach(dir => {
                 html += `
-                    <div class="directory-item" onclick="browseDirectories('${dir.path}')">
+                    <div class="directory-item" data-path="${dir.path.replace(/"/g, '&quot;')}" data-video-count="${dir.video_count}" style="cursor: pointer;">
                         <div class="directory-item-name">
                             📁 ${dir.name}
                         </div>
@@ -88,20 +280,17 @@ async function browseDirectories(path) {
         
         // Add video files with checkboxes
         if (data.files.length > 0) {
-            html += '<div style="color: #888; font-size: 0.9em; margin: 15px 0 10px 0; font-weight: bold; border-top: 2px solid #3a3a3a; padding-top: 10px;">🎬 Videos in this folder:</div>';
+            html += '<div style="color: var(--text-tertiary); font-size: var(--font-caption); margin: var(--space-m) 0 var(--space-s) 0; font-weight: bold; border-top: 2px solid var(--border); padding-top: var(--space-s);">🎬 Videos in this folder:</div>';
             data.files.forEach((file, index) => {
                 const isSelected = selectedFiles.includes(file.path);
-                const statusIcon = file.has_subtitles ?
-                    '<span style="color: #4aff8e; font-size: 1.1em;" title="Has subtitles">✓</span>' :
-                    '<span style="color: #ff9a4a; font-size: 1.1em;" title="Missing subtitles">⚠️</span>';
-                // Escape file path for safe HTML attribute
+                const statusIcon = getStatusIcon(file);
                 const escapedPath = file.path.replace(/"/g, '&quot;');
                 html += `
-                    <div class="file-item">
+                    <div class="file-item ${isSelected ? 'selected' : ''}">
                         <input type="checkbox" id="file-${index}" value="${escapedPath}"
                                ${isSelected ? 'checked' : ''}
                                onchange="toggleFileSelection(this.value)">
-                        <label for="file-${index}" style="flex: 1; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                        <label for="file-${index}" style="flex: 1; cursor: pointer; display: flex; align-items: center; gap: var(--space-s);">
                             ${statusIcon} ${file.name}
                         </label>
                     </div>
@@ -110,26 +299,61 @@ async function browseDirectories(path) {
         }
         
         if (data.directories.length === 0 && data.files.length === 0) {
-            html += '<div style="color: #888; text-align: center; padding: 20px;">No folders or videos found</div>';
+            html += '<div style="color: var(--text-tertiary); text-align: center; padding: var(--space-l);">No folders or videos found</div>';
         }
         
         directoryList.innerHTML = html;
         updateSelectionStatus();
         
     } catch (error) {
-        directoryList.innerHTML = `<div style="color: #ff4a4a; text-align: center; padding: 20px;">Error: ${error.message}</div>`;
+        skeleton.classList.add('hidden');
+        directoryList.innerHTML = `<div style="color: var(--color-red); text-align: center; padding: var(--space-l);">Error: ${error.message}</div>`;
         console.error('Browse error:', error);
+        showToast('error', `Failed to browse directory: ${error.message}`);
     }
 }
 
-// Refresh current directory
+function getStatusIcon(file) {
+    if (file.has_subtitles) {
+        return '<span class="status-icon" style="color: var(--color-green);" title="Has subtitles" aria-label="Has subtitles">✓</span>';
+    } else {
+        return '<span class="status-icon" style="color: var(--color-yellow);" title="Missing subtitles" aria-label="Missing subtitles">⚠️</span>';
+    }
+}
+
 function refreshBrowser() {
     if (currentPath) {
         browseDirectories(currentPath);
+        showToast('info', 'Directory refreshed');
     }
 }
 
-// Toggle file selection
+/* ============================================
+   FILTER MANAGEMENT
+   ============================================ */
+
+function filterEmptyFolders() {
+    const hideEmpty = document.getElementById('hide-empty').checked;
+    const folders = document.querySelectorAll('.directory-item');
+    
+    folders.forEach(folder => {
+        const count = parseInt(folder.dataset.videoCount);
+        if (!isNaN(count)) {
+            if (hideEmpty && count === 0) {
+                folder.style.display = 'none';
+            } else {
+                folder.style.display = 'flex';
+            }
+        }
+    });
+    
+    announceToScreenReader(hideEmpty ? 'Empty folders hidden' : 'Showing all folders');
+}
+
+/* ============================================
+   FILE SELECTION
+   ============================================ */
+
 function toggleFileSelection(filePath) {
     const index = selectedFiles.indexOf(filePath);
     if (index > -1) {
@@ -142,127 +366,57 @@ function toggleFileSelection(filePath) {
     console.log('Total selected files:', selectedFiles.length);
     updateSelectionStatus();
     
+    // Update visual selection
+    document.querySelectorAll('.file-item').forEach(item => {
+        const checkbox = item.querySelector('input[type="checkbox"]');
+        if (checkbox && checkbox.value === filePath) {
+            if (index === -1) {
+                item.classList.add('selected');
+            } else {
+                item.classList.remove('selected');
+            }
+        }
+    });
+    
     // Automatically calculate estimates
     if (selectedFiles.length > 0) {
         calculateEstimatesAuto();
     } else {
-        // Show zeros when no files selected
-        document.getElementById('estSummary').innerHTML = '0 files • 0:00 duration<br>~$0.00 cost • ~0:00 processing time';
+        const costPrimary = document.getElementById('costPrimary');
+        const costSecondary = document.getElementById('costSecondary');
+        costPrimary.textContent = '0 files selected';
+        costSecondary.textContent = 'Select videos to see estimates';
     }
 }
 
-// Update selection status display
 function updateSelectionStatus() {
     const count = selectedFiles.length;
     const submitBtn = document.getElementById('submitBtn');
+    const selectionPanel = document.getElementById('selectionPanel');
+    const selectionCount = document.getElementById('selectionCount');
     
     if (count > 0) {
         showStatus('scanStatus', `✅ ${count} file${count > 1 ? 's' : ''} selected`, 'success');
-        if (submitBtn) submitBtn.disabled = false;
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = `Transcribe ${count} File${count > 1 ? 's' : ''}`;
+        }
+        selectionPanel.classList.remove('hidden');
+        selectionCount.textContent = `✓ ${count} file${count > 1 ? 's' : ''} selected`;
+        
+        announceToScreenReader(`${count} file${count > 1 ? 's' : ''} selected`);
     } else {
         showStatus('scanStatus', 'Select files to continue', 'info');
-        if (submitBtn) submitBtn.disabled = true;
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Select Files to Continue';
+        }
+        selectionPanel.classList.add('hidden');
     }
     
     console.log('Selection updated:', count, 'files selected');
 }
 
-// Update keyterm count and estimate tokens
-function updateKeyTermCount() {
-    const input = document.getElementById('keyTerms').value;
-    const terms = input.split(',').map(t => t.trim()).filter(t => t.length > 0);
-    const termCount = terms.length;
-    
-    // Rough token estimation: ~1.3 tokens per word on average
-    const totalWords = terms.reduce((acc, term) => acc + term.split(/\s+/).length, 0);
-    const estimatedTokens = Math.ceil(totalWords * 1.3);
-    
-    const countEl = document.getElementById('keyTermCount');
-    countEl.textContent = `${termCount} keyterms, ~${estimatedTokens} tokens`;
-    
-    // Warn if limits exceeded
-    if (termCount > 100) {
-        countEl.style.color = '#ff4a4a';
-        countEl.textContent += ' ⚠️ Exceeds 100 keyterm limit';
-    } else if (estimatedTokens > 500) {
-        countEl.style.color = '#ff9a4a';
-        countEl.textContent += ' ⚠️ May exceed 500 token limit';
-    } else {
-        countEl.style.color = '#4a9eff';
-    }
-}
-
-// Scan directory for videos
-async function scanDirectory() {
-    const path = document.getElementById('scanPath').value;
-    const showAll = true;  // Always show all videos
-    showStatus('scanStatus', '🔍 Scanning directory...', 'info');
-    
-    try {
-        const response = await fetch(`/api/scan?root=${encodeURIComponent(path)}&show_all=${showAll}`);
-        
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        
-        const data = await response.json();
-        scannedFiles = data.files;
-        
-        if (scannedFiles.length === 0) {
-            const message = showAll ?
-                '✅ No videos found in this directory' :
-                '✅ No videos need subtitles in this directory';
-            showStatus('scanStatus', message, 'success');
-            document.getElementById('filesList').style.display = 'none';
-            document.getElementById('submitBtn').disabled = true;
-            document.getElementById('estimateBtn').disabled = true;
-            return;
-        }
-        
-        const message = showAll ?
-            `✅ Found ${data.count} videos` :
-            `✅ Found ${data.count} videos without subtitles`;
-        showStatus('scanStatus', message, 'success');
-        displayFiles(scannedFiles);
-        document.getElementById('submitBtn').disabled = false;
-        
-    } catch (error) {
-        showStatus('scanStatus', `❌ Error: ${error.message}`, 'error');
-        console.error('Scan error:', error);
-    }
-}
-
-// Display scanned files with checkboxes (NOT auto-selected)
-function displayFiles(files) {
-    const container = document.getElementById('filesList');
-    container.innerHTML = '';
-    
-    files.forEach((file, index) => {
-        const item = document.createElement('div');
-        item.className = 'file-item';
-        
-        const checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
-        checkbox.id = `file-${index}`;
-        checkbox.value = file;
-        checkbox.checked = false;  // NOT auto-selected by default
-        
-        const label = document.createElement('label');
-        label.htmlFor = `file-${index}`;
-        label.textContent = file.replace(/^\/media\//, '');
-        label.style.cursor = 'pointer';
-        label.style.flex = '1';
-        
-        item.appendChild(checkbox);
-        item.appendChild(label);
-        container.appendChild(item);
-    });
-    
-    container.style.display = 'block';
-    document.getElementById('estimateBtn').disabled = false;
-}
-
-// Select all files
 function selectAll() {
     selectedFiles = [];
     document.querySelectorAll('.file-item input[type="checkbox"]').forEach(cb => {
@@ -271,27 +425,74 @@ function selectAll() {
         if (!selectedFiles.includes(filePath)) {
             selectedFiles.push(filePath);
         }
+        cb.closest('.file-item').classList.add('selected');
     });
     updateSelectionStatus();
     if (selectedFiles.length > 0) {
         calculateEstimatesAuto();
+        showToast('success', `Selected all ${selectedFiles.length} files`);
     }
 }
 
-// Deselect all files
 function selectNone() {
     selectedFiles = [];
     document.querySelectorAll('.file-item input[type="checkbox"]').forEach(cb => {
         cb.checked = false;
+        cb.closest('.file-item').classList.remove('selected');
     });
     updateSelectionStatus();
-    document.getElementById('estSummary').innerHTML = '0 files • 0:00 duration<br>~$0.00 cost • ~0:00 processing time';
+    
+    const costPrimary = document.getElementById('costPrimary');
+    const costSecondary = document.getElementById('costSecondary');
+    costPrimary.textContent = '0 files selected';
+    costSecondary.textContent = 'Select videos to see estimates';
+    
+    showToast('info', 'Selection cleared');
 }
 
-// Automatically calculate cost and time estimates
+function clearSelection() {
+    selectNone();
+}
+
+/* ============================================
+   SELECTION PANEL
+   ============================================ */
+
+function toggleSelectionList() {
+    const list = document.getElementById('selectionList');
+    const btn = document.getElementById('viewFilesBtn');
+    
+    if (list.classList.contains('hidden')) {
+        // Show list
+        list.classList.remove('hidden');
+        btn.textContent = 'hide files ▲';
+        
+        // Populate list
+        let html = '<ul style="list-style: none; padding: 0; margin: 0;">';
+        selectedFiles.forEach(file => {
+            const filename = file.split('/').pop();
+            html += `<li style="padding: var(--space-xs) 0; color: rgba(255, 255, 255, 0.9);">• ${filename}</li>`;
+        });
+        html += '</ul>';
+        list.innerHTML = html;
+    } else {
+        // Hide list
+        list.classList.add('hidden');
+        btn.textContent = 'view files ▼';
+    }
+}
+
+/* ============================================
+   COST ESTIMATION
+   ============================================ */
+
 async function calculateEstimatesAuto() {
+    const costPrimary = document.getElementById('costPrimary');
+    const costSecondary = document.getElementById('costSecondary');
+    
     if (selectedFiles.length === 0) {
-        document.getElementById('estSummary').innerHTML = '0 files • 0:00 duration<br>~$0.00 cost • ~0:00 processing time';
+        costPrimary.textContent = '0 files selected';
+        costSecondary.textContent = 'Select videos to see estimates';
         return;
     }
     
@@ -311,15 +512,15 @@ async function calculateEstimatesAuto() {
         
     } catch (error) {
         console.error('Estimate error:', error);
-        document.getElementById('estSummary').innerHTML = '0 files • 0:00 duration<br>~$0.00 cost • ~0:00 processing time';
+        costPrimary.textContent = '0 files selected';
+        costSecondary.textContent = 'Select videos to see estimates';
     }
 }
 
-// Display cost and time estimates in compact format
 function displayEstimates(data) {
-    const estSummary = document.getElementById('estSummary');
+    const costPrimary = document.getElementById('costPrimary');
+    const costSecondary = document.getElementById('costSecondary');
     
-    // Format duration as HH:MM:SS or MM:SS
     function formatDuration(seconds) {
         const h = Math.floor(seconds / 3600);
         const m = Math.floor((seconds % 3600) / 60);
@@ -331,24 +532,26 @@ function displayEstimates(data) {
     }
     
     const fileText = data.total_files === 1 ? 'file' : 'files';
-    const line1 = `${data.total_files} ${fileText} • ${formatDuration(data.total_duration_seconds)} duration`;
-    const line2 = `~$${data.estimated_cost_usd.toFixed(2)} cost • ~${formatDuration(data.estimated_processing_time_seconds)} processing time`;
-    
-    estSummary.innerHTML = `${line1}<br>${line2}`;
+    costPrimary.textContent = `${data.total_files} ${fileText} • ${formatDuration(data.total_duration_seconds)}`;
+    costSecondary.textContent = `$${data.estimated_cost_usd.toFixed(2)} cost • ~${formatDuration(data.estimated_processing_time_seconds)} processing`;
 }
 
-// Submit batch for transcription
+/* ============================================
+   BATCH SUBMISSION
+   ============================================ */
+
 async function submitBatch() {
-    const selectedFiles = Array.from(
+    const selectedFilesList = Array.from(
         document.querySelectorAll('.file-item input[type="checkbox"]:checked')
     ).map(cb => cb.value);
     
-    if (selectedFiles.length === 0) {
+    if (selectedFilesList.length === 0) {
         showStatus('submitStatus', '⚠️ Please select at least one file', 'error');
+        showToast('warning', 'Please select at least one file');
         return;
     }
     
-    const model = 'nova-3'; // Hardcoded to Nova-3
+    const model = 'nova-3';
     const language = document.getElementById('language').value;
     const profanityFilter = document.getElementById('profanityFilter').value;
     const enableTranscript = document.getElementById('enableTranscript').checked;
@@ -356,9 +559,8 @@ async function submitBatch() {
     const saveRawJson = document.getElementById('saveRawJson').checked;
     const autoSaveKeyterms = document.getElementById('autoSaveKeyterms').checked;
     
-    // Build request body
     const requestBody = {
-        files: selectedFiles,
+        files: selectedFilesList,
         model: model,
         language: language,
         profanity_filter: profanityFilter,
@@ -367,14 +569,11 @@ async function submitBatch() {
         auto_save_keyterms: autoSaveKeyterms
     };
     
-    // Add keyterms if provided (independent of transcript generation)
     const keyTerms = document.getElementById('keyTerms').value.trim();
     if (keyTerms) {
-        // Split by comma and clean up whitespace
         requestBody.keyterms = keyTerms.split(',').map(t => t.trim()).filter(t => t.length > 0);
     }
     
-    // Add transcript-related fields if enabled
     if (enableTranscript) {
         requestBody.enable_transcript = true;
     }
@@ -401,20 +600,26 @@ async function submitBatch() {
             'success'
         );
         
-        // Show job status section and start monitoring
+        showToast('success', `Batch submitted: ${data.enqueued} files queued`);
+        announceToScreenReader(`Batch submitted: ${data.enqueued} files queued`);
+        
         document.getElementById('jobCard').style.display = 'block';
+        document.getElementById('fileProgress').style.display = 'block';
         startJobMonitoring(currentBatchId);
         
     } catch (error) {
         showStatus('submitStatus', `❌ Error: ${error.message}`, 'error');
         console.error('Submit error:', error);
+        showToast('error', `Failed to submit batch: ${error.message}`);
         document.getElementById('submitBtn').disabled = false;
     }
 }
 
-// Start monitoring job progress
+/* ============================================
+   JOB MONITORING
+   ============================================ */
+
 function startJobMonitoring(batchId) {
-    // Clear any existing monitoring
     if (pollInterval) {
         clearInterval(pollInterval);
     }
@@ -422,20 +627,15 @@ function startJobMonitoring(batchId) {
         eventSource.close();
     }
     
-    // Start Server-Sent Events connection for heartbeat
     eventSource = new EventSource('/api/progress');
     eventSource.addEventListener('ping', function(e) {
         // Connection is alive
     });
     
-    // Poll for job status
     pollInterval = setInterval(() => checkJobStatus(batchId), 3000);
-    
-    // Check immediately
     checkJobStatus(batchId);
 }
 
-// Check job status
 async function checkJobStatus(batchId) {
     try {
         const response = await fetch(`/api/job/${batchId}`);
@@ -447,13 +647,20 @@ async function checkJobStatus(batchId) {
         const data = await response.json();
         updateJobDisplay(data);
         
-        // If job is complete, stop polling
         if (data.state === 'SUCCESS' || data.state === 'FAILURE' || data.state === 'REVOKED') {
             clearInterval(pollInterval);
             if (eventSource) {
                 eventSource.close();
             }
             document.getElementById('submitBtn').disabled = false;
+            
+            if (data.state === 'SUCCESS') {
+                showToast('success', 'Batch processing completed!');
+                announceToScreenReader('Batch processing completed');
+            } else if (data.state === 'FAILURE') {
+                showToast('error', 'Batch processing failed');
+                announceToScreenReader('Batch processing failed');
+            }
         }
         
     } catch (error) {
@@ -461,7 +668,6 @@ async function checkJobStatus(batchId) {
     }
 }
 
-// Cancel current job
 async function cancelJob() {
     if (!currentBatchId) return;
     
@@ -477,13 +683,15 @@ async function cancelJob() {
         if (response.ok) {
             document.getElementById('cancelBtn').style.display = 'none';
             showStatus('submitStatus', '🛑 Job cancelled', 'info');
+            showToast('info', 'Job cancelled');
+            announceToScreenReader('Job cancelled');
         }
     } catch (error) {
         console.error('Cancel error:', error);
+        showToast('error', 'Failed to cancel job');
     }
 }
 
-// Update job status display
 function updateJobDisplay(data) {
     const statusDiv = document.getElementById('jobStatus');
     const statsDiv = document.getElementById('jobStats');
@@ -493,7 +701,6 @@ function updateJobDisplay(data) {
     let statusHtml = '';
     let statsHtml = '';
     
-    // Show current state
     if (data.state === 'PENDING') {
         statusHtml = '<div class="loader"></div>Job queued, waiting to start...';
         cancelBtn.style.display = 'inline-block';
@@ -501,7 +708,6 @@ function updateJobDisplay(data) {
         statusHtml = '<div class="loader"></div>Processing videos...';
         cancelBtn.style.display = 'inline-block';
         
-        // Show detailed file progress if children data available
         if (data.children && data.children.length > 0) {
             fileProgressDiv.style.display = 'block';
             updateFileProgress(data.children);
@@ -510,13 +716,11 @@ function updateJobDisplay(data) {
         statusHtml = '✅ Batch complete!';
         cancelBtn.style.display = 'none';
         
-        // Show final file progress
         if (data.children && data.children.length > 0) {
             fileProgressDiv.style.display = 'block';
             updateFileProgress(data.children);
         }
         
-        // Show results if available
         if (data.data && data.data.results) {
             const results = data.data.results;
             const successful = results.filter(r => r.status === 'ok').length;
@@ -560,7 +764,6 @@ function updateJobDisplay(data) {
     statsDiv.innerHTML = statsHtml;
 }
 
-// Update file progress display
 function updateFileProgress(children) {
     const fileProgressList = document.getElementById('fileProgressList');
     let html = '';
@@ -598,7 +801,6 @@ function updateFileProgress(children) {
             statusText = '❌ Error';
         }
         
-        // Extract just the filename from path
         if (filename.includes('/')) {
             filename = filename.split('/').pop();
         }
@@ -612,31 +814,5 @@ function updateFileProgress(children) {
         `;
     });
     
-    fileProgressList.innerHTML = html || '<div style="color: #888; text-align: center;">No file details available</div>';
+    fileProgressList.innerHTML = html || '<div style="color: var(--text-tertiary); text-align: center;">No file details available</div>';
 }
-
-// Initialize page
-document.addEventListener('DOMContentLoaded', function() {
-    // Load config
-    fetch('/api/config')
-        .then(r => r.json())
-        .then(config => {
-            document.getElementById('language').value = config.default_language;
-        })
-        .catch(err => console.error('Failed to load config:', err));
-    
-    // Reset all checkboxes to default (unchecked) state
-    document.getElementById('enableTranscript').checked = false;
-    document.getElementById('forceRegenerate').checked = false;
-    document.getElementById('saveRawJson').checked = false;
-    document.getElementById('autoSaveKeyterms').checked = false;
-    
-    // Reset profanity filter to default (off)
-    document.getElementById('profanityFilter').value = 'off';
-    
-    // Hide transcript options
-    document.getElementById('transcriptOptions').style.display = 'none';
-    
-    // Automatically load /media directory on page load
-    browseDirectories('/media');
-});

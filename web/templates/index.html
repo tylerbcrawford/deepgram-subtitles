@@ -1,385 +1,257 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Deepgram Subtitle Generator</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background: #1a1a1a;
-            color: #e0e0e0;
-            padding: 20px;
-            line-height: 1.6;
-        }
-        .container { max-width: 900px; margin: 0 auto; }
-        h1 {
-            color: #4a9eff;
-            margin-bottom: 10px;
-            font-size: 2em;
-        }
-        .subtitle { color: #888; margin-bottom: 30px; }
-        .card {
-            background: #2a2a2a;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 20px;
-            border: 1px solid #3a3a3a;
-        }
-        .card h2 {
-            color: #4a9eff;
-            margin-bottom: 15px;
-            font-size: 1.3em;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-            color: #aaa;
-            font-size: 0.9em;
-        }
-        input, select {
-            width: 100%;
-            padding: 10px;
-            background: #1a1a1a;
-            border: 1px solid #3a3a3a;
-            border-radius: 4px;
-            color: #e0e0e0;
-            font-size: 1em;
-            text-align: center;
-        }
-        button {
-            background: #4a9eff;
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 1em;
-            margin-right: 10px;
-        }
-        button:hover { background: #3a8eef; }
-        button:disabled {
-            background: #555;
-            cursor: not-allowed;
-        }
-        .status {
-            padding: 10px;
-            border-radius: 4px;
-            margin-bottom: 15px;
-            display: none;
-        }
-        .status.info { background: #1a3a5a; border-left: 4px solid #4a9eff; display: block; }
-        .status.success { background: #1a4a2a; border-left: 4px solid #4aff8e; display: block; }
-        .status.error { background: #4a1a1a; border-left: 4px solid #ff4a4a; display: block; }
-        .files-list {
-            max-height: 400px;
-            overflow-y: auto;
-            background: #1a1a1a;
-            border: 1px solid #3a3a3a;
-            border-radius: 4px;
-            padding: 10px;
-        }
-        .file-item {
-            padding: 8px;
-            margin: 2px 0;
-            background: #2a2a2a;
-            border-radius: 4px;
-            display: flex;
-            align-items: center;
-        }
-        .file-item input[type="checkbox"] {
-            width: auto;
-            margin-right: 10px;
-        }
-        .job-status {
-            padding: 15px;
-            background: #1a1a1a;
-            border-radius: 4px;
-            margin-top: 10px;
-        }
-        .loader {
-            border: 3px solid #3a3a3a;
-            border-top: 3px solid #4a9eff;
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            animation: spin 1s linear infinite;
-            display: inline-block;
-            margin-right: 10px;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-top: 15px;
-        }
-        .stat-box {
-            background: #1a1a1a;
-            padding: 15px;
-            border-radius: 4px;
-            text-align: center;
-        }
-        .stat-value {
-            font-size: 2em;
-            color: #4a9eff;
-            font-weight: bold;
-        }
-        .stat-label {
-            color: #888;
-            font-size: 0.9em;
-            margin-top: 5px;
-        }
-        .checkbox-group {
-            margin-bottom: 15px;
-        }
-        .checkbox-label {
-            display: flex;
-            align-items: center;
-            cursor: pointer;
-            color: #e0e0e0;
-            font-size: 1em;
-        }
-        .checkbox-label input[type="checkbox"] {
-            width: 20px;
-            height: 20px;
-            margin-right: 10px;
-            cursor: pointer;
-        }
-        .checkbox-label span {
-            user-select: none;
-        }
-        .file-progress-item {
-            padding: 8px;
-            margin: 4px 0;
-            background: #2a2a2a;
-            border-radius: 4px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        .file-progress-item.completed {
-            border-left: 3px solid #4aff8e;
-        }
-        .file-progress-item.processing {
-            border-left: 3px solid #4a9eff;
-        }
-        .file-progress-item.skipped {
-            border-left: 3px solid #ff9a4a;
-        }
-        .file-progress-item.error {
-            border-left: 3px solid #ff4a4a;
-        }
-        .file-progress-item.pending {
-            border-left: 3px solid #555;
-        }
-        .progress-filename {
-            flex: 1;
-            font-size: 0.9em;
-        }
-        .progress-stage {
-            font-size: 0.8em;
-            color: #888;
-            margin-left: 10px;
-        }
-        .progress-status {
-            font-size: 0.9em;
-            margin-left: 10px;
-        }
-        .directory-item {
-            padding: 10px;
-            margin: 4px 0;
-            background: #2a2a2a;
-            border-radius: 4px;
-            cursor: pointer;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            transition: background 0.2s;
-        }
-        .directory-item:hover {
-            background: #3a3a3a;
-        }
-        .directory-item-name {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .directory-item-count {
-            color: #888;
-            font-size: 0.9em;
-        }
-    </style>
+    <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
     <div class="container">
-        <h1 style="text-align: center;">Deepgram Subtitle Generator</h1>
-        <p class="subtitle" style="text-align: center;">Web UI for batch subtitle generation using Deepgram Nova-3 API</p>
+        <!-- Header with Theme Toggle -->
+        <header>
+            <div class="header-content">
+                <h1>Deepgram Subtitle Generator</h1>
+                <p class="subtitle">Web UI for batch subtitle generation using Deepgram Nova-3 API</p>
+            </div>
+            <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+                <svg class="theme-icon theme-icon-dark" width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"/>
+                </svg>
+                <svg class="theme-icon theme-icon-light" width="20" height="20" viewBox="0 0 20 20" fill="currentColor" style="display: none;">
+                    <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd"/>
+                </svg>
+            </button>
+        </header>
 
-        <!-- Transcribe Button -->
-        <div style="text-align: center; margin-bottom: 15px;">
-            <button onclick="submitBatch()" id="submitBtn" disabled>Transcribe</button>
-        </div>
-        
-        <!-- Stats/Estimates -->
-        <div id="estimatesBox" style="text-align: center; margin-bottom: 20px;">
-            <small style="color: #4a9eff; font-size: 0.9em; line-height: 1.5;">
-                <span id="estSummary">0 files • 0:00 duration<br>~$0.00 cost • ~0:00 processing time</span>
-            </small>
-        </div>
+        <!-- Main Content -->
+        <main>
+            <!-- Action Bar (Sticky) - Enhanced -->
+            <div class="action-bar">
+                <div class="cost-summary">
+                    <div class="cost-primary" id="costPrimary">0 files selected</div>
+                    <div class="cost-secondary" id="costSecondary">Select videos to see estimates</div>
+                </div>
+                <button onclick="submitBatch()" id="submitBtn" class="btn-primary" disabled>Select Files to Continue</button>
+            </div>
 
-        <!-- Main Card -->
-        <div class="card" style="text-align: center;">
-            <!-- Directory Browser Section -->
-            <div class="form-group">
-                <label for="scanPath">
-                    Current Directory
-                    <span onclick="refreshBrowser()" style="cursor: pointer; margin-left: 8px; font-size: 1.4em; color: #4a9eff; font-weight: bold;" title="Refresh directory">↻</span>
-                </label>
-                <input type="text" id="scanPath" value="/media" placeholder="/media/tv/ShowName" readonly
-                       style="background: #1a1a1a; cursor: default; color: #4a9eff; font-weight: bold; text-align: center;">
-            </div>
-            
-            <div style="margin-bottom: 10px;">
-                <div style="color: #888; font-size: 0.9em; margin-bottom: 5px;">
-                    ⚠️ = Missing subtitles | ✓ = Has subtitles
+            <!-- File Browser Section -->
+            <section aria-label="File browser">
+                <div class="card">
+                    <!-- Breadcrumb Navigation -->
+                    <div class="breadcrumb" id="breadcrumb">
+                        <button class="breadcrumb-item" onclick="navigateToPath('/')" aria-label="Navigate to root">
+                            🏠
+                        </button>
+                        <span class="breadcrumb-separator">/</span>
+                        <span class="breadcrumb-item current">media</span>
+                    </div>
+
+                    <!-- Current Directory Display -->
+                    <div class="form-group">
+                        <label for="scanPath">
+                            Current Directory
+                            <span onclick="refreshBrowser()" style="cursor: pointer; margin-left: 8px; font-size: 1.4em; color: var(--color-blue); font-weight: bold;" title="Refresh directory">↻</span>
+                        </label>
+                        <input type="text" id="scanPath" value="/media" placeholder="/media/tv/ShowName" readonly
+                               aria-label="Current directory path">
+                    </div>
+                    
+                    <!-- Clean Toolbar -->
+                    <div class="browser-toolbar">
+                        <div class="toolbar-left">
+                            <label class="checkbox-label minimal">
+                                <input type="checkbox" id="hide-empty" onchange="filterEmptyFolders()">
+                                <span>Hide empty folders</span>
+                            </label>
+                        </div>
+                        <div class="toolbar-right">
+                            <button class="btn-link" onclick="selectAll()">Select All</button>
+                            <span class="separator">•</span>
+                            <button class="btn-link" onclick="selectNone()">Clear</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Directory Browser -->
+                    <div id="directoryBrowser">
+                        <div id="directoryList" class="files-list">
+                            <div id="skeleton" class="skeleton-loader hidden">
+                                <div class="skeleton-item"></div>
+                                <div class="skeleton-item"></div>
+                                <div class="skeleton-item"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="scanStatus" class="status"></div>
                 </div>
-                <div style="display: flex; justify-content: center; gap: 10px; font-size: 0.85em;">
-                    <a href="#" onclick="selectAll(); return false;" style="color: #4a9eff; text-decoration: none; cursor: pointer;">Select All</a>
-                    <span style="color: #555;">|</span>
-                    <a href="#" onclick="selectNone(); return false;" style="color: #4a9eff; text-decoration: none; cursor: pointer;">Select None</a>
+
+                <!-- Selection Panel -->
+                <div class="selection-panel hidden" id="selectionPanel">
+                    <div class="selection-summary">
+                        <span class="selection-count" id="selectionCount">✓ 0 files selected</span>
+                        <button class="btn-text" onclick="toggleSelectionList()" id="viewFilesBtn">
+                            view files ▼
+                        </button>
+                        <button class="btn-text" onclick="clearSelection()">
+                            clear all
+                        </button>
+                    </div>
+                    <div class="selection-list hidden" id="selectionList">
+                        <!-- Dynamically populated with selected file names -->
+                    </div>
                 </div>
-            </div>
-            
-            <!-- Directory Browser -->
-            <div id="directoryBrowser" style="margin-bottom: 15px;">
-                <div id="directoryList" style="height: 400px; overflow-y: auto; background: #1a1a1a; border: 1px solid #3a3a3a; border-radius: 4px; padding: 10px;">
-                </div>
-            </div>
-            
-            <div id="scanStatus" class="status"></div>
-            
-            <div id="submitStatus" class="status"></div>
-            
+            </section>
+
             <!-- Configuration Section -->
-            <div class="form-group">
-                <label for="profanityFilter">
-                    Profanity Filter
-                    <a href="https://developers.deepgram.com/docs/profanity-filter" target="_blank" rel="noopener noreferrer"
-                       style="margin-left: 5px; color: #4a9eff; text-decoration: none; font-size: 1.1em; cursor: pointer; font-weight: bold;"
-                       title="Learn more about profanity filtering">?</a>
-                </label>
-                <select id="profanityFilter">
-                    <option value="off">Off (no filtering)</option>
-                    <option value="tag">Tag (mark but keep words)</option>
-                    <option value="remove">Remove (censor completely)</option>
-                </select>
-            </div>
-            
-            <div class="form-group">
-                <label for="language">Language</label>
-                <select id="language">
-                    <option value="en">English</option>
-                    <option value="en-US">English (US)</option>
-                    <option value="en-AU">English (Australia)</option>
-                    <option value="en-GB">English (UK)</option>
-                    <option value="en-IN">English (India)</option>
-                    <option value="en-NZ">English (New Zealand)</option>
-                    <option value="en-CA">English (Canada)</option>
-                    <option value="en-IE">English (Ireland)</option>
-                    <option value="es">Spanish</option>
-                    <option value="es-419">Spanish (Latin America)</option>
-                    <option value="fr">French</option>
-                    <option value="fr-CA">French (Canada)</option>
-                    <option value="de">German</option>
-                    <option value="hi">Hindi</option>
-                    <option value="ru">Russian</option>
-                    <option value="pt">Portuguese</option>
-                    <option value="pt-BR">Portuguese (Brazil)</option>
-                    <option value="pt-PT">Portuguese (Portugal)</option>
-                    <option value="ja">Japanese</option>
-                    <option value="it">Italian</option>
-                    <option value="nl">Dutch</option>
-                    <option value="sv">Swedish</option>
-                    <option value="sv-SE">Swedish (Sweden)</option>
-                    <option value="da">Danish</option>
-                    <option value="da-DK">Danish (Denmark)</option>
-                    <option value="tr">Turkish</option>
-                    <option value="no">Norwegian</option>
-                    <option value="id">Indonesian</option>
-                </select>
-            </div>
-            
-            <div class="form-group">
-                <label for="keyTerms">
-                    Keyterm Prompting (optional)
-                    <a href="https://developers.deepgram.com/docs/keyterm" target="_blank" rel="noopener noreferrer"
-                       style="margin-left: 5px; color: #4a9eff; text-decoration: none; font-size: 1.1em; cursor: pointer; font-weight: bold;"
-                       title="Learn more about keyterm prompting">?</a>
-                </label>
-                <input type="text" id="keyTerms" placeholder="e.g., Deepgram, iPhone, customer service, Dr. Smith">
-                <small style="color: #888; display: block; margin-top: 5px;">
-                    💡 Tip: Keyterms are auto-loaded from CSV if available in Transcripts/Keyterms/
-                </small>
-            </div>
-            
-            <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; margin-bottom: 15px;">
-                <label class="checkbox-label">
-                    <input type="checkbox" id="autoSaveKeyterms">
-                    <span>Auto-save Keyterms to CSV
-                        <a href="#" onclick="alert('Saves keyterms to Transcripts/Keyterms/ folder for future auto-loading'); return false;"
-                           style="margin-left: 5px; color: #4a9eff; text-decoration: none; font-size: 1.1em; cursor: pointer; font-weight: bold;"
-                           title="Save keyterms for reuse">?</a>
-                    </span>
-                </label>
-            </div>
-            
-            <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; margin-bottom: 15px;">
-                <label class="checkbox-label">
-                    <input type="checkbox" id="forceRegenerate">
-                    <span>Overwrite Existing Subtitles</span>
-                </label>
-                <label class="checkbox-label">
-                    <input type="checkbox" id="enableTranscript" onchange="toggleTranscriptOptions()">
-                    <span>Generate Transcript</span>
-                </label>
-                <label class="checkbox-label">
-                    <input type="checkbox" id="saveRawJson">
-                    <span>Save Raw JSON
-                        <a href="https://developers.deepgram.com/docs/getting-started-with-pre-recorded-audio" target="_blank" rel="noopener noreferrer"
-                           style="margin-left: 5px; color: #4a9eff; text-decoration: none; font-size: 1.1em; cursor: pointer; font-weight: bold;"
-                           title="Debug mode: saves raw API response to Transcripts/JSON/">?</a>
-                    </span>
-                </label>
-            </div>
-            
-            <div id="transcriptOptions" style="display: none; margin-bottom: 15px;">
-                <div style="text-align: center; padding: 15px; background: #1a3a5a; border-radius: 4px; margin-bottom: 10px;">
-                    <span style="color: #4a9eff; font-size: 0.95em;">
-                        ℹ️ Speaker maps are now auto-detected from:
-                        <br>1. Transcripts/Speakermap/speakers.csv (per show/movie)
-                        <br>2. speaker_maps/{ShowName}/speakers.csv (legacy support)
-                    </span>
+            <section aria-label="Transcription options">
+                <div class="card">
+                    <h2>Configuration</h2>
+                    
+                    <div id="submitStatus" class="status"></div>
+                    
+                    <!-- Language & Model -->
+                    <div class="config-section">
+                        <h3 class="config-header">Language & Processing</h3>
+                        
+                        <div class="form-group">
+                            <label for="language">Language</label>
+                            <select id="language">
+                            <option value="en">English</option>
+                            <option value="en-US">English (US)</option>
+                            <option value="en-AU">English (Australia)</option>
+                            <option value="en-GB">English (UK)</option>
+                            <option value="en-IN">English (India)</option>
+                            <option value="en-NZ">English (New Zealand)</option>
+                            <option value="en-CA">English (Canada)</option>
+                            <option value="en-IE">English (Ireland)</option>
+                            <option value="es">Spanish</option>
+                            <option value="es-419">Spanish (Latin America)</option>
+                            <option value="fr">French</option>
+                            <option value="fr-CA">French (Canada)</option>
+                            <option value="de">German</option>
+                            <option value="hi">Hindi</option>
+                            <option value="ru">Russian</option>
+                            <option value="pt">Portuguese</option>
+                            <option value="pt-BR">Portuguese (Brazil)</option>
+                            <option value="pt-PT">Portuguese (Portugal)</option>
+                            <option value="ja">Japanese</option>
+                            <option value="it">Italian</option>
+                            <option value="nl">Dutch</option>
+                            <option value="sv">Swedish</option>
+                            <option value="sv-SE">Swedish (Sweden)</option>
+                            <option value="da">Danish</option>
+                            <option value="da-DK">Danish (Denmark)</option>
+                            <option value="tr">Turkish</option>
+                            <option value="no">Norwegian</option>
+                            <option value="id">Indonesian</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="profanityFilter">
+                                Profanity Filter
+                                <a href="https://developers.deepgram.com/docs/profanity-filter" target="_blank" rel="noopener noreferrer"
+                                   class="info-tooltip"
+                                   title="Learn more about profanity filtering">?</a>
+                            </label>
+                            <select id="profanityFilter">
+                                <option value="off">Off (no filtering)</option>
+                                <option value="tag">Tag (mark but keep words)</option>
+                                <option value="remove">Remove (censor completely)</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- Advanced Options -->
+                    <div class="config-section">
+                        <h3 class="config-header">Advanced Options</h3>
+                        
+                        <div class="form-group">
+                            <label for="keyTerms" class="input-label">
+                                Keyterm Prompting (optional)
+                                <a href="https://developers.deepgram.com/docs/keyterm" target="_blank" rel="noopener noreferrer"
+                                   class="info-tooltip"
+                                   title="Learn more about keyterm prompting">?</a>
+                            </label>
+                            <input type="text" id="keyTerms" placeholder="e.g., Deepgram, iPhone, customer service, Dr. Smith"
+                                   aria-label="Keyterm prompting (optional)">
+                            <small style="color: var(--text-tertiary); display: block; margin-top: var(--space-xs);">
+                                Keyterms are auto-loaded from CSV if available in Transcripts/Keyterms/
+                            </small>
+                        </div>
+                        
+                        <div class="checkbox-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="autoSaveKeyterms">
+                                <span>Auto-save Keyterms to CSV
+                                    <a href="#" onclick="showToast('info', 'Saves keyterms to Transcripts/Keyterms/ folder for future auto-loading'); return false;"
+                                       class="info-tooltip"
+                                       title="Save keyterms for reuse">?</a>
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- Generation Options -->
+                    <div class="config-section">
+                        <h3 class="config-header">Generation Options</h3>
+                        
+                        <div class="checkbox-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="forceRegenerate">
+                                <span>Overwrite Existing Subtitles</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="enableTranscript" onchange="toggleTranscriptOptions()">
+                                <span>Generate Transcript</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="saveRawJson">
+                                <span>Save Raw JSON
+                                    <a href="https://developers.deepgram.com/docs/getting-started-with-pre-recorded-audio" target="_blank" rel="noopener noreferrer"
+                                       class="info-tooltip"
+                                       title="Debug mode: saves raw API response to Transcripts/JSON/">?</a>
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div id="transcriptOptions" style="display: none; margin-bottom: var(--space-m);">
+                        <div class="status info">
+                            <span style="color: var(--color-blue); font-size: var(--font-caption);">
+                                ℹ️ Speaker maps are now auto-detected from:
+                                <br>1. Transcripts/Speakermap/speakers.csv (per show/movie)
+                                <br>2. speaker_maps/{ShowName}/speakers.csv (legacy support)
+                            </span>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </div>
+            </section>
 
-        <!-- Job Status Section -->
-        <div class="card" id="jobCard" style="display:none;">
-            <h2>📊 Job Status</h2>
-            <div id="jobStatus" class="job-status"></div>
-            <button onclick="cancelJob()" id="cancelBtn" style="display:none; background: #ff4a4a; margin-top: 15px;">Cancel Job</button>
-            <div class="stats" id="jobStats"></div>
-        </div>
+            <!-- Job Status Section -->
+            <section aria-label="Job progress" id="jobCard" class="card" style="display:none;">
+                <h2>📊 Job Status</h2>
+                <div id="jobStatus" class="job-status"></div>
+                <button onclick="cancelJob()" id="cancelBtn" style="display:none; background: var(--color-red); margin-top: var(--space-m);">Cancel Job</button>
+                <div class="stats" id="jobStats"></div>
+                
+                <!-- File Progress List -->
+                <div id="fileProgress" style="display:none; margin-top: var(--space-l);">
+                    <h3 style="color: var(--text-primary); margin-bottom: var(--space-m);">File Progress</h3>
+                    <div id="fileProgressList"></div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer style="text-align: center; color: var(--text-tertiary); font-size: var(--font-small); margin-top: var(--space-xl);">
+            <p>Keyboard shortcuts: <kbd>Ctrl/⌘+A</kbd> Select All • <kbd>Esc</kbd> Clear • <kbd>Enter</kbd> Transcribe • <kbd>Ctrl/⌘+T</kbd> Theme</p>
+        </footer>
     </div>
+
+    <!-- Screen Reader Announcer -->
+    <div aria-live="polite" aria-atomic="true" class="sr-only" id="status-announcer"></div>
 
     <script src="/static/app.js"></script>
 </body>
