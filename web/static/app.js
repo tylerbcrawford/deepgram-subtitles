@@ -75,32 +75,44 @@ document.addEventListener('DOMContentLoaded', function() {
 function updateBreadcrumb(path) {
     const breadcrumb = document.getElementById('breadcrumb');
     const parts = path.split('/').filter(p => p.length > 0);
-    let html = `
-        <button class="breadcrumb-item" onclick="navigateToPath('/')" aria-label="Navigate to root">
-            root
-        </button>
-    `;
+    let html = '';
     
-    let currentPath = '';
-    parts.forEach((part, index) => {
-        currentPath += '/' + part;
-        const isLast = index === parts.length - 1;
+    // Start breadcrumb at /media (the MEDIA_ROOT)
+    if (parts.length === 0 || path === '/media') {
+        html = `<span class="breadcrumb-item current">media</span>`;
+    } else {
+        // Show "media" as clickable root
+        html = `<button class="breadcrumb-item" onclick="navigateToPath('/media')" aria-label="Navigate to media root">media</button>`;
         
-        html += `<span class="breadcrumb-separator">/</span>`;
+        // Build path starting after /media
+        let currentPath = '/media';
+        const mediaIndex = parts.indexOf('media');
+        const relevantParts = mediaIndex >= 0 ? parts.slice(mediaIndex + 1) : parts;
         
-        if (isLast) {
-            html += `<span class="breadcrumb-item current">${part}</span>`;
-        } else {
-            const pathCopy = currentPath;
-            html += `<button class="breadcrumb-item" onclick="navigateToPath('${pathCopy}')">${part}</button>`;
-        }
-    });
+        relevantParts.forEach((part, index) => {
+            currentPath += '/' + part;
+            const isLast = index === relevantParts.length - 1;
+            
+            html += `<span class="breadcrumb-separator">/</span>`;
+            
+            if (isLast) {
+                html += `<span class="breadcrumb-item current">${part}</span>`;
+            } else {
+                const pathCopy = currentPath;
+                html += `<button class="breadcrumb-item" onclick="navigateToPath('${pathCopy}')">${part}</button>`;
+            }
+        });
+    }
     
     breadcrumb.innerHTML = html;
 }
 
 function navigateToPath(path) {
-    browseDirectories(path || '/');
+    // Ensure path is at least /media
+    if (!path || path === '/' || path === '') {
+        path = '/media';
+    }
+    browseDirectories(path);
 }
 
 /* ============================================
