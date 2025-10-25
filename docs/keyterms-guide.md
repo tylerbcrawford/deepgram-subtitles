@@ -534,6 +534,34 @@ Ensure media is organized correctly:
 - Reduce keyterm count if too many
 - Make keyterms more specific (full names vs first names)
 
+### Issue 5: Keyterms Persist After Navigation (Known Bug)
+
+**Status:** 🐛 **KNOWN BUG - FIX PRIORITIZED** (see [`roadmap.md`](roadmap.md))
+
+**Symptoms:**
+- Enter keyterms for a video in Web UI
+- Refresh page or navigate back to main folder
+- Keyterms from previous session remain in the input field
+- Should be cleared when returning to folder view
+
+**Impact:**
+- Risk of applying wrong keyterms to different shows
+- User confusion when starting new transcription
+- Potential transcription errors
+
+**Temporary Workaround:**
+- Manually clear the keyterms field before each new transcription
+- Double-check keyterms field is empty when starting a new show
+- Be aware of this behavior until fix is deployed
+
+**Fix Priority:** **HIGH - Next development task**
+
+**Expected Fix:**
+- Keyterms input will clear automatically when:
+  - Page is refreshed
+  - User navigates back to main folder
+  - User switches to different show directory
+
 ## Feature Limitations
 
 1. **Model:** Only works with Nova-3 (Nova-2 doesn't support keyterms)

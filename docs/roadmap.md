@@ -10,6 +10,34 @@
 
 ## 🚀 V2 Development Priorities
 
+### 🐛 Bug Fix: Keyterms Input Persistence (NEXT TASK)
+**Status:** High Priority | **Effort:** Low | **Timeline:** 1-2 hours
+
+**Issue:**
+When navigating back to the main folder (refresh or home button), keyterms from the previous translation session remain in the input field. This creates confusion and potential errors when starting a new transcription.
+
+**Expected Behavior:**
+- Keyterms input should clear when:
+  - User refreshes the page
+  - User navigates back to main folder/home
+  - User switches to a different show/folder
+- Each new transcription session should start with a clean keyterms field
+
+**Impact:**
+- User might accidentally apply wrong keyterms to different shows
+- Reduces user experience quality
+- Could lead to incorrect transcription results
+
+**Fix Location:**
+- [`web/static/app.js`](../web/static/app.js) - State management and navigation handling
+- Clear keyterms field on folder navigation events
+- Reset input state when returning to root directory
+
+**Related Documentation:**
+- [`keyterms-guide.md`](keyterms-guide.md) - Full keyterms feature documentation
+
+---
+
 ### 🥇 Priority 1: LLM-Enhanced Keyterms (Active Development)
 **Status:** In Development | **Prompt:** [`keyterm-prompt-v1.md`](keyterm-prompt-v1.md)
 
