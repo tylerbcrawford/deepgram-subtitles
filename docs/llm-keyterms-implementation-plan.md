@@ -667,7 +667,9 @@ openai>=1.35.0
 
 ### Phase 0: Fix Existing Keyterms UI Bug (PREREQUISITE)
 
-**⚠️ CRITICAL: This bug must be fixed BEFORE implementing LLM features**
+**⚠️ CRITICAL: These bugs must be fixed BEFORE implementing LLM features**
+
+**Bug 1: Keyterms Field Persistence Issue**
 
 **Issue Description:** Keyterms field in Web UI doesn't refresh properly when:
 - User navigates to a different video/directory
@@ -686,31 +688,107 @@ openai>=1.35.0
   - User switches to different show directory
   - User selects a different video file
 
+**Bug 2: Auto-Population from CSV Not Working**
+
+**Issue Description:** Keyterms are not automatically populating from CSV files
+
+**Current Behavior:**
+- CSV files exist but keyterms don't appear in the input field
+- No automatic reload when CSV is updated
+- Manual refresh doesn't trigger auto-population
+
+**Expected Behavior:**
+- Auto-load keyterms from CSV when video is selected
+- Recheck for CSV updates periodically
+- Populate input field with comma-separated keyterms
+- Integrate with clear/refresh function to prevent conflicts
+
+**Bug 3: Keyterms Input Field Too Small**
+
+**Issue Description:** Text input field cannot display all keyterms properly
+
+**Current Behavior:**
+- Single-line text input truncates long keyterm lists
+- User cannot see all keyterms at once
+- Difficult to review and edit when 20+ keyterms present
+
+**Expected Behavior:**
+- Use textarea (multi-line) instead of single-line input
+- Auto-expand height based on content
+- Minimum 3-4 visible lines
+- Maximum reasonable height with scrolling
+- Display all keyterms clearly for review
+
 **Implementation Tasks:**
 
+**Bug 1: Field Persistence**
 - [ ] **0.1** Identify keyterms field persistence mechanism in [`web/static/app.js`](web/static/app.js)
 - [ ] **0.2** Add event listener for page refresh to clear keyterms field
 - [ ] **0.3** Add event listener for navigation changes to clear keyterms field
 - [ ] **0.4** Implement clearKeytermField() function
 - [ ] **0.5** Hook clearKeytermField() to folder navigation events
 - [ ] **0.6** Hook clearKeytermField() to video selection changes
-- [ ] **0.7** Verify keyterms clear on page reload
-- [ ] **0.8** Verify keyterms clear when navigating between directories
-- [ ] **0.9** Verify keyterms clear when switching between videos
-- [ ] **0.10** Test that auto-loading from CSV still works correctly
-- [ ] **0.11** Update user documentation to remove "known bug" warning
-- [ ] **0.12** Add regression tests to prevent future persistence issues
+
+**Bug 2: Auto-Population Not Working**
+- [ ] **0.7** Create loadKeytermsFromCSV() API endpoint in [`web/app.py`](web/app.py)
+- [ ] **0.8** Implement frontend function to fetch keyterms from server
+- [ ] **0.9** Add automatic CSV check when video is selected
+- [ ] **0.10** Implement periodic CSV refresh (check every 30 seconds)
+- [ ] **0.11** Populate input field with comma-separated keyterms from CSV
+- [ ] **0.12** Ensure auto-load happens AFTER clear on video selection
+- [ ] **0.13** Add visual indicator when keyterms are auto-loaded from CSV
+- [ ] **0.14** Handle cases where CSV doesn't exist (no error, just empty)
+
+**Bug 3: Input Field Too Small**
+- [ ] **0.15** Change keyterms input from `<input type="text">` to `<textarea>` in [`web/templates/index.html`](web/templates/index.html)
+- [ ] **0.16** Set minimum height (3-4 rows, ~80-100px)
+- [ ] **0.17** Implement auto-expand height based on content
+- [ ] **0.18** Set maximum height with scrollbar (~300px max)
+- [ ] **0.19** Add CSS styling to match existing design
+- [ ] **0.20** Test with 5, 20, 50+ keyterms for proper display
+
+**Testing & Validation**
+- [ ] **0.21** Verify keyterms clear on page reload
+- [ ] **0.22** Verify keyterms clear when navigating between directories
+- [ ] **0.23** Verify keyterms clear when switching between videos
+- [ ] **0.24** Verify auto-loading from CSV works after clearing
+- [ ] **0.25** Verify periodic CSV refresh works
+- [ ] **0.26** Verify textarea displays long keyterm lists properly
+- [ ] **0.27** Test manual entry still works in textarea
+- [ ] **0.28** Update user documentation to remove "known bug" warning
+- [ ] **0.29** Add regression tests to prevent future issues
 
 **Technical Details:**
 
+**Bug 1 & 2: Field Clearing + Auto-Population**
+
 ```javascript
-// web/static/app.js - Add these functions
+// web/static/app.js - Add/modify these functions
 
 // Clear keyterms field on navigation/refresh
 function clearKeytermField() {
     const keytermsInput = document.getElementById('keyTerms');
     if (keytermsInput) {
         keytermsInput.value = '';
+    }
+}
+
+// Load keyterms from CSV for a specific video
+async function loadKeytermsFromCSV(videoPath) {
+    try {
+        const response = await fetch(`/api/keyterms/load?video_path=${encodeURIComponent(videoPath)}`);
+        if (response.ok) {
+            const data = await response.json();
+            if (data.keyterms && data.keyterms.length > 0) {
+                const keytermsInput = document.getElementById('keyTerms');
+                keytermsInput.value = data.keyterms.join(', ');
+                // Show indicator
+                showMessage(`✅ Auto-loaded ${data.keyterms.length} keyterms from CSV`, 'info');
+            }
+        }
+    } catch (error) {
+        console.log('No keyterms CSV found or error loading:', error);
+        // Silent fail - not an error condition
     }
 }
 
@@ -721,9 +799,41 @@ function onDirectoryChange(path) {
 }
 
 function onVideoSelect(videoPath) {
+    // First clear
     clearKeytermField();
+    
+    // Then auto-load from CSV if available
+    loadKeytermsFromCSV(videoPath);
+    
     // ... existing video selection logic
-    // Then auto-load keyterms from CSV if available
+}
+
+// Periodic refresh of keyterms from CSV (every 30 seconds)
+let keytermRefreshInterval = null;
+let currentVideoPath = null;
+
+function startKeytermRefresh(videoPath) {
+    currentVideoPath = videoPath;
+    
+    // Clear any existing interval
+    if (keytermRefreshInterval) {
+        clearInterval(keytermRefreshInterval);
+    }
+    
+    // Check for updates every 30 seconds
+    keytermRefreshInterval = setInterval(() => {
+        if (currentVideoPath) {
+            loadKeytermsFromCSV(currentVideoPath);
+        }
+    }, 30000);
+}
+
+function stopKeytermRefresh() {
+    if (keytermRefreshInterval) {
+        clearInterval(keytermRefreshInterval);
+        keytermRefreshInterval = null;
+    }
+    currentVideoPath = null;
 }
 
 // Clear on page load
@@ -731,27 +841,142 @@ window.addEventListener('DOMContentLoaded', () => {
     clearKeytermField();
 });
 
-// Clear on page refresh (before unload)
+// Stop refresh on page unload
 window.addEventListener('beforeunload', () => {
-    clearKeytermField();
+    stopKeytermRefresh();
 });
+```
+
+**Backend API Endpoint:**
+
+```python
+# web/app.py - Add this endpoint
+
+@app.route('/api/keyterms/load', methods=['GET'])
+def load_keyterms():
+    """
+    Load keyterms from CSV for a specific video.
+    
+    Query Parameters:
+        video_path: Path to video file
+    
+    Response:
+        {
+            "keyterms": ["term1", "term2", ...],
+            "count": 5,
+            "csv_path": "path/to/csv"
+        }
+    """
+    video_path = request.args.get('video_path')
+    if not video_path:
+        return jsonify({'error': 'video_path required'}), 400
+    
+    try:
+        from pathlib import Path
+        from core.transcribe import load_keyterms_from_csv
+        
+        vp = Path(video_path)
+        keyterms = load_keyterms_from_csv(vp)
+        
+        if keyterms:
+            return jsonify({
+                'keyterms': keyterms,
+                'count': len(keyterms),
+                'success': True
+            })
+        else:
+            return jsonify({
+                'keyterms': [],
+                'count': 0,
+                'success': True
+            })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+```
+
+**Bug 3: Resize Input Field**
+
+```html
+<!-- web/templates/index.html - Replace input with textarea -->
+
+<!-- OLD: -->
+<input
+    type="text"
+    id="keyTerms"
+    placeholder="e.g., Deepgram, iPhone, customer service"
+>
+
+<!-- NEW: -->
+<textarea
+    id="keyTerms"
+    rows="4"
+    placeholder="e.g., Deepgram, iPhone, customer service"
+    style="resize: vertical; min-height: 80px; max-height: 300px; overflow-y: auto;"
+></textarea>
+```
+
+```css
+/* web/static/styles.css - Add styling for textarea */
+
+#keyTerms {
+    width: 100%;
+    min-height: 80px;
+    max-height: 300px;
+    padding: 8px;
+    font-family: inherit;
+    font-size: 14px;
+    line-height: 1.5;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    resize: vertical;
+    overflow-y: auto;
+}
+
+#keyTerms:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
+}
 ```
 
 **Testing Checklist:**
 
+**Bug 1: Field Persistence**
 - [ ] Test: Refresh page → keyterms cleared
 - [ ] Test: Navigate to different directory → keyterms cleared
 - [ ] Test: Select different video → keyterms cleared
-- [ ] Test: Auto-load from CSV still works after clearing
-- [ ] Test: Manual entry still works after clearing
-- [ ] Test: Transcribe with manual keyterms → saved to CSV
-- [ ] Test: Return to same video → auto-load from CSV works
+- [ ] Test: beforeunload event properly clears field
+
+**Bug 2: Auto-Population**
+- [ ] Test: Select video with existing CSV → keyterms auto-load
+- [ ] Test: Select video without CSV → field stays empty (no error)
+- [ ] Test: Modify CSV file → periodic refresh updates field (within 30s)
+- [ ] Test: API endpoint returns correct keyterms
+- [ ] Test: Visual indicator shows when keyterms auto-loaded
+- [ ] Test: Auto-load happens AFTER clear (proper sequence)
+- [ ] Test: Manual entry overrides auto-loaded keyterms
+- [ ] Test: Transcribe with manual keyterms → saved to CSV → auto-loads next time
+
+**Bug 3: Input Field Size**
+- [ ] Test: Textarea displays with 5 keyterms → readable
+- [ ] Test: Textarea displays with 20 keyterms → readable, auto-expands
+- [ ] Test: Textarea displays with 50+ keyterms → scrollbar appears
+- [ ] Test: Manual resize works (vertical only)
+- [ ] Test: CSS styling matches existing design
+- [ ] Test: Focus state works properly
+- [ ] Test: Placeholder text displays correctly
+- [ ] Test: Copy/paste operations work correctly
+
+**Integration Tests**
+- [ ] Test: Full workflow - select video → auto-load → edit → transcribe → save
+- [ ] Test: Multiple video switches → correct keyterms for each
+- [ ] Test: Page refresh during transcription → state handled correctly
 
 **Status:** 🚨 **BLOCKING** - Must be completed before Phase 1
 
 **Priority:** **CRITICAL - Fix immediately**
 
-**Estimated Time:** 2-4 hours
+**Estimated Time:** 4-6 hours (increased due to 3 bugs + API endpoint)
 
 **References:**
 - See [`docs/keyterms-guide.md`](docs/keyterms-guide.md:537-563) (Issue 5: Known Bug)
@@ -1190,6 +1415,7 @@ def generate_keyterms_task(...):
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 1.2 | 2025-10-25 | Updated Phase 0 with 3 critical bugs: field persistence, auto-population not working, input field too small. Added 29 tasks, API endpoint, and comprehensive testing. |
 | 1.1 | 2025-10-25 | Added Phase 0 - Critical prerequisite to fix keyterms UI persistence bug |
 | 1.0 | 2025-10-25 | Initial implementation plan |
 
