@@ -306,13 +306,16 @@ Keyterm Prompting allows you to improve Keyword Recall Rate (KRR) for important 
 - **Recommended**: 20-50 focused keyterms for best results
 - **Token estimation**: Approximately 1.3 tokens per word
 
-### CSV Keyterms Management (New!)
+### CSV Keyterms Management
 
-Keyterms can now be stored and automatically loaded from CSV files:
+Keyterms are stored in CSV files alongside your media content for automatic reuse across episodes.
 
-**Storage Location:** `Transcripts/Keyterms/{show_or_movie_name}_keyterms.csv`
+#### CSV File Format
 
-**CSV Format:** One keyterm per line
+**Location:** `Transcripts/Keyterms/{show_or_movie_name}_keyterms.csv`
+
+**Format:** Simple CSV with one keyterm per line (no header required)
+
 ```csv
 Walter White
 Jesse Pinkman
@@ -320,33 +323,200 @@ Heisenberg
 Los Pollos Hermanos
 Albuquerque
 methylamine
+pseudoephedrine
+DEA
 ```
 
-**Features:**
-- **Auto-load**: Keyterms are automatically loaded from CSV when available
-- **Auto-save**: Web UI can automatically save keyterms to CSV for reuse
-- **Per-show organization**: Each show/movie has its own keyterms file
-- **API endpoints**: Upload/download keyterms via Web UI API
+**CSV Rules:**
+- One keyterm per line
+- No header row needed
+- Empty lines are ignored
+- Lines starting with `#` are treated as comments
+- UTF-8 encoding for international characters
+- Case-sensitive (preserve proper capitalization)
+
+#### File Naming Convention
+
+The CSV filename is automatically determined from your media path:
+
+**For TV Shows:**
+```
+/media/tv/Breaking Bad/Season 01/episode.mkv
+→ Transcripts/Keyterms/Breaking Bad_keyterms.csv
+```
+
+**For Movies:**
+```
+/media/movies/Inception (2010)/movie.mkv
+→ Transcripts/Keyterms/Inception (2010)_keyterms.csv
+```
+
+The keyterms file is **shared across all episodes** of a show or all files in a movie directory.
 
 ### Using Keyterms with CLI
 
-The CLI automatically detects and loads keyterms from CSV files. No manual configuration needed!
+The CLI **automatically loads** keyterms from CSV files - no manual configuration required!
 
 ```bash
-# Keyterms will be auto-loaded from Transcripts/Keyterms/ if available
+# Keyterms auto-loaded from Transcripts/Keyterms/{show}_keyterms.csv
 docker compose run --rm deepgram-cli
 ```
 
+**Example CLI Output:**
+```
+🎬 Processing: Breaking.Bad.S01E01.mkv
+  📋 Auto-loaded 23 keyterms from CSV
+  ⏱️  Duration: 47.2 min | Cost: $0.20
+  📢 Extracting audio...
+  🧠 Transcribing (nova-3)...
+  💾 Generating SRT...
+  ✅ SRT created: Breaking.Bad.S01E01.eng.srt
+```
+
+**To create a keyterms file for CLI use:**
+
+1. Process one episode to generate the directory structure
+2. Create the keyterms CSV manually:
+   ```bash
+   cd "/media/tv/Breaking Bad/Season 01"
+   mkdir -p Transcripts/Keyterms
+   cat > Transcripts/Keyterms/"Breaking Bad_keyterms.csv" << EOF
+   Walter White
+   Jesse Pinkman
+   Heisenberg
+   Los Pollos Hermanos
+   EOF
+   ```
+3. Future episodes will automatically use these keyterms
+
 ### Using Keyterms with Web UI
 
-The Web UI provides:
-- Textarea input for manual keyterm entry
-- Auto-save checkbox to store keyterms in CSV
-- Auto-load from existing CSV files
-- API endpoints for CSV upload/download
-- Real-time feedback on keyterm count
+The Web UI provides an integrated keyterms interface with automatic save/load functionality.
 
-When "Auto-save Keyterms to CSV" is checked, entered keyterms are automatically saved to `Transcripts/Keyterms/` for future use.
+#### Web UI Features
+
+- **Text input field**: Enter keyterms separated by commas
+- **Auto-load**: Existing keyterms automatically populate from CSV
+- **Auto-save**: Keyterms automatically saved to CSV when you transcribe
+- **Per-directory**: Keyterms stored with the media files
+- **Reusable**: Same keyterms used for all episodes/files in that show/movie
+
+#### Using the Web UI
+
+1. **Select videos** to transcribe
+2. **Enter keyterms** in the "Keyterm Prompting" field:
+   ```
+   Walter White, Jesse Pinkman, Heisenberg, Albuquerque
+   ```
+3. **Click Transcribe** - keyterms are automatically saved to CSV
+4. **Next time**: Keyterms auto-load when you browse to that directory
+
+**Note:** Keyterms are automatically saved every time you transcribe with keyterms entered. You don't need to manually save them.
+
+#### API Endpoints (Advanced Users)
+
+**Upload keyterms CSV:**
+```bash
+curl -X POST http://localhost:5000/api/keyterms/upload \
+  -F "file=@keyterms.csv" \
+  -F "video_path=/media/tv/Show/episode.mkv"
+```
+
+**Download keyterms CSV:**
+```bash
+curl "http://localhost:5000/api/keyterms/download?video_path=/media/tv/Show/episode.mkv" \
+  -o keyterms.csv
+```
+
+### Workflow Examples
+
+#### Scenario 1: New TV Show
+
+1. **First Episode:**
+   - Select episode in Web UI
+   - Enter keyterms: `Tony Soprano, Christopher Moltisanti, Bada Bing, Newark`
+   - Click Transcribe
+   - Keyterms saved to `Transcripts/Keyterms/The Sopranos_keyterms.csv`
+
+2. **Subsequent Episodes:**
+   - Select any episode from "The Sopranos"
+   - Keyterms automatically loaded and displayed
+   - Click Transcribe (same keyterms reused)
+
+#### Scenario 2: Batch Processing with CLI
+
+1. **Prepare keyterms** for your show:
+   ```bash
+   cd "/media/tv/Your Show/Season 01"
+   mkdir -p Transcripts/Keyterms
+   nano Transcripts/Keyterms/"Your Show_keyterms.csv"
+   ```
+
+2. **Run CLI** to process entire season:
+   ```bash
+   docker compose run --rm \
+     -e MEDIA_PATH="/media/tv/Your Show/Season 01" \
+     deepgram-cli
+   ```
+
+3. **Keyterms automatically applied** to all 24 episodes
+
+#### Scenario 3: Movie with Technical Terms
+
+1. **Create keyterms file:**
+   ```
+   /media/movies/Interstellar (2014)/Transcripts/Keyterms/Interstellar (2014)_keyterms.csv
+   ```
+   
+2. **Add technical terms:**
+   ```csv
+   Cooper
+   TARS
+   CASE
+   Gargantua
+   tesseract
+   relativity
+   ```
+
+3. **Process movie** - keyterms improve accuracy for sci-fi terminology
+
+### Best Practices
+
+1. **Start with 20-30 keyterms** - most important names and terms
+2. **Use proper capitalization** - helps with accuracy (iPhone not iphone)
+3. **One keyterms file per show** - shared across all episodes/seasons
+4. **Update as needed** - add new characters/terms when they appear
+5. **Test first episode** - verify keyterms work before batch processing
+6. **Include variations** - "Dr. Smith" and "Doctor Smith" if both are used
+7. **Avoid over-prompting** - too many keyterms can reduce effectiveness
+
+### Troubleshooting
+
+**Keyterms not loading:**
+- Check file exists: `Transcripts/Keyterms/{show_name}_keyterms.csv`
+- Verify filename matches show directory name exactly
+- Check CSV encoding (must be UTF-8)
+- Look for CLI message: `📋 Auto-loaded X keyterms from CSV`
+
+**Keyterms not improving accuracy:**
+- Ensure using Nova-3 model (keyterms only work with Nova-3)
+- Verify language is monolingual (not multilingual detection)
+- Check keyterm count (20-50 recommended, 500 token limit)
+- Try more specific terms (full names better than first names)
+
+**CSV file not created:**
+- Ensure write permissions on media directory
+- Check `Transcripts/` folder exists and is writable
+- Verify you're using Web UI auto-save (CLI only reads, doesn't write)
+
+### Technical Details
+
+- **API Parameter**: Keyterms passed as `keyterm` array in Deepgram API options
+- **Model Requirement**: Nova-3 only (Nova-2 does not support keyterms)
+- **Language Requirement**: Monolingual only (single language code like `en`, not `multi`)
+- **Storage Format**: UTF-8 encoded CSV, one term per line
+- **Auto-detection**: Show/movie name extracted from parent directory path
+- **Shared across episodes**: Same CSV used for all files in show/movie directory
 
 ## Pricing
 
