@@ -189,7 +189,7 @@ async_result = make_batch(
 
 #### Worker (web/tasks.py)
 
-**Auto-load (Line 118-122):**
+**Auto-load (Line 117-122):**
 ```python
 # Auto-load keyterms from CSV if no keyterms provided
 if not keyterms:
