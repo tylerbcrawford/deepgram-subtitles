@@ -180,6 +180,7 @@ def get_transcripts_folder(video_path: Path) -> Path:
     
     Creates folder structure:
     - TV Shows: /media/tv/Show/Transcripts/ (at show level, alongside seasons)
+    - TV Specials: /media/tv/Show/Transcripts/ (at show level, alongside specials)
     - Movies: /media/movies/Movie (2024)/Transcripts/
     
     Args:
@@ -191,13 +192,15 @@ def get_transcripts_folder(video_path: Path) -> Path:
     # Get the parent directory of the video file
     video_parent = video_path.parent
     
-    # Try to detect if this is a TV show (has "Season" in path) or movie
+    # Try to detect if this is a TV show (has "Season" or "Specials" in path) or movie
     path_str = str(video_path).lower()
+    parent_name_lower = video_parent.name.lower()
     
-    # For TV shows, Transcripts folder should be at the show level (one level up from season)
+    # For TV shows, Transcripts folder should be at the show level (one level up from season/specials)
     # Path pattern: /media/tv/Show Name/Season 01/episode.mkv
-    # Transcripts: /media/tv/Show Name/Transcripts/ (alongside Season folders)
-    if 'season' in path_str or video_parent.name.lower().startswith('season'):
+    # Path pattern: /media/tv/Show Name/Specials/episode.mkv
+    # Transcripts: /media/tv/Show Name/Transcripts/ (alongside Season/Specials folders)
+    if 'season' in path_str or parent_name_lower.startswith('season') or parent_name_lower == 'specials':
         # Go up one more level to get to the show folder
         show_folder = video_parent.parent
         transcripts_folder = show_folder / "Transcripts"
@@ -215,7 +218,7 @@ def get_transcripts_folder(video_path: Path) -> Path:
     try:
         transcripts_folder.chmod(0o755)
         # Also set permissions for parent directories if they were just created
-        if 'season' in path_str or video_parent.name.lower().startswith('season'):
+        if 'season' in path_str or parent_name_lower.startswith('season') or parent_name_lower == 'specials':
             # For TV shows, also ensure the parent Transcripts folder has proper permissions
             parent = transcripts_folder.parent
             if parent.exists():
@@ -327,14 +330,17 @@ def load_keyterms_from_csv(video_path: Path) -> Optional[List[str]]:
         
         # Determine show/movie name from path
         # For TV: /media/tv/Show Name/Season XX/episode.mkv -> "Show Name"
+        # For TV Specials: /media/tv/Show Name/Specials/episode.mkv -> "Show Name"
         # For Movies: /media/movies/Movie (2024)/movie.mkv -> "Movie (2024)"
         path_parts = video_path.parts
         
         # Try to find the show/movie name
         show_or_movie_name = None
         for i, part in enumerate(path_parts):
-            if 'season' in part.lower():
-                # TV show - name is one level up from season
+            part_lower = part.lower()
+            # Check for season folders or specials folders
+            if 'season' in part_lower or part_lower == 'specials':
+                # TV show - name is one level up from season/specials
                 if i > 0:
                     show_or_movie_name = path_parts[i - 1]
                 break
@@ -384,7 +390,9 @@ def save_keyterms_to_csv(video_path: Path, keyterms: List[str]) -> bool:
         path_parts = video_path.parts
         show_or_movie_name = None
         for i, part in enumerate(path_parts):
-            if 'season' in part.lower():
+            part_lower = part.lower()
+            # Check for season folders or specials folders
+            if 'season' in part_lower or part_lower == 'specials':
                 if i > 0:
                     show_or_movie_name = path_parts[i - 1]
                 break
@@ -438,7 +446,9 @@ def find_speaker_map(video_path: Path, fallback_path: Optional[Path] = None) -> 
             show_or_movie_name = None
             
             for i, part in enumerate(path_parts):
-                if 'season' in part.lower():
+                part_lower = part.lower()
+                # Check for season folders or specials folders
+                if 'season' in part_lower or part_lower == 'specials':
                     if i > 0:
                         show_or_movie_name = path_parts[i - 1]
                     break

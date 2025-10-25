@@ -14,6 +14,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize theme
     initTheme();
     
+    // Clear keyterms field on page load
+    clearKeytermField();
+    
     // Load config
     fetch('/api/config')
         .then(r => r.json())
@@ -123,6 +126,9 @@ async function browseDirectories(path) {
     currentPath = path;
     const directoryList = document.getElementById('directoryList');
     const showAll = true;
+    
+    // Clear keyterms when navigating directories
+    clearKeytermField();
     
     console.log('Browsing directory:', path);
     updateBreadcrumb(path);
@@ -272,12 +278,14 @@ function toggleFileSelection(filePath) {
         }
     });
     
-    // Calculate estimates
+    // Calculate estimates and handle keyterms
     if (selectedFiles.length > 0) {
         calculateEstimatesAuto();
         // Auto-load keyterms for the first selected file
         loadKeytermsForSelection();
     } else {
+        // Clear keyterms when no files are selected
+        clearKeytermField();
         const costPrimary = document.getElementById('costPrimary');
         const costSecondary = document.getElementById('costSecondary');
         costPrimary.textContent = '0 files selected';
@@ -289,11 +297,21 @@ function toggleFileSelection(filePath) {
    KEYTERMS AUTO-LOADING
    ============================================ */
 
+function clearKeytermField() {
+    const keytermsInput = document.getElementById('keyTerms');
+    if (keytermsInput) {
+        keytermsInput.value = '';
+    }
+}
+
 async function loadKeytermsForSelection() {
     // Only load if we have selected files
     if (selectedFiles.length === 0) {
         return;
     }
+    
+    // Clear existing keyterms first
+    clearKeytermField();
     
     // Use the first selected file to determine which keyterms to load
     const firstFile = selectedFiles[0];
@@ -524,6 +542,8 @@ function selectAll() {
     updateSelectionStatus();
     if (selectedFiles.length > 0) {
         showToast('success', `Selected all ${selectedFiles.length} files`);
+        // Auto-load keyterms for the first selected file
+        loadKeytermsForSelection();
     }
 }
 
@@ -533,6 +553,8 @@ function selectNone() {
         cb.checked = false;
         cb.closest('.browser-file').classList.remove('selected');
     });
+    // Clear keyterms when clearing selection
+    clearKeytermField();
     updateSelectionStatus();
     showToast('info', 'Selection cleared');
 }

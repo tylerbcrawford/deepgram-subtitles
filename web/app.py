@@ -12,7 +12,7 @@ import time
 from pathlib import Path
 from flask import Flask, request, jsonify, Response, abort, render_template, send_file
 from werkzeug.utils import secure_filename
-from tasks import celery_app, make_batch
+from tasks import celery_app, make_batch, generate_keyterms_task
 from core.transcribe import (
     is_video, is_media, get_video_duration,
     load_keyterms_from_csv, save_keyterms_to_csv,
