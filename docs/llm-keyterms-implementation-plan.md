@@ -1296,6 +1296,11 @@ def test_merge_with_existing(test_video_path):
     assert "Test2" in result['keyterms']
 ```
 
+### Test Data
+
+**Available Test CSV:**
+- [`/media/tyler/8TB/media/tv/On Cinema/Transcripts/Keyterms/On Cinema_keyterms.csv`](/media/tyler/8TB/media/tv/On Cinema/Transcripts/Keyterms/On Cinema_keyterms.csv) - Can be used for testing keyterm loading, merging, and CSV format validation
+
 ### Manual Testing Checklist
 
 - [ ] Test with real show (e.g., "Breaking Bad")
@@ -1305,8 +1310,8 @@ def test_merge_with_existing(test_video_path):
 - [ ] Test error handling (invalid API key)
 - [ ] Test concurrent generations
 - [ ] Verify CSV format correct
-- [ ] Test with existing keyterms (merge)
-- [ ] Test with existing keyterms (overwrite)
+- [ ] Test with existing keyterms (merge) - Use On Cinema test CSV
+- [ ] Test with existing keyterms (overwrite) - Use On Cinema test CSV
 - [ ] Verify keyterms improve transcription accuracy
 
 ---

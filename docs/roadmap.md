@@ -121,10 +121,32 @@ From Nova-3 review - optional improvements for specific use cases:
 
 ---
 
-### Priority 4: Bazarr Auto-Fallback Workflow
+---
+
+## 📅 V2 Release Plan
+
+**Weeks 1-2:** LLM Keyterms (Priority 1)
+**Week 3:** Time Estimation + Nova-3 Enhancements (Priorities 2-3)
+**V2 Release**
+
+---
+
+## 🚀 V3 Future Development
+
+### Priority 4: Translation
+**Effort:** High | **Timeline:** 2-3 weeks
+
+- [ ] LLM-powered subtitle translation (Anthropic/OpenAI)
+- [ ] Multi-language support with timing preservation
+
+**Note:** Deferred to V3 unless V1/V2 users specifically request it.
+
+---
+
+### Priority 5: Bazarr Auto-Fallback Workflow
 **Effort:** Moderate | **Timeline:** 1 week
 
-**Current:** Manual trigger after 24h wait  
+**Current:** Manual trigger after 24h wait
 **Planned:** Automatic fallback via webhook or scheduled scan
 
 - [ ] Test Bazarr rescan integration
@@ -138,7 +160,7 @@ From Nova-3 review - optional improvements for specific use cases:
 
 ---
 
-### Priority 5: Subtitle Synchronization
+### Priority 6: Subtitle Synchronization
 **Effort:** Moderate-High | **Timeline:** 1-2 weeks
 
 - [ ] Internal FFmpeg sync function
@@ -146,27 +168,6 @@ From Nova-3 review - optional improvements for specific use cases:
 - [ ] Subsyncarr workflow integration
 
 **Note:** Lower priority since Subsyncarr already handles this well.
-
----
-
-### Priority 6: Translation (V3 Consideration)
-**Effort:** High | **Timeline:** 2-3 weeks
-
-- [ ] LLM-powered subtitle translation (Anthropic/OpenAI)
-- [ ] Multi-language support with timing preservation
-
-**Recommendation:** Defer to V3 unless V1 users specifically request it.
-
----
-
-## 📅 V2 Release Plan
-
-**Weeks 1-2:** LLM Keyterms (Priority 1)  
-**Week 3:** Time Estimation + Nova-3 Enhancements (Priorities 2-3)  
-**Week 4:** Bazarr Auto-Fallback (Priority 4)  
-**V2 Release**
-
-Then evaluate for subtitle synchronization and translation based on V1 user feedback.
 
 ---
 
