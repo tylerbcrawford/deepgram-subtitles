@@ -1,5 +1,3 @@
-After reviewing the keyterm documentation, here's the updated prompt with specific requirements:
-
 ```
 You are assisting with audio transcription accuracy by generating a keyterm list for Deepgram Nova-3 API's keyterm prompting feature.
 
@@ -57,13 +55,3 @@ Khaleesi,Westeros,Valyrian,Dothraki,Jon Snow,Daenerys Targaryen,White Walkers,Ki
 
 Begin your research and generate the keyterm list now.
 ```
-
-**Key changes based on the documentation:**
-
-1. **Reduced limit**: Changed from 50-100 to **20-50 terms** as the doc recommends
-2. **Capitalization rules**: Added specific instructions for proper nouns (capitalized) vs. common nouns (lowercase)
-3. **Focus on misheard words**: Emphasized terms likely to be confused or misrecognized
-4. **Token limit warning**: Added mention of the 500 token limit
-5. **Simpler CSV format**: Changed to just comma-separated keyterms without context column (cleaner for processing)
-6. **Avoid list**: Added specific guidance on what NOT to include based on doc's best practices
-7. **Multi-word phrases**: Explicitly mentioned these are valuable
