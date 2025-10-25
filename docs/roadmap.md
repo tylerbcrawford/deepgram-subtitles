@@ -15,20 +15,51 @@
 
 Automatically generate optimal keyterm lists using LLM analysis of show/movie metadata.
 
+**Architecture Decision (2025-10-25):**
+✅ **Separate Script Implementation** - LLM keyterm generation will be implemented as `core/keyterm_search.py`, independent from `core/transcribe.py`
+
+**Rationale:**
+- **Single Responsibility:** Keeps transcription logic separate from intelligence layer
+- **Performance:** Transcription doesn't wait for expensive LLM API calls
+- **Cost Control:** Users decide when to incur LLM costs
+- **Reusability:** Generate keyterms once, use for entire season
+- **Flexibility:** Easy to switch LLM providers or add new sources
+- **Maintainability:** Isolated testing without affecting critical transcription path
+
 **Implementation Plan:**
+- [ ] Create `core/keyterm_search.py` module with KeytermSearcher class
 - [ ] LLM API integration (Claude/GPT) for keyterm generation
 - [ ] Search authoritative sources (IMDb, Wikipedia, Fandom wikis, TMDB)
 - [ ] Parse and format keyterms per Nova-3 best practices (20-50 terms)
 - [ ] Auto-save to `Transcripts/Keyterms/` CSV format
-- [ ] Web UI integration with "Generate Keyterms" button
-- [ ] CLI support with `--auto-keyterms` flag
+- [ ] Create `cli/generate_keyterms.py` CLI tool
+- [ ] Web UI integration with "Generate Keyterms with AI" button
+- [ ] Add async Celery task in `web/tasks.py`
 - [ ] Quality validation and user review workflow
+
+**Module Structure:**
+```
+core/
+├── transcribe.py          # Existing (no changes to core logic)
+├── keyterm_search.py      # NEW: LLM-based keyterm generation
+└── keyterm_utils.py       # Optional: shared utilities
+
+cli/
+├── generate_subtitles.py  # Existing CLI
+└── generate_keyterms.py   # NEW: CLI tool for keyterm generation
+
+web/
+├── app.py                 # Add /api/keyterms/generate endpoint
+└── tasks.py               # Add generate_keyterms_llm task
+```
 
 **Benefits:**
 - Eliminates manual keyterm research
 - Ensures proper capitalization and formatting
 - Dramatically improves transcription accuracy for character names
 - Reduces setup time for new shows/movies
+- Optional feature - doesn't impact core transcription performance
+- Can run independently or be integrated into workflows
 
 ---
 

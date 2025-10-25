@@ -542,6 +542,124 @@ Ensure media is organized correctly:
 4. **CSV Format:** Simple format only (no multi-column CSVs)
 5. **Sharing:** One CSV per show/movie (not per episode)
 
+## Future Enhancement: LLM-Based Keyterm Generation
+
+### Architecture Decision (2025-10-25)
+
+**Decision:** LLM keyterm search will be implemented as a **separate, optional module** (`core/keyterm_search.py`), not integrated into the main transcription script.
+
+### Rationale
+
+| Aspect | Separate Script ✅ | Integrated in transcribe.py ❌ |
+|--------|-------------------|-------------------------------|
+| **Single Responsibility** | Clear separation of concerns | Mixed transcription + intelligence |
+| **Performance** | Transcription remains fast | Adds overhead to every transcription |
+| **Cost Control** | User controls when to use LLM | LLM cost per transcription |
+| **Reusability** | Can run independently | Tied to transcription flow |
+| **Testing** | Isolated unit tests | Complex integration tests |
+| **Dependencies** | LLM deps separate | Increases core dependencies |
+| **Maintenance** | Easier to update/replace LLM | Affects critical transcription path |
+
+### Planned Architecture
+
+```
+core/
+├── transcribe.py          # Core transcription (unchanged)
+├── keyterm_search.py      # NEW: LLM-based generation
+└── keyterm_utils.py       # Optional: shared utilities
+
+cli/
+├── generate_subtitles.py  # Existing CLI
+└── generate_keyterms.py   # NEW: Keyterm generation tool
+
+web/
+├── app.py                 # Add /api/keyterms/generate endpoint
+└── tasks.py               # Add async LLM generation task
+```
+
+### Workflow Integration
+
+**Mermaid Architecture:**
+```mermaid
+graph TB
+    subgraph "Core Transcription Flow (Fast Path)"
+        A[core/transcribe.py] -->|loads| B[CSV keyterms]
+        B -->|passes to| C[Deepgram API]
+    end
+    
+    subgraph "Optional Intelligence Layer"
+        D[core/keyterm_search.py] -->|LLM analysis| E[Generate keyterms]
+        E -->|saves to| B
+    end
+    
+    subgraph "User Workflows"
+        F[Manual CSV] --> B
+        G[Web UI manual] --> B
+        H[LLM generation] --> D
+    end
+    
+    style D fill:#e1f5ff
+    style A fill:#fff4e1
+```
+
+**CLI Usage Example:**
+```bash
+# Generate keyterms from show metadata
+python -m cli.generate_keyterms \
+  --show-name "Breaking Bad" \
+  --season 1 \
+  --output /media/tv/Breaking\ Bad/Transcripts/Keyterms/Breaking\ Bad_keyterms.csv
+
+# Generate from existing transcript
+python -m cli.generate_keyterms \
+  --from-transcript /media/tv/Show/Transcripts/episode1.txt \
+  --output /media/tv/Show/Transcripts/Keyterms/Show_keyterms.csv
+```
+
+**Web UI Integration:**
+- New button: "Generate Keyterms with AI"
+- Async processing via Celery
+- Auto-populates keyterms field after generation
+- One-time generation, reused for all episodes
+
+### KeytermSearcher Class (Planned)
+
+```python
+class KeytermSearcher:
+    """Generate contextually relevant keyterms using LLM analysis."""
+    
+    def analyze_from_metadata(self, show_name: str, season: int) -> List[str]:
+        """Generate keyterms from show metadata and episode guides."""
+        pass
+    
+    def analyze_from_transcript(self, transcript_path: Path) -> List[str]:
+        """Extract keyterms from an existing transcript."""
+        pass
+    
+    def analyze_from_video_content(self, video_path: Path) -> List[str]:
+        """Extract keyterms from video content analysis."""
+        pass
+    
+    def refine_keyterms(self, existing: List[str], context: str) -> List[str]:
+        """Refine existing keyterms with additional context."""
+        pass
+```
+
+### Benefits of Separation
+
+1. **Performance:** Transcription doesn't wait for LLM analysis
+2. **Cost Control:** Users decide when to use expensive LLM calls
+3. **Flexibility:** Easy to switch LLM providers (OpenAI, Anthropic, local models)
+4. **Caching:** Generate once, use for entire season
+5. **Testing:** Can test LLM generation without running transcriptions
+6. **Fallback:** If LLM fails, manual keyterms still work
+
+### Status
+
+🚧 **In Development** - See [`roadmap.md`](roadmap.md) for implementation timeline.
+
+---
+
 ## Conclusion
 
 The keyterms feature is fully implemented and working as designed:
@@ -554,3 +672,5 @@ The keyterms feature is fully implemented and working as designed:
 ✅ **API:** Upload/download endpoints available
 
 The feature requires no manual configuration and works automatically once CSV files are in place.
+
+**Coming in V2:** LLM-powered keyterm generation as an optional enhancement that complements the existing manual workflow.
