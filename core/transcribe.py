@@ -179,7 +179,7 @@ def get_transcripts_folder(video_path: Path) -> Path:
     Determine the appropriate Transcripts folder for a video file.
     
     Creates folder structure:
-    - TV Shows: /media/tv/Show/Season 01/Transcripts/
+    - TV Shows: /media/tv/Show/Transcripts/ (at show level, alongside seasons)
     - Movies: /media/movies/Movie (2024)/Transcripts/
     
     Args:
@@ -194,19 +194,35 @@ def get_transcripts_folder(video_path: Path) -> Path:
     # Try to detect if this is a TV show (has "Season" in path) or movie
     path_str = str(video_path).lower()
     
-    # For TV shows, Transcripts folder should be at the season level
+    # For TV shows, Transcripts folder should be at the show level (one level up from season)
     # Path pattern: /media/tv/Show Name/Season 01/episode.mkv
-    # Transcripts: /media/tv/Show Name/Season 01/Transcripts/
+    # Transcripts: /media/tv/Show Name/Transcripts/ (alongside Season folders)
     if 'season' in path_str or video_parent.name.lower().startswith('season'):
-        transcripts_folder = video_parent / "Transcripts"
+        # Go up one more level to get to the show folder
+        show_folder = video_parent.parent
+        transcripts_folder = show_folder / "Transcripts"
     else:
         # For movies, Transcripts folder at the movie directory level
         # Path pattern: /media/movies/Movie (2024)/movie.mkv
         # Transcripts: /media/movies/Movie (2024)/Transcripts/
         transcripts_folder = video_parent / "Transcripts"
     
-    # Create folder if it doesn't exist
+    # Create folder if it doesn't exist with proper permissions
     transcripts_folder.mkdir(parents=True, exist_ok=True)
+    
+    # Ensure folder has proper permissions (0o755 = rwxr-xr-x)
+    # This prevents permission issues when created by Docker containers
+    try:
+        transcripts_folder.chmod(0o755)
+        # Also set permissions for parent directories if they were just created
+        if 'season' in path_str or video_parent.name.lower().startswith('season'):
+            # For TV shows, also ensure the parent Transcripts folder has proper permissions
+            parent = transcripts_folder.parent
+            if parent.exists():
+                parent.chmod(0o755)
+    except (OSError, PermissionError):
+        # If we can't set permissions (e.g., running as non-root), that's okay
+        pass
     
     return transcripts_folder
 
@@ -226,6 +242,13 @@ def get_json_folder(video_path: Path) -> Path:
     transcripts_folder = get_transcripts_folder(video_path)
     json_folder = transcripts_folder / "JSON"
     json_folder.mkdir(parents=True, exist_ok=True)
+    
+    # Ensure proper permissions
+    try:
+        json_folder.chmod(0o755)
+    except (OSError, PermissionError):
+        pass
+    
     return json_folder
 
 
@@ -244,6 +267,13 @@ def get_keyterms_folder(video_path: Path) -> Path:
     transcripts_folder = get_transcripts_folder(video_path)
     keyterms_folder = transcripts_folder / "Keyterms"
     keyterms_folder.mkdir(parents=True, exist_ok=True)
+    
+    # Ensure proper permissions
+    try:
+        keyterms_folder.chmod(0o755)
+    except (OSError, PermissionError):
+        pass
+    
     return keyterms_folder
 
 
@@ -262,6 +292,13 @@ def get_speakermap_folder(video_path: Path) -> Path:
     transcripts_folder = get_transcripts_folder(video_path)
     speakermap_folder = transcripts_folder / "Speakermap"
     speakermap_folder.mkdir(parents=True, exist_ok=True)
+    
+    # Ensure proper permissions
+    try:
+        speakermap_folder.chmod(0o755)
+    except (OSError, PermissionError):
+        pass
+    
     return speakermap_folder
 
 

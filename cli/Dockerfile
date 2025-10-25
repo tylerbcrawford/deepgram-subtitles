@@ -9,7 +9,7 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY config.py generate_subtitles.py test_single_video.py transcript_generator.py ./
+COPY config.py generate_subtitles.py transcript_generator.py ./
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
