@@ -113,7 +113,7 @@
                             <label for="keyTerms">Keyterm Prompting (optional)</label>
                             <textarea id="keyTerms" rows="7" placeholder="e.g., Deepgram, iPhone, customer service" aria-label="Keyterm prompting (optional)"></textarea>
                             <small style="color: var(--text-tertiary); display: block; margin-top: var(--space-xs);">
-                                Keyterms are auto-loaded and auto-saved from CSV if available
+                                Keyterms are auto-loaded and auto-saved from CSV if available. Use AI generation in Advanced Options below.
                             </small>
                         </div>
 
@@ -153,6 +153,39 @@
                                     ℹ️ Speaker maps auto-detected from Transcripts/Speakermap/speakers.csv
                                 </span>
                             </div>
+                        </div>
+                        
+                        <!-- LLM Keyterm Generation -->
+                        <div class="llm-settings" style="margin-top: var(--space-l);">
+                            <h4>AI Keyterm Generation</h4>
+                            
+                            <div class="form-group">
+                                <label for="llmProvider">
+                                    LLM Provider
+                                    <span id="apiKeyStatus" class="api-key-status" title="API key status"></span>
+                                </label>
+                                <select id="llmProvider">
+                                    <option value="anthropic">Anthropic (Claude)</option>
+                                    <option value="openai">OpenAI (GPT)</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="llmModel">Model</label>
+                                <select id="llmModel">
+                                    <option value="claude-sonnet-4">Claude Sonnet 4 (Best Quality)</option>
+                                    <option value="claude-haiku-4">Claude Haiku 4 (Faster, Cheaper)</option>
+                                </select>
+                            </div>
+                            
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="preserveExisting">
+                                <span>Merge with existing keyterms (instead of replacing)</span>
+                            </label>
+                            
+                            <button id="generateKeytermsBtn" class="btn-secondary" style="width: 100%; margin-top: var(--space-m);" title="Generate keyterms using AI">
+                                <span class="icon">🤖</span> Generate Keyterms with AI
+                            </button>
                         </div>
                     </div>
                 </div>

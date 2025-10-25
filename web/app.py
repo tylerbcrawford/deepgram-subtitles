@@ -69,12 +69,14 @@ def api_config():
     """
     Get current configuration defaults.
     
-    Returns default model and language settings.
+    Returns default model and language settings plus API key configuration status.
     """
     # _require_auth()
     return jsonify({
         "default_model": DEFAULT_MODEL,
-        "default_language": DEFAULT_LANGUAGE
+        "default_language": DEFAULT_LANGUAGE,
+        "anthropic_api_key_configured": bool(os.getenv('ANTHROPIC_API_KEY')),
+        "openai_api_key_configured": bool(os.getenv('OPENAI_API_KEY'))
     })
 
 
@@ -537,6 +539,152 @@ def api_keyterms_download():
             
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+@app.post("/api/keyterms/generate")
+def api_keyterms_generate():
+    """
+    Generate keyterms using LLM (Anthropic Claude or OpenAI GPT).
+    
+    Request Body (JSON):
+        video_path: Path to video file (required)
+        provider: LLM provider - "anthropic" or "openai" (default: "anthropic")
+        model: Model name - see LLMModel enum (default: "claude-sonnet-4")
+        preserve_existing: Merge with existing keyterms (default: false)
+        estimate_only: Only return cost estimate (default: false)
+        
+    Returns:
+        If estimate_only=true:
+            JSON with estimated_tokens and estimated_cost
+        Otherwise:
+            JSON with task_id for async generation
+    """
+    # _require_auth()
+    
+    body = request.get_json(force=True) or {}
+    video_path = body.get('video_path')
+    provider = body.get('provider', 'anthropic')
+    model = body.get('model', 'claude-sonnet-4')
+    preserve_existing = body.get('preserve_existing', False)
+    estimate_only = body.get('estimate_only', False)
+    
+    # Validate inputs
+    if not video_path:
+        return jsonify({'error': 'video_path required'}), 400
+    
+    vp = Path(video_path)
+    
+    # Security: Ensure path is under MEDIA_ROOT
+    if not str(vp).startswith(str(MEDIA_ROOT)):
+        return jsonify({'error': 'Invalid path'}), 400
+    
+    # Extract show name from path
+    try:
+        path_parts = vp.parts
+        show_name = None
+        
+        for i, part in enumerate(path_parts):
+            part_lower = part.lower()
+            if 'season' in part_lower or part_lower == 'specials':
+                if i > 0:
+                    show_name = path_parts[i - 1]
+                break
+        
+        if not show_name:
+            show_name = vp.parent.name
+    except Exception as e:
+        return jsonify({'error': f'Failed to extract show name: {str(e)}'}), 400
+    
+    # Get API key from environment
+    if provider == 'anthropic':
+        api_key = os.environ.get('ANTHROPIC_API_KEY')
+        if not api_key:
+            return jsonify({'error': 'ANTHROPIC_API_KEY not configured'}), 500
+    elif provider == 'openai':
+        api_key = os.environ.get('OPENAI_API_KEY')
+        if not api_key:
+            return jsonify({'error': 'OPENAI_API_KEY not configured'}), 500
+    else:
+        return jsonify({'error': f'Unsupported provider: {provider}'}), 400
+    
+    # If estimate only, return cost estimate
+    if estimate_only:
+        try:
+            from core.keyterm_search import KeytermSearcher, LLMProvider, LLMModel
+            
+            provider_enum = LLMProvider(provider)
+            model_enum = LLMModel(model.upper().replace('-', '_'))
+            
+            searcher = KeytermSearcher(provider_enum, model_enum, api_key)
+            estimate = searcher.estimate_cost(show_name)
+            
+            return jsonify(estimate)
+        except Exception as e:
+            return jsonify({'error': f'Cost estimation failed: {str(e)}'}), 500
+    
+    # Queue async generation task
+    try:
+        task = generate_keyterms_task.delay(
+            video_path=video_path,
+            provider=provider,
+            model=model,
+            preserve_existing=preserve_existing
+        )
+        
+        return jsonify({
+            'task_id': task.id,
+            'status': 'pending'
+        })
+    except Exception as e:
+        return jsonify({'error': f'Failed to queue task: {str(e)}'}), 500
+
+
+@app.get("/api/keyterms/generate/status/<task_id>")
+def api_keyterms_generate_status(task_id):
+    """
+    Check status of keyterm generation task.
+    
+    Parameters:
+        task_id: Celery task ID from /api/keyterms/generate
+        
+    Returns:
+        JSON with state and result data:
+        - PENDING: Task is queued
+        - PROGRESS: Task is running (includes stage and progress)
+        - SUCCESS: Task completed (includes keyterms, token_count, actual_cost)
+        - FAILURE: Task failed (includes error message)
+    """
+    # _require_auth()
+    
+    try:
+        task = celery_app.AsyncResult(task_id)
+        
+        if task.state == 'PENDING':
+            return jsonify({'state': 'PENDING'})
+        elif task.state == 'PROGRESS':
+            # Return progress info
+            return jsonify({
+                'state': 'PROGRESS',
+                'stage': task.info.get('stage', ''),
+                'progress': task.info.get('progress', 0)
+            })
+        elif task.state == 'FAILURE':
+            return jsonify({
+                'state': 'FAILURE',
+                'error': str(task.info)
+            })
+        elif task.state == 'SUCCESS':
+            return jsonify({
+                'state': 'SUCCESS',
+                **task.info
+            })
+        else:
+            return jsonify({
+                'state': task.state,
+                'info': str(task.info) if task.info else None
+            })
+    except Exception as e:
+        return jsonify({'error': f'Failed to get task status: {str(e)}'}), 500
 
 
 if __name__ == "__main__":

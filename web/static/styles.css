@@ -1374,3 +1374,163 @@ button:active,
   opacity: 1;
   transform: translateX(-50%) translateY(-4px);
 }
+
+/* ============================================
+   LLM KEYTERM GENERATION SETTINGS
+   ============================================ */
+
+.llm-settings {
+  padding: var(--space-l);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background-color: var(--bg-secondary);
+}
+
+.llm-settings h4 {
+  margin-top: 0;
+  margin-bottom: var(--space-m);
+  font-size: var(--font-h3);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.llm-settings .form-group {
+  margin-bottom: var(--space-m);
+}
+
+.llm-settings .form-group:last-of-type {
+  margin-bottom: 0;
+}
+
+.llm-settings label {
+  display: block;
+  margin-bottom: var(--space-xs);
+  font-weight: 500;
+  color: var(--text-secondary);
+  font-size: var(--font-caption);
+}
+
+.llm-settings select {
+  width: 100%;
+  padding: var(--space-s) var(--space-m);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  font-size: var(--font-body);
+  transition: border-color 150ms ease-in-out;
+}
+
+.llm-settings select:focus {
+  outline: none;
+  border-color: var(--color-blue);
+}
+
+.llm-settings .checkbox-label {
+  padding: var(--space-s) 0;
+  margin-bottom: var(--space-m);
+}
+
+/* Secondary button variant for LLM generation */
+.btn-secondary {
+  background: var(--color-green);
+  color: #FFFFFF;
+  border: none;
+  padding: 12px 24px;
+  border-radius: var(--radius-md);
+  font-size: var(--font-body);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 200ms ease;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-s);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 179, 152, 0.3);
+  filter: brightness(1.1);
+}
+
+.btn-secondary:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.btn-secondary:disabled {
+  background: var(--disabled);
+  cursor: not-allowed;
+  opacity: 0.6;
+  box-shadow: none;
+}
+
+.btn-secondary:focus-visible {
+  outline: 2px solid var(--color-green);
+  outline-offset: 2px;
+}
+
+.btn-secondary .icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+/* Compact button variant */
+.btn-compact {
+  padding: var(--space-s) var(--space-m);
+  min-height: 36px;
+  font-size: var(--font-caption);
+}
+
+/* API Key Status Indicator */
+.api-key-status {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  margin-left: var(--space-xs);
+  vertical-align: middle;
+  position: relative;
+  top: -1px;
+}
+
+.api-key-status.configured {
+  background: var(--color-green);
+  box-shadow: 0 0 0 2px rgba(0, 179, 152, 0.2);
+}
+
+.api-key-status.missing {
+  background: var(--color-red);
+  box-shadow: 0 0 0 2px rgba(249, 56, 34, 0.2);
+}
+
+.api-key-status.checking {
+  background: var(--color-yellow);
+  box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.2);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.api-key-status::after {
+  content: attr(data-status);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-8px);
+  background: var(--surface);
+  color: var(--text-primary);
+  padding: var(--space-xs) var(--space-s);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-small);
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 200ms, transform 200ms;
+  border: 1px solid var(--border);
+  z-index: 1000;
+}
+
+.api-key-status:hover::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(-4px);
+}

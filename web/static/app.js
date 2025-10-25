@@ -69,6 +69,41 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Setup keyboard shortcuts
     setupKeyboardShortcuts();
+    
+    // Setup LLM provider change handler
+    const llmProvider = document.getElementById('llmProvider');
+    if (llmProvider) {
+        llmProvider.addEventListener('change', (e) => {
+            const provider = e.target.value;
+            const modelSelect = document.getElementById('llmModel');
+            
+            if (provider === 'anthropic') {
+                modelSelect.innerHTML = `
+                    <option value="claude-sonnet-4">Claude Sonnet 4 (Best Quality)</option>
+                    <option value="claude-haiku-4">Claude Haiku 4 (Faster, Cheaper)</option>
+                `;
+            } else {
+                modelSelect.innerHTML = `
+                    <option value="gpt-4">GPT-4 Turbo (Best Quality)</option>
+                    <option value="gpt-4-mini">GPT-4 Mini (Faster, Cheaper)</option>
+                `;
+            }
+        });
+    }
+    
+    // Setup Generate Keyterms button handler
+    const generateBtn = document.getElementById('generateKeytermsBtn');
+    if (generateBtn) {
+        generateBtn.addEventListener('click', handleGenerateKeyterms);
+    }
+    
+    // Check API key status on page load
+    checkApiKeyStatus();
+    
+    // Re-check API key status when provider changes
+    if (llmProvider) {
+        llmProvider.addEventListener('change', checkApiKeyStatus);
+    }
 });
 
 /* ============================================
@@ -815,5 +850,225 @@ function updateJobDisplay(data) {
     } else if (data.state === 'REVOKED') {
         jobStatusText.textContent = '⊘ Cancelled';
         jobStatusDetails.textContent = 'Job stopped';
+    }
+}
+
+/* ============================================
+   LLM KEYTERM GENERATION
+   ============================================ */
+
+/**
+ * Get the path of the currently selected video file
+ */
+function getCurrentVideoPath() {
+    // Find the first checked file input
+    const checkedFile = document.querySelector('.browser-file input[type="checkbox"]:checked');
+    if (checkedFile) {
+        return checkedFile.value;
+    }
+    return null;
+}
+
+/**
+ * Update spinner text with custom message
+ */
+function updateSpinnerText(message) {
+    // Since showSpinner doesn't exist yet, we'll use toast for now
+    // In a real implementation, you'd modify the actual spinner element
+    console.log('Spinner update:', message);
+}
+
+/**
+ * Show a message to the user (uses existing showToast)
+ */
+function showMessage(message, type = 'info') {
+    showToast(type, message);
+}
+
+/**
+ * Show spinner with message
+ */
+function showSpinner(message) {
+    // Disable the generate button
+    const generateBtn = document.getElementById('generateKeytermsBtn');
+    if (generateBtn) {
+        generateBtn.disabled = true;
+        generateBtn.textContent = message;
+    }
+    showMessage(message, 'info');
+}
+
+/**
+ * Hide spinner
+ */
+function hideSpinner() {
+    // Re-enable the generate button
+    const generateBtn = document.getElementById('generateKeytermsBtn');
+    if (generateBtn) {
+        generateBtn.disabled = false;
+        generateBtn.innerHTML = '<span class="icon">🤖</span> Generate Keyterms with AI';
+    }
+}
+
+/**
+ * Fetch cost estimate for keyterm generation
+ */
+async function fetchCostEstimate(videoPath, provider, model) {
+    const response = await fetch('/api/keyterms/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            video_path: videoPath,
+            provider: provider,
+            model: model,
+            estimate_only: true
+        })
+    });
+    
+    if (!response.ok) {
+        throw new Error('Cost estimation failed');
+    }
+    
+    return await response.json();
+}
+
+/**
+ * Poll generation status
+ */
+async function pollGenerationStatus(taskId) {
+    const interval = setInterval(async () => {
+        try {
+            const response = await fetch(`/api/keyterms/generate/status/${taskId}`);
+            const data = await response.json();
+            
+            if (data.state === 'SUCCESS') {
+                clearInterval(interval);
+                hideSpinner();
+                
+                // Populate keyterms field
+                const keytermsInput = document.getElementById('keyTerms');
+                keytermsInput.value = data.keyterms.join(', ');
+                
+                // Show success message with cost
+                showMessage(
+                    `✅ Generated ${data.keyterm_count} keyterms • Cost: $${data.actual_cost.toFixed(3)} • Tokens: ${data.token_count}`,
+                    'success'
+                );
+            } else if (data.state === 'FAILURE') {
+                clearInterval(interval);
+                hideSpinner();
+                showMessage(`❌ Generation failed: ${data.error}`, 'error');
+            } else if (data.state === 'PROGRESS') {
+                // Update spinner text with progress
+                updateSpinnerText(`Generating keyterms: ${data.stage}...`);
+            }
+            // Continue polling if PENDING
+        } catch (error) {
+            clearInterval(interval);
+            hideSpinner();
+            showMessage(`❌ Error: ${error.message}`, 'error');
+        }
+    }, 2000); // Poll every 2 seconds
+}
+
+/**
+ * Check if API keys are configured for LLM providers
+ */
+async function checkApiKeyStatus() {
+    const statusIndicator = document.getElementById('apiKeyStatus');
+    const provider = document.getElementById('llmProvider').value;
+    const generateBtn = document.getElementById('generateKeytermsBtn');
+    
+    if (!statusIndicator) return;
+    
+    // Show checking state
+    statusIndicator.className = 'api-key-status checking';
+    statusIndicator.setAttribute('data-status', 'Checking API key...');
+    
+    try {
+        const response = await fetch('/api/config');
+        const config = await response.json();
+        
+        // Check if the selected provider has an API key
+        let hasKey = false;
+        let statusMessage = '';
+        
+        if (provider === 'anthropic') {
+            hasKey = config.anthropic_api_key_configured || false;
+            statusMessage = hasKey ? 'Anthropic API key configured' : 'Anthropic API key missing';
+        } else if (provider === 'openai') {
+            hasKey = config.openai_api_key_configured || false;
+            statusMessage = hasKey ? 'OpenAI API key configured' : 'OpenAI API key missing';
+        }
+        
+        // Update indicator
+        if (hasKey) {
+            statusIndicator.className = 'api-key-status configured';
+            statusIndicator.setAttribute('data-status', statusMessage);
+            if (generateBtn) generateBtn.disabled = false;
+        } else {
+            statusIndicator.className = 'api-key-status missing';
+            statusIndicator.setAttribute('data-status', statusMessage);
+            if (generateBtn) {
+                generateBtn.disabled = true;
+                generateBtn.title = `${statusMessage}. Configure in .env file.`;
+            }
+        }
+    } catch (error) {
+        console.error('Failed to check API key status:', error);
+        statusIndicator.className = 'api-key-status missing';
+        statusIndicator.setAttribute('data-status', 'Unable to check API key status');
+        if (generateBtn) generateBtn.disabled = true;
+    }
+}
+
+/**
+ * Handle Generate Keyterms button click
+ */
+async function handleGenerateKeyterms() {
+    const videoPath = getCurrentVideoPath();
+    if (!videoPath) {
+        showMessage('❌ Please select a video first', 'error');
+        return;
+    }
+    
+    const provider = document.getElementById('llmProvider').value;
+    const model = document.getElementById('llmModel').value;
+    const preserveExisting = document.getElementById('preserveExisting').checked;
+    
+    try {
+        // Show cost estimate first
+        const estimate = await fetchCostEstimate(videoPath, provider, model);
+        
+        if (!confirm(`Estimated cost: $${estimate.estimated_cost.toFixed(3)}\nContinue?`)) {
+            return;
+        }
+        
+        // Start generation
+        showSpinner('🤖 Generating keyterms with AI...');
+        
+        const response = await fetch('/api/keyterms/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                video_path: videoPath,
+                provider: provider,
+                model: model,
+                preserve_existing: preserveExisting
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.error || 'Generation failed');
+        }
+        
+        // Poll for completion
+        pollGenerationStatus(data.task_id);
+        
+    } catch (error) {
+        hideSpinner();
+        showMessage(`❌ Error: ${error.message}`, 'error');
     }
 }

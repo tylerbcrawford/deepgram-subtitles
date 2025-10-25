@@ -40,6 +40,7 @@ celery_app = Celery(__name__, broker=REDIS_URL, backend=REDIS_URL)
 celery_app.conf.task_routes = {
     'transcribe_task': {'queue': 'transcribe'},
     'batch_finalize': {'queue': 'transcribe'},
+    'generate_keyterms_task': {'queue': 'transcribe'},
 }
 
 
@@ -226,6 +227,122 @@ def batch_finalize(results):
             print(f"Bazarr rescan failed: {e}")
     
     return {"batch_status": "done", "results": results}
+
+
+@celery_app.task(bind=True, name="generate_keyterms_task")
+def generate_keyterms_task(
+    self,
+    video_path: str,
+    provider: str,
+    model: str,
+    preserve_existing: bool = False
+):
+    """
+    Async task to generate keyterms using LLM.
+    
+    Args:
+        video_path: Path to video file
+        provider: LLM provider ("anthropic" or "openai")
+        model: Model identifier (e.g., "claude-sonnet-4", "gpt-4")
+        preserve_existing: If True, merge with existing; if False, overwrite
+        
+    Returns:
+        dict: Generated keyterms and metadata
+        
+    Updates state with progress:
+        - PROGRESS: Initializing, generating, saving
+        - SUCCESS: Complete with keyterms
+        - FAILURE: Error details
+    """
+    vp = Path(video_path)
+    
+    try:
+        # Update: Initializing
+        self.update_state(
+            state='PROGRESS',
+            meta={'stage': 'initializing', 'progress': 0}
+        )
+        
+        # Get API key from environment
+        if provider == 'anthropic':
+            api_key = os.environ.get('ANTHROPIC_API_KEY')
+        elif provider == 'openai':
+            api_key = os.environ.get('OPENAI_API_KEY')
+        else:
+            raise ValueError(f"Unsupported provider: {provider}")
+        
+        if not api_key:
+            raise ValueError(f"API key not configured for {provider}")
+        
+        # Extract show name
+        path_parts = vp.parts
+        show_name = None
+        
+        for i, part in enumerate(path_parts):
+            part_lower = part.lower()
+            if 'season' in part_lower or part_lower == 'specials':
+                if i > 0:
+                    show_name = path_parts[i - 1]
+                break
+        
+        if not show_name:
+            show_name = vp.parent.name
+        
+        # Load existing keyterms if any
+        existing = load_keyterms_from_csv(vp)
+        
+        # Update: Generating
+        self.update_state(
+            state='PROGRESS',
+            meta={'stage': 'generating', 'progress': 30}
+        )
+        
+        # Import here to avoid import errors if dependencies not installed
+        from core.keyterm_search import KeytermSearcher, LLMProvider, LLMModel
+        
+        # Convert string provider/model to enums
+        provider_enum = LLMProvider(provider)
+        model_enum = LLMModel(model.upper().replace('-', '_'))
+        
+        # Generate keyterms
+        searcher = KeytermSearcher(
+            provider=provider_enum,
+            model=model_enum,
+            api_key=api_key
+        )
+        
+        result = searcher.generate_from_metadata(
+            show_name=show_name,
+            existing_keyterms=existing,
+            preserve_existing=preserve_existing
+        )
+        
+        # Update: Saving
+        self.update_state(
+            state='PROGRESS',
+            meta={'stage': 'saving', 'progress': 80}
+        )
+        
+        # Save to CSV
+        if save_keyterms_to_csv(vp, result['keyterms']):
+            print(f"Saved {len(result['keyterms'])} LLM-generated keyterms to CSV")
+        
+        # Return results
+        return {
+            'keyterms': result['keyterms'],
+            'token_count': result['token_count'],
+            'actual_cost': result['estimated_cost'],
+            'provider': provider,
+            'model': model,
+            'keyterm_count': len(result['keyterms'])
+        }
+        
+    except Exception as e:
+        self.update_state(
+            state='FAILURE',
+            meta={'error': str(e)}
+        )
+        raise
 
 
 def make_batch(files, model, language, profanity_filter="off", force_regenerate=False,
