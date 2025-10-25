@@ -442,6 +442,43 @@ def api_keyterms_upload():
         return jsonify({"error": str(e)}), 500
 
 
+@app.get("/api/keyterms/load")
+def api_keyterms_load():
+    """
+    Load keyterms for a video from its CSV file.
+    
+    Query Parameters:
+        video_path: Path to any video file in the show/movie directory
+        
+    Returns:
+        JSON with keyterms array or empty array if none found
+    """
+    # _require_auth()
+    
+    video_path = request.args.get('video_path')
+    
+    if not video_path:
+        return jsonify({"keyterms": []}), 200
+    
+    vp = Path(video_path)
+    
+    # Security: Ensure path is under MEDIA_ROOT
+    if not str(vp).startswith(str(MEDIA_ROOT)):
+        return jsonify({"keyterms": []}), 200
+    
+    try:
+        # Load keyterms
+        keyterms = load_keyterms_from_csv(vp)
+        
+        return jsonify({
+            "keyterms": keyterms if keyterms else [],
+            "count": len(keyterms) if keyterms else 0
+        })
+            
+    except Exception as e:
+        return jsonify({"keyterms": [], "error": str(e)}), 200
+
+
 @app.get("/api/keyterms/download")
 def api_keyterms_download():
     """

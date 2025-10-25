@@ -135,18 +135,41 @@ For a video file `Movie.mkv`, the following files are created:
 - `Movie.eng.srt` - English subtitles (automatically recognized by media servers)
 
 If transcript generation is enabled (`ENABLE_TRANSCRIPT=1`), a `Transcripts/` folder is created:
+
+**For TV Shows (at show level):**
 ```
-Movie Directory/
+/media/tv/Show Name/
+├── Transcripts/                       # At show level, alongside seasons
+│   ├── episode1.transcript.speakers.txt
+│   ├── episode2.transcript.speakers.txt
+│   ├── JSON/
+│   │   ├── episode1.deepgram.json    # Raw API response (if enabled)
+│   │   └── episode2.deepgram.json
+│   ├── Keyterms/
+│   │   └── Show Name_keyterms.csv     # Shared across all episodes
+│   └── Speakermap/
+│       └── speakers.csv                # Shared speaker map
+├── Season 01/
+│   ├── episode1.mkv
+│   └── episode1.eng.srt
+└── Season 02/
+    ├── episode2.mkv
+    └── episode2.eng.srt
+```
+
+**For Movies:**
+```
+/media/movies/Movie Name (2024)/
 ├── Movie.mkv
 ├── Movie.eng.srt
 └── Transcripts/
-    ├── Movie.transcript.speakers.txt  # Speaker-labeled transcript
+    ├── Movie.transcript.speakers.txt
     ├── JSON/
     │   └── Movie.deepgram.json        # Raw API response (if enabled)
     ├── Keyterms/
-    │   └── Movie_keyterms.csv         # Auto-saved keyterms (if enabled)
+    │   └── Movie Name (2024)_keyterms.csv
     └── Speakermap/
-        └── speakers.csv                # Per-show/movie speaker map (optional)
+        └── speakers.csv
 ```
 
 ### Renaming Existing Subtitles
@@ -312,7 +335,8 @@ Keyterms are stored in CSV files alongside your media content for automatic reus
 
 #### CSV File Format
 
-**Location:** `Transcripts/Keyterms/{show_or_movie_name}_keyterms.csv`
+**Location for TV Shows:** `{Show Directory}/Transcripts/Keyterms/{show_name}_keyterms.csv`
+**Location for Movies:** `{Movie Directory}/Transcripts/Keyterms/{movie_name}_keyterms.csv`
 
 **Format:** Simple CSV with one keyterm per line (no header required)
 
@@ -326,6 +350,10 @@ methylamine
 pseudoephedrine
 DEA
 ```
+
+**Example Paths:**
+- TV Show: `/media/tv/Breaking Bad/Transcripts/Keyterms/Breaking Bad_keyterms.csv`
+- Movie: `/media/movies/Inception (2010)/Transcripts/Keyterms/Inception (2010)_keyterms.csv`
 
 **CSV Rules:**
 - One keyterm per line
@@ -342,16 +370,17 @@ The CSV filename is automatically determined from your media path:
 **For TV Shows:**
 ```
 /media/tv/Breaking Bad/Season 01/episode.mkv
-→ Transcripts/Keyterms/Breaking Bad_keyterms.csv
+→ /media/tv/Breaking Bad/Transcripts/Keyterms/Breaking Bad_keyterms.csv
+   (at show level, alongside Season folders)
 ```
 
 **For Movies:**
 ```
 /media/movies/Inception (2010)/movie.mkv
-→ Transcripts/Keyterms/Inception (2010)_keyterms.csv
+→ /media/movies/Inception (2010)/Transcripts/Keyterms/Inception (2010)_keyterms.csv
 ```
 
-The keyterms file is **shared across all episodes** of a show or all files in a movie directory.
+The keyterms file is **shared across all episodes** of a show (all seasons) or all files in a movie directory.
 
 ### Using Keyterms with CLI
 
@@ -376,9 +405,9 @@ docker compose run --rm deepgram-cli
 **To create a keyterms file for CLI use:**
 
 1. Process one episode to generate the directory structure
-2. Create the keyterms CSV manually:
+2. Create the keyterms CSV manually at the show level:
    ```bash
-   cd "/media/tv/Breaking Bad/Season 01"
+   cd "/media/tv/Breaking Bad"
    mkdir -p Transcripts/Keyterms
    cat > Transcripts/Keyterms/"Breaking Bad_keyterms.csv" << EOF
    Walter White
@@ -387,33 +416,60 @@ docker compose run --rm deepgram-cli
    Los Pollos Hermanos
    EOF
    ```
-3. Future episodes will automatically use these keyterms
+3. Future episodes from **any season** will automatically use these keyterms
 
 ### Using Keyterms with Web UI
 
-The Web UI provides an integrated keyterms interface with automatic save/load functionality.
+The Web UI provides an intelligent keyterms interface with **automatic loading and editing**.
 
 #### Web UI Features
 
-- **Text input field**: Enter keyterms separated by commas
-- **Auto-load**: Existing keyterms automatically populate from CSV
-- **Auto-save**: Keyterms automatically saved to CSV when you transcribe
-- **Per-directory**: Keyterms stored with the media files
-- **Reusable**: Same keyterms used for all episodes/files in that show/movie
+- **🎯 Auto-load on selection**: When you select a video, existing keyterms automatically populate
+- **✏️ Pre-transcription editing**: Review and modify keyterms before submitting
+- **💾 Auto-save**: Keyterms automatically saved to CSV when you transcribe
+- **📁 Per-show/movie**: Keyterms stored at show level, shared across all episodes
+- **🔄 Reusable**: Same keyterms used for all episodes/files in that show/movie
+- **📊 Visual feedback**: See keyterm count when auto-loaded
 
 #### Using the Web UI
 
-1. **Select videos** to transcribe
-2. **Enter keyterms** in the "Keyterm Prompting" field:
-   ```
-   Walter White, Jesse Pinkman, Heisenberg, Albuquerque
-   ```
-3. **Click Transcribe** - keyterms are automatically saved to CSV
-4. **Next time**: Keyterms auto-load when you browse to that directory
+1. **Navigate** to your show/movie folder (e.g., `On Cinema`)
 
-**Note:** Keyterms are automatically saved every time you transcribe with keyterms entered. You don't need to manually save them.
+2. **Select any video** - keyterms automatically load into the text box!
+   - If keyterms CSV exists, you'll see: "Key Terms (9 auto-loaded)"
+   - The text box populates with comma-separated keyterms
+
+3. **Edit if needed** - modify, add, or remove keyterms before transcribing:
+   ```
+   Tim Heidecker, Gregg Turkington, HEI Network, Joe Estevez
+   ```
+
+4. **Click Transcribe** - keyterms are sent to Deepgram and saved to CSV
+
+5. **Next video**: Keyterms auto-load again for the next episode
+
+**Example Workflow:**
+- Select "On Cinema - S16E01.mkv"
+- Keyterms auto-load: `Tim Heidecker, Gregg Turkington, Joe Estevez, ...`
+- Add a new term: `...On Cinema at the Cinema`
+- Click Transcribe
+- Updated keyterms saved for all future episodes
+
+**Note:** Keyterms are automatically saved every time you transcribe with keyterms entered. Changes you make are saved for all future episodes of that show.
 
 #### API Endpoints (Advanced Users)
+
+**Load keyterms for a video:**
+```bash
+curl "http://localhost:5000/api/keyterms/load?video_path=/media/tv/Show/Season%2001/episode.mkv"
+```
+Returns:
+```json
+{
+  "keyterms": ["Name1", "Name2", "Term3"],
+  "count": 3
+}
+```
 
 **Upload keyterms CSV:**
 ```bash
@@ -445,21 +501,21 @@ curl "http://localhost:5000/api/keyterms/download?video_path=/media/tv/Show/epis
 
 #### Scenario 2: Batch Processing with CLI
 
-1. **Prepare keyterms** for your show:
+1. **Prepare keyterms** for your show (at show level):
    ```bash
-   cd "/media/tv/Your Show/Season 01"
+   cd "/media/tv/Your Show"
    mkdir -p Transcripts/Keyterms
    nano Transcripts/Keyterms/"Your Show_keyterms.csv"
    ```
 
-2. **Run CLI** to process entire season:
+2. **Run CLI** to process entire season or all seasons:
    ```bash
    docker compose run --rm \
      -e MEDIA_PATH="/media/tv/Your Show/Season 01" \
      deepgram-cli
    ```
 
-3. **Keyterms automatically applied** to all 24 episodes
+3. **Keyterms automatically applied** to all episodes across all seasons
 
 #### Scenario 3: Movie with Technical Terms
 
@@ -493,10 +549,12 @@ curl "http://localhost:5000/api/keyterms/download?video_path=/media/tv/Show/epis
 ### Troubleshooting
 
 **Keyterms not loading:**
-- Check file exists: `Transcripts/Keyterms/{show_name}_keyterms.csv`
-- Verify filename matches show directory name exactly
+- Check file exists at show level: `{Show Directory}/Transcripts/Keyterms/{show_name}_keyterms.csv`
+- For TV shows, file should be at: `/media/tv/Show Name/Transcripts/Keyterms/Show Name_keyterms.csv`
+- Verify filename matches show directory name exactly (case-sensitive)
 - Check CSV encoding (must be UTF-8)
 - Look for CLI message: `📋 Auto-loaded X keyterms from CSV`
+- In Web UI: Select a video and keyterms should auto-populate the text box
 
 **Keyterms not improving accuracy:**
 - Ensure using Nova-3 model (keyterms only work with Nova-3)
@@ -559,11 +617,20 @@ No manual configuration needed - the system finds and applies speaker maps autom
 
 **Option 1: Per-Show/Movie (Recommended)**
 ```
-/media/tv/Breaking Bad/Season 01/
-├── Transcripts/
-│   └── Speakermap/
-│       └── speakers.csv    # Auto-detected here first
-└── episode.mkv
+/media/tv/Breaking Bad/
+├── Transcripts/                       # At show level
+│   ├── Speakermap/
+│   │   └── speakers.csv              # Auto-detected here first
+│   ├── Keyterms/
+│   │   └── Breaking Bad_keyterms.csv # Shared across all seasons
+│   ├── episode1.transcript.speakers.txt
+│   └── episode2.transcript.speakers.txt
+├── Season 01/
+│   ├── episode1.mkv
+│   └── episode1.eng.srt
+└── Season 02/
+    ├── episode2.mkv
+    └── episode2.eng.srt
 ```
 
 **Option 2: Root Directory (Legacy - Still Supported)**
@@ -598,7 +665,7 @@ speaker_id,name
 
 **Example for TV Show:**
 ```bash
-cd "/media/tv/Breaking Bad/Season 01"
+cd "/media/tv/Breaking Bad"
 mkdir -p Transcripts/Speakermap
 cat > Transcripts/Speakermap/speakers.csv << EOF
 speaker_id,name
@@ -607,6 +674,8 @@ speaker_id,name
 2,Skyler White
 EOF
 ```
+
+**Note:** Speaker maps are now created at the **show level** (alongside Season folders), making them accessible to all episodes across all seasons.
 
 **Method 2: Root Directory (Legacy)**
 
@@ -784,7 +853,7 @@ The Web UI provides a browser-based interface for managing subtitle generation j
 - 📁 **Directory browser** - Interactive file selection from your media library
 - 🎯 **Batch submission** - Queue multiple videos/audio files for processing
 - 💰 **Cost estimation** - Pre-job cost and time estimates using ffprobe
-- 🔑 **Keyterm prompting** - Add custom terminology for improved accuracy (Nova-3, monolingual)
+- 🔑 **Keyterm auto-loading** - Automatically loads and displays keyterms for editing before transcription
 - ❌ **Job cancellation** - Cancel in-progress jobs from the UI
 - 🌍 **29 Languages** - Support for all Deepgram-supported languages
 

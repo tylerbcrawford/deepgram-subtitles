@@ -275,11 +275,66 @@ function toggleFileSelection(filePath) {
     // Calculate estimates
     if (selectedFiles.length > 0) {
         calculateEstimatesAuto();
+        // Auto-load keyterms for the first selected file
+        loadKeytermsForSelection();
     } else {
         const costPrimary = document.getElementById('costPrimary');
         const costSecondary = document.getElementById('costSecondary');
         costPrimary.textContent = '0 files selected';
         costSecondary.textContent = 'Select videos to see estimates';
+    }
+}
+
+/* ============================================
+   KEYTERMS AUTO-LOADING
+   ============================================ */
+
+async function loadKeytermsForSelection() {
+    // Only load if we have selected files
+    if (selectedFiles.length === 0) {
+        return;
+    }
+    
+    // Use the first selected file to determine which keyterms to load
+    const firstFile = selectedFiles[0];
+    
+    try {
+        const response = await fetch(`/api/keyterms/load?video_path=${encodeURIComponent(firstFile)}`);
+        
+        if (!response.ok) {
+            console.log('No keyterms found for this video');
+            return;
+        }
+        
+        const data = await response.json();
+        
+        if (data.keyterms && data.keyterms.length > 0) {
+            // Populate the keyterms text box
+            const keyTermsInput = document.getElementById('keyTerms');
+            if (keyTermsInput) {
+                // Join keyterms with commas
+                keyTermsInput.value = data.keyterms.join(', ');
+                
+                // Show a subtle notification
+                console.log(`Auto-loaded ${data.count} keyterms from CSV`);
+                
+                // Optional: Show a small toast or indicator
+                const keyTermsLabel = document.querySelector('label[for="keyTerms"]');
+                if (keyTermsLabel) {
+                    const originalText = keyTermsLabel.textContent;
+                    keyTermsLabel.textContent = `Key Terms (${data.count} auto-loaded)`;
+                    keyTermsLabel.style.color = 'var(--color-green)';
+                    
+                    setTimeout(() => {
+                        keyTermsLabel.textContent = originalText;
+                        keyTermsLabel.style.color = '';
+                    }, 3000);
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Failed to load keyterms:', error);
+        // Silently fail - not critical
     }
 }
 
