@@ -1,93 +1,56 @@
 # Project Roadmap
 
-**Last Updated:** 2025-10-25
+**Last Updated:** 2025-10-26
 
 ## 🎯 Current Status
-**V1:** ✅ Released and in production testing  
-**V2:** 🔄 Active development - LLM Keyterms feature
+**V1:** ✅ Released and in production testing
+**V2:** ✅ Core features complete - Ready for testing
 
 ---
 
 ## 🚀 V2 Development Priorities
 
-### 🐛 Bug Fix: Keyterms Input Persistence (NEXT TASK)
-**Status:** High Priority | **Effort:** Low | **Timeline:** 1-2 hours
+### ✅ COMPLETED: Keyterms Input Persistence Fix
+**Status:** ✅ Completed (2025-10-26) | **Effort:** Low
 
-**Issue:**
-When navigating back to the main folder (refresh or home button), keyterms from the previous translation session remain in the input field. This creates confusion and potential errors when starting a new transcription.
+**Implementation:**
+- ✅ Keyterms field clears on page load ([`web/static/app.js:18`](../web/static/app.js:18))
+- ✅ Keyterms field clears on directory navigation ([`web/static/app.js:172`](../web/static/app.js:172))
+- ✅ Auto-loading from CSV implemented ([`web/static/app.js:352-402`](../web/static/app.js:352-402))
+- ✅ Backend API endpoint for loading keyterms ([`web/app.py:447-481`](../web/app.py:447-481))
+- ✅ Textarea with proper sizing (7 rows) ([`web/templates/index.html:114`](../web/templates/index.html:114))
 
-**Expected Behavior:**
-- Keyterms input should clear when:
-  - User refreshes the page
-  - User navigates back to main folder/home
-  - User switches to a different show/folder
-- Each new transcription session should start with a clean keyterms field
-
-**Impact:**
-- User might accidentally apply wrong keyterms to different shows
-- Reduces user experience quality
-- Could lead to incorrect transcription results
-
-**Fix Location:**
-- [`web/static/app.js`](../web/static/app.js) - State management and navigation handling
-- Clear keyterms field on folder navigation events
-- Reset input state when returning to root directory
-
-**Related Documentation:**
-- [`keyterms-guide.md`](keyterms-guide.md) - Full keyterms feature documentation
+**Result:** Users can now navigate between videos without keyterm persistence issues, and keyterms auto-load correctly from CSV files.
 
 ---
 
-### 🥇 Priority 1: LLM-Enhanced Keyterms (Active Development)
-**Status:** In Development | **Prompt:** [`keyterm-prompt-v1.md`](keyterm-prompt-v1.md)
+### ✅ COMPLETED: LLM-Enhanced Keyterms
+**Status:** ✅ Completed (2025-10-26) | **Prompt:** [`keyterm-prompt-v1.md`](keyterm-prompt-v1.md)
 
 Automatically generate optimal keyterm lists using LLM analysis of show/movie metadata.
 
-**Architecture Decision (2025-10-25):**
-✅ **Separate Script Implementation** - LLM keyterm generation will be implemented as `core/keyterm_search.py`, independent from `core/transcribe.py`
+**Architecture:**
+✅ **Separate Script Implementation** - Implemented as [`core/keyterm_search.py`](../core/keyterm_search.py), independent from core transcription
 
-**Rationale:**
-- **Single Responsibility:** Keeps transcription logic separate from intelligence layer
-- **Performance:** Transcription doesn't wait for expensive LLM API calls
-- **Cost Control:** Users decide when to incur LLM costs
-- **Reusability:** Generate keyterms once, use for entire season
-- **Flexibility:** Easy to switch LLM providers or add new sources
-- **Maintainability:** Isolated testing without affecting critical transcription path
+**Completed Implementation:**
+- ✅ [`core/keyterm_search.py`](../core/keyterm_search.py) - Full KeytermSearcher class with LLM integration (425 lines)
+- ✅ LLM API integration - Both Anthropic Claude and OpenAI GPT support
+- ✅ Cost estimation before generation
+- ✅ Keyterm parsing and formatting per Nova-3 best practices
+- ✅ Auto-save to `Transcripts/Keyterms/` CSV format
+- ✅ Web UI integration ([`web/templates/index.html:159-192`](../web/templates/index.html:159-192))
+- ✅ Async Celery task ([`web/tasks.py:232-348`](../web/tasks.py:232-348))
+- ✅ API endpoints ([`web/app.py:544-715`](../web/app.py:544-715))
+- ✅ Frontend implementation ([`web/static/app.js:874-1143`](../web/static/app.js:874-1143))
 
-**Implementation Plan:**
-- [ ] Create `core/keyterm_search.py` module with KeytermSearcher class
-- [ ] LLM API integration (Claude/GPT) for keyterm generation
-- [ ] Search authoritative sources (IMDb, Wikipedia, Fandom wikis, TMDB)
-- [ ] Parse and format keyterms per Nova-3 best practices (20-50 terms)
-- [ ] Auto-save to `Transcripts/Keyterms/` CSV format
-- [ ] Create `cli/generate_keyterms.py` CLI tool
-- [ ] Web UI integration with "Generate Keyterms with AI" button
-- [ ] Add async Celery task in `web/tasks.py`
-- [ ] Quality validation and user review workflow
-
-**Module Structure:**
-```
-core/
-├── transcribe.py          # Existing (no changes to core logic)
-├── keyterm_search.py      # NEW: LLM-based keyterm generation
-└── keyterm_utils.py       # Optional: shared utilities
-
-cli/
-├── generate_subtitles.py  # Existing CLI
-└── generate_keyterms.py   # NEW: CLI tool for keyterm generation
-
-web/
-├── app.py                 # Add /api/keyterms/generate endpoint
-└── tasks.py               # Add generate_keyterms_llm task
-```
-
-**Benefits:**
-- Eliminates manual keyterm research
-- Ensures proper capitalization and formatting
-- Dramatically improves transcription accuracy for character names
-- Reduces setup time for new shows/movies
-- Optional feature - doesn't impact core transcription performance
-- Can run independently or be integrated into workflows
+**Features Delivered:**
+- Provider selection (Anthropic/OpenAI)
+- Model selection (Claude Sonnet 4.5, Claude Haiku 4.5, GPT-5, GPT-5 Mini)
+- Cost estimation before generation
+- Preserve/merge with existing keyterms option
+- Real-time progress tracking via SSE
+- API key status indicator
+- Success notifications with cost and token count
 
 ---
 
@@ -123,11 +86,23 @@ From Nova-3 review - optional improvements for specific use cases:
 
 ---
 
-## 📅 V2 Release Plan
+## 📅 V2 Status & Next Steps
 
-**Weeks 1-2:** LLM Keyterms (Priority 1)
-**Week 3:** Time Estimation + Nova-3 Enhancements (Priorities 2-3)
-**V2 Release**
+### ✅ Completed (2025-10-26)
+- ✅ Keyterms UI bug fixes (Phase 0)
+- ✅ LLM keyterm generation (Priority 1)
+- ✅ Core module implementation
+- ✅ Web API and Celery tasks
+- ✅ Full frontend integration
+
+### 🔄 Remaining for V2 Release
+- [ ] **Testing Phase:** Comprehensive testing of LLM features
+- [ ] **Documentation Update:** Update README with LLM setup instructions
+- [ ] **Environment Setup:** Add API key configuration to `.env.example`
+- [ ] Time Estimation Accuracy improvements (Priority 2)
+- [ ] Nova-3 Quality Enhancements (Priority 3)
+
+**Target V2 Release:** After testing and documentation completion
 
 ---
 
@@ -227,9 +202,10 @@ FORCE_REGENERATE=0|1
 
 1. **Beta Testing:** ✅ COMPLETED (2025-10-25) - Successfully completed, moving to V1 production
 2. **GUI Updates:** ✅ COMPLETED (2025-10-25) - Updated and sufficient for V1
-3. **LLM Keyterms:** 🚀 PRIORITY 1 (2025-10-25) - Top priority for V2, prompt created
-4. **Nova-3 Enhancements:** 🎯 PRIORITY 3 (2025-10-25) - Moved up from low priority
-5. **README:** ⏸️ DEFERRED - Current version comprehensive, wait for V1 feedback
+3. **Keyterms Bug Fix:** ✅ COMPLETED (2025-10-26) - Field persistence, auto-loading, and sizing fixed
+4. **LLM Keyterms:** ✅ COMPLETED (2025-10-26) - Full implementation with UI, API, and Celery tasks
+5. **Nova-3 Enhancements:** 🎯 PRIORITY 3 (Next) - Deferred until after V2 testing
+6. **README:** ⏸️ DEFERRED - Will update with LLM setup instructions before V2 release
 
 ---
 

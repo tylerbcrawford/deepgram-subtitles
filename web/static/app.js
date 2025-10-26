@@ -79,16 +79,22 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (provider === 'anthropic') {
                 modelSelect.innerHTML = `
-                    <option value="claude-sonnet-4">Claude Sonnet 4 (Best Quality)</option>
-                    <option value="claude-haiku-4">Claude Haiku 4 (Faster, Cheaper)</option>
+                    <option value="claude-sonnet-4-5">Claude Sonnet 4.5 (Best Quality)</option>
+                    <option value="claude-haiku-4-5">Claude Haiku 4.5 (Faster, Cheaper)</option>
                 `;
             } else {
                 modelSelect.innerHTML = `
-                    <option value="gpt-4">GPT-4 Turbo (Best Quality)</option>
-                    <option value="gpt-4-mini">GPT-4 Mini (Faster, Cheaper)</option>
+                    <option value="gpt-5">GPT-5 (Best Quality)</option>
+                    <option value="gpt-5-mini">GPT-5 Mini (Faster, Cheaper)</option>
                 `;
             }
+            
+            // Trigger change event to update API key status check
+            modelSelect.dispatchEvent(new Event('change'));
         });
+        
+        // Initialize with correct models for default provider on page load
+        llmProvider.dispatchEvent(new Event('change'));
     }
     
     // Setup Generate Keyterms button handler
@@ -318,6 +324,8 @@ function toggleFileSelection(filePath) {
         calculateEstimatesAuto();
         // Auto-load keyterms for the first selected file
         loadKeytermsForSelection();
+        // Update keyterm cost estimate
+        updateKeytermCostEstimate();
     } else {
         // Clear keyterms when no files are selected
         clearKeytermField();
@@ -325,6 +333,8 @@ function toggleFileSelection(filePath) {
         const costSecondary = document.getElementById('costSecondary');
         costPrimary.textContent = '0 files selected';
         costSecondary.textContent = 'Select videos to see estimates';
+        // Clear keyterm cost estimate
+        updateKeytermCostEstimate();
     }
 }
 
@@ -458,7 +468,10 @@ function setupKeyboardShortcuts() {
    TOAST NOTIFICATIONS
    ============================================ */
 
-function showToast(type, message) {
+// Track the generating toast so we can remove it when done
+let generatingToast = null;
+
+function showToast(type, message, options = {}) {
     const toast = document.createElement('div');
     toast.className = `toast toast-${type}`;
     toast.innerHTML = `
@@ -473,12 +486,15 @@ function showToast(type, message) {
         toast.classList.add('show');
     }, 10);
     
-    if (type !== 'error') {
+    // Don't auto-dismiss if it's an error or if persist flag is set
+    if (type !== 'error' && !options.persist) {
         setTimeout(() => {
             toast.classList.remove('show');
             setTimeout(() => toast.remove(), 300);
         }, 5000);
     }
+    
+    return toast;
 }
 
 function getToastIcon(type) {
@@ -881,8 +897,8 @@ function updateSpinnerText(message) {
 /**
  * Show a message to the user (uses existing showToast)
  */
-function showMessage(message, type = 'info') {
-    showToast(type, message);
+function showMessage(message, type = 'info', options = {}) {
+    return showToast(type, message, options);
 }
 
 /**
@@ -907,6 +923,34 @@ function hideSpinner() {
     if (generateBtn) {
         generateBtn.disabled = false;
         generateBtn.innerHTML = '<span class="icon">🤖</span> Generate Keyterms with AI';
+    }
+}
+
+/**
+ * Update the keyterm cost estimate display
+ */
+async function updateKeytermCostEstimate() {
+    const costElement = document.getElementById('keytermCostEstimate');
+    
+    // Get the current video path
+    const videoPath = getCurrentVideoPath();
+    
+    if (!videoPath) {
+        costElement.textContent = '';
+        return;
+    }
+    
+    const provider = document.getElementById('llmProvider').value;
+    const model = document.getElementById('llmModel').value;
+    
+    try {
+        costElement.textContent = 'Calculating...';
+        const estimate = await fetchCostEstimate(videoPath, provider, model);
+        costElement.textContent = `Est. cost: $${estimate.estimated_cost.toFixed(4)}`;
+        costElement.style.color = 'var(--color-green)';
+    } catch (error) {
+        console.error('Failed to estimate cost:', error);
+        costElement.textContent = '';
     }
 }
 
@@ -945,6 +989,13 @@ async function pollGenerationStatus(taskId) {
                 clearInterval(interval);
                 hideSpinner();
                 
+                // Remove the generating toast
+                if (generatingToast) {
+                    generatingToast.classList.remove('show');
+                    setTimeout(() => generatingToast.remove(), 300);
+                    generatingToast = null;
+                }
+                
                 // Populate keyterms field
                 const keytermsInput = document.getElementById('keyTerms');
                 keytermsInput.value = data.keyterms.join(', ');
@@ -957,6 +1008,14 @@ async function pollGenerationStatus(taskId) {
             } else if (data.state === 'FAILURE') {
                 clearInterval(interval);
                 hideSpinner();
+                
+                // Remove the generating toast
+                if (generatingToast) {
+                    generatingToast.classList.remove('show');
+                    setTimeout(() => generatingToast.remove(), 300);
+                    generatingToast = null;
+                }
+                
                 showMessage(`❌ Generation failed: ${data.error}`, 'error');
             } else if (data.state === 'PROGRESS') {
                 // Update spinner text with progress
@@ -966,6 +1025,14 @@ async function pollGenerationStatus(taskId) {
         } catch (error) {
             clearInterval(interval);
             hideSpinner();
+            
+            // Remove the generating toast
+            if (generatingToast) {
+                generatingToast.classList.remove('show');
+                setTimeout(() => generatingToast.remove(), 300);
+                generatingToast = null;
+            }
+            
             showMessage(`❌ Error: ${error.message}`, 'error');
         }
     }, 2000); // Poll every 2 seconds
@@ -1037,15 +1104,9 @@ async function handleGenerateKeyterms() {
     const preserveExisting = document.getElementById('preserveExisting').checked;
     
     try {
-        // Show cost estimate first
-        const estimate = await fetchCostEstimate(videoPath, provider, model);
-        
-        if (!confirm(`Estimated cost: $${estimate.estimated_cost.toFixed(3)}\nContinue?`)) {
-            return;
-        }
-        
-        // Start generation
+        // Start generation immediately - show persistent toast
         showSpinner('🤖 Generating keyterms with AI...');
+        generatingToast = showMessage('🤖 Generating keyterms with AI...', 'info', { persist: true });
         
         const response = await fetch('/api/keyterms/generate', {
             method: 'POST',
@@ -1069,6 +1130,14 @@ async function handleGenerateKeyterms() {
         
     } catch (error) {
         hideSpinner();
+        
+        // Remove the generating toast
+        if (generatingToast) {
+            generatingToast.classList.remove('show');
+            setTimeout(() => generatingToast.remove(), 300);
+            generatingToast = null;
+        }
+        
         showMessage(`❌ Error: ${error.message}`, 'error');
     }
 }

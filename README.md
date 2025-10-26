@@ -576,6 +576,57 @@ curl "http://localhost:5000/api/keyterms/download?video_path=/media/tv/Show/epis
 - **Auto-detection**: Show/movie name extracted from parent directory path
 - **Shared across episodes**: Same CSV used for all files in show/movie directory
 
+## 🤖 LLM-Powered Keyterm Generation (Optional)
+
+Automatically generate contextually relevant keyterms using AI (Anthropic Claude or OpenAI GPT).
+
+### Setup
+
+1. Get an API key:
+   - **Anthropic Claude** (Recommended): https://console.anthropic.com/
+   - **OpenAI GPT**: https://platform.openai.com/
+
+2. Add to `.env`:
+   ```bash
+   ANTHROPIC_API_KEY=your_key_here
+   ```
+
+3. Rebuild containers:
+   ```bash
+   docker compose build
+   docker compose up -d
+   ```
+
+### Usage
+
+1. Select a video in the Web UI
+2. Open **Advanced Options**
+3. Find **AI Keyterm Generation**
+4. Select provider and model
+5. Click **Generate Keyterms with AI**
+6. Confirm cost estimate
+7. Keyterms populate automatically
+
+### Pricing
+
+**Anthropic Claude** (Recommended):
+- Sonnet 4: ~$0.03-0.08 per generation (best quality)
+- Haiku 4: ~$0.002-0.005 per generation (faster, cheaper)
+
+**OpenAI GPT**:
+- GPT-4 Turbo: ~$0.05-0.10 per generation
+- GPT-4 Mini: ~$0.001-0.003 per generation (cheapest)
+
+### Features
+
+- ✅ Automatic show/movie research
+- ✅ 20-50 optimized keyterms in 5-15 seconds
+- ✅ Character names, locations, jargon
+- ✅ Merge with existing or replace
+- ✅ Auto-saved to CSV
+
+**Note:** Completely optional - manual keyterms still work as before.
+
 ## Pricing
 
 Deepgram charges per minute of audio processed. This project uses **Nova-3**, Deepgram's latest flagship model.

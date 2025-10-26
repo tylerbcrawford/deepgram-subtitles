@@ -583,6 +583,9 @@ def api_keyterms_generate():
         path_parts = vp.parts
         show_name = None
         
+        print(f"[DEBUG] Extracting show name from path: {vp}")
+        print(f"[DEBUG] Path parts: {path_parts}")
+        
         for i, part in enumerate(path_parts):
             part_lower = part.lower()
             if 'season' in part_lower or part_lower == 'specials':
@@ -592,7 +595,16 @@ def api_keyterms_generate():
         
         if not show_name:
             show_name = vp.parent.name
+            print(f"[DEBUG] No season folder found, using parent name: {show_name}")
+        else:
+            print(f"[DEBUG] Found show name from season folder: {show_name}")
+            
+        if not show_name or show_name.strip() == '':
+            print(f"[ERROR] Empty show name extracted from path: {vp}")
+            return jsonify({'error': 'Could not extract show name from video path. Please ensure video is in a properly named directory.'}), 400
+            
     except Exception as e:
+        print(f"[ERROR] Exception extracting show name: {str(e)}")
         return jsonify({'error': f'Failed to extract show name: {str(e)}'}), 400
     
     # Get API key from environment
@@ -612,14 +624,30 @@ def api_keyterms_generate():
         try:
             from core.keyterm_search import KeytermSearcher, LLMProvider, LLMModel
             
-            provider_enum = LLMProvider(provider)
-            model_enum = LLMModel(model.upper().replace('-', '_'))
+            print(f"[DEBUG] Estimating cost for show: '{show_name}'")
+            print(f"[DEBUG] Provider: {provider}, Model: {model}")
             
+            # Use bracket notation to access enum by NAME, not by VALUE
+            provider_enum = LLMProvider[provider.upper()]
+            model_enum_name = model.upper().replace('-', '_')
+            print(f"[DEBUG] Looking up enum: LLMModel.{model_enum_name}")
+            model_enum = LLMModel[model_enum_name]
+            
+            print(f"[DEBUG] Initializing KeytermSearcher...")
             searcher = KeytermSearcher(provider_enum, model_enum, api_key)
+            
+            print(f"[DEBUG] Calling estimate_cost...")
             estimate = searcher.estimate_cost(show_name)
             
+            print(f"[DEBUG] Cost estimation successful: {estimate}")
             return jsonify(estimate)
+        except KeyError as e:
+            print(f"[ERROR] KeyError in cost estimation: {str(e)}")
+            return jsonify({'error': f'Invalid provider or model: {provider}, {model}'}), 400
         except Exception as e:
+            print(f"[ERROR] Exception in cost estimation: {type(e).__name__}: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return jsonify({'error': f'Cost estimation failed: {str(e)}'}), 500
     
     # Queue async generation task

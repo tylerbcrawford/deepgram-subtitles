@@ -21,21 +21,21 @@ class LLMProvider(Enum):
 
 class LLMModel(Enum):
     """Supported LLM models with their API identifiers."""
-    # Anthropic models
-    CLAUDE_SONNET_4 = "claude-sonnet-4-20250514"
-    CLAUDE_HAIKU_4 = "claude-haiku-4-20250514"
+    # Anthropic models (Claude 4.5 series - released Sept/Oct 2025)
+    CLAUDE_SONNET_4_5 = "claude-sonnet-4-5-20250929"
+    CLAUDE_HAIKU_4_5 = "claude-haiku-4-5"
     
-    # OpenAI models
-    GPT_4 = "gpt-4-turbo"
-    GPT_4_MINI = "gpt-4o-mini"
+    # OpenAI models (GPT-5 series - released Aug 2025)
+    GPT_5 = "gpt-5"
+    GPT_5_MINI = "gpt-5-mini"
 
 
 # Model pricing (per 1M tokens) - as of 2025-10
 MODEL_PRICING = {
-    LLMModel.CLAUDE_SONNET_4: {"input": 3.00, "output": 15.00},
-    LLMModel.CLAUDE_HAIKU_4: {"input": 0.25, "output": 1.25},
-    LLMModel.GPT_4: {"input": 10.00, "output": 30.00},
-    LLMModel.GPT_4_MINI: {"input": 0.15, "output": 0.60},
+    LLMModel.CLAUDE_SONNET_4_5: {"input": 3.00, "output": 15.00},
+    LLMModel.CLAUDE_HAIKU_4_5: {"input": 1.00, "output": 5.00},  # Updated pricing from Anthropic announcement
+    LLMModel.GPT_5: {"input": 10.00, "output": 30.00},
+    LLMModel.GPT_5_MINI: {"input": 0.15, "output": 0.60},
 }
 
 
@@ -121,10 +121,10 @@ class KeytermSearcher:
         
         # Validate provider/model combination
         if provider == LLMProvider.ANTHROPIC:
-            if model not in [LLMModel.CLAUDE_SONNET_4, LLMModel.CLAUDE_HAIKU_4]:
+            if model not in [LLMModel.CLAUDE_SONNET_4_5, LLMModel.CLAUDE_HAIKU_4_5]:
                 raise ValueError(f"Model {model} not valid for provider {provider}")
         elif provider == LLMProvider.OPENAI:
-            if model not in [LLMModel.GPT_4, LLMModel.GPT_4_MINI]:
+            if model not in [LLMModel.GPT_5, LLMModel.GPT_5_MINI]:
                 raise ValueError(f"Model {model} not valid for provider {provider}")
     
     def generate_from_metadata(

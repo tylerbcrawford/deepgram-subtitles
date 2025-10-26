@@ -300,9 +300,12 @@ def generate_keyterms_task(
         # Import here to avoid import errors if dependencies not installed
         from core.keyterm_search import KeytermSearcher, LLMProvider, LLMModel
         
-        # Convert string provider/model to enums
-        provider_enum = LLMProvider(provider)
-        model_enum = LLMModel(model.upper().replace('-', '_'))
+        # Convert string provider/model to enums using bracket notation (access by NAME)
+        try:
+            provider_enum = LLMProvider[provider.upper()]
+            model_enum = LLMModel[model.upper().replace('-', '_')]
+        except KeyError:
+            raise ValueError(f"Invalid provider or model: {provider}, {model}")
         
         # Generate keyterms
         searcher = KeytermSearcher(

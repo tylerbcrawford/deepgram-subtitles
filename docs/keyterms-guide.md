@@ -701,4 +701,6 @@ The keyterms feature is fully implemented and working as designed:
 
 The feature requires no manual configuration and works automatically once CSV files are in place.
 
-**Coming in V2:** LLM-powered keyterm generation as an optional enhancement that complements the existing manual workflow.
+## AI-Powered Generation
+
+The system now supports automatic keyterm generation using AI. See the "LLM-Powered Keyterm Generation" section in README.md for setup and usage details.
