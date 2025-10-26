@@ -19,7 +19,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 from core.transcribe import (
     is_video, extract_audio, transcribe_file, write_srt, get_transcripts_folder,
     get_json_folder, write_raw_json, load_keyterms_from_csv, save_keyterms_to_csv,
-    find_speaker_map, write_transcript
+    find_speaker_map, write_transcript, get_video_duration
 )
 
 # Configuration from environment
@@ -103,7 +103,19 @@ def transcribe_task(self, video_path: str, model=DEFAULT_MODEL, language=DEFAULT
     else:
         txt_out = None
     
-    meta = {"video": str(vp), "srt": str(srt_out), "filename": vp.name}
+    # Start timing
+    start_time = time.time()
+    
+    # Get video duration for timing analysis
+    video_duration = get_video_duration(vp)
+    
+    meta = {
+        "video": str(vp),
+        "srt": str(srt_out),
+        "filename": vp.name,
+        "video_duration_seconds": video_duration,
+        "start_time": start_time
+    }
     
     if enable_transcript:
         meta["transcript"] = str(txt_out)
@@ -180,10 +192,26 @@ def transcribe_task(self, video_path: str, model=DEFAULT_MODEL, language=DEFAULT
             except Exception as e:
                 print(f"Warning: Failed to save raw JSON: {e}")
         
-        # Log success
-        _save_job_log({"status": "ok", **meta})
+        # Calculate processing time
+        end_time = time.time()
+        processing_time = end_time - start_time
         
-        return {"status": "ok", **meta}
+        # Calculate time multiplier (actual_time / video_duration)
+        time_multiplier = processing_time / video_duration if video_duration > 0 else 0
+        
+        # Add timing data to meta
+        timing_data = {
+            "end_time": end_time,
+            "processing_time_seconds": processing_time,
+            "time_multiplier": time_multiplier,
+            "processing_time_formatted": f"{int(processing_time // 60)}:{int(processing_time % 60):02d}",
+            "video_duration_formatted": f"{int(video_duration // 60)}:{int(video_duration % 60):02d}"
+        }
+        
+        # Log success with timing data
+        _save_job_log({"status": "ok", **meta, **timing_data})
+        
+        return {"status": "ok", **meta, **timing_data}
         
     except Exception as e:
         # Log error

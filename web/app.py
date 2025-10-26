@@ -202,7 +202,7 @@ def api_estimate():
     raw_files = body.get("files", [])
     
     NOVA3_PRICE_PER_MINUTE = 0.0043
-    PROCESSING_TIME_MULTIPLIER = 0.1  # Rough estimate: 10% of video length
+    PROCESSING_TIME_MULTIPLIER = 0.0109  # Based on real data: ~1.09% of video length (25 jobs, 23.3 hours analyzed)
     
     total_duration = 0.0
     file_durations = []

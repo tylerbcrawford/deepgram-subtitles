@@ -1,0 +1,36 @@
+Language,Code,Nova-2,Nova-3,Notes,Route Model
+English,"en, en-US, en-GB, en-AU, en-NZ, en-IN",✅,✅,Core for both models,nova-3
+Spanish,"es, es-419",✅,✅,Both supported,nova-3
+French,"fr, fr-CA",✅,✅,Supported in both,nova-3
+German,de,✅,✅,Added to Nova-3 monolingual,nova-3
+Dutch,nl,✅,✅,Added to Nova-3 monolingual,nova-3
+Swedish,"sv, sv-SE",✅,✅,Added to Nova-3 monolingual,nova-3
+Danish,"da, da-DK",✅,✅,Added to Nova-3 monolingual,nova-3
+Italian,it,✅,✅,Supported in multilingual,nova-3
+Portuguese,"pt, pt-BR, pt-PT",✅,✅,Supported in multilingual,nova-3
+Japanese,ja,✅,✅,Supported in multilingual,nova-3
+Russian,ru,✅,✅,Supported in multilingual,nova-3
+Hindi,hi,✅,✅,Supported in multilingual,nova-3
+Korean,"ko, ko-KR",✅,❌,Nova-2 only,nova-2
+Chinese (Mandarin Simplified),"zh, zh-CN, zh-Hans",✅,❌,Nova-2 only,nova-2
+Chinese (Mandarin Traditional),"zh-TW, zh-Hant",✅,❌,Nova-2 only,nova-2
+Chinese (Cantonese Traditional),zh-HK,✅,❌,Nova-2 only,nova-2
+Catalan,ca,✅,❌,Nova-2 only,nova-2
+Bulgarian,bg,✅,❌,Nova-2 only,nova-2
+Estonian,et,✅,❌,Nova-2 only,nova-2
+Finnish,fi,✅,❌,Nova-2 only,nova-2
+Flemish (Belgium Dutch),nl-BE,✅,❌,Nova-2 only,nova-2
+Greek,el,✅,❌,Nova-2 only,nova-2
+Hungarian,hu,✅,❌,Nova-2 only,nova-2
+Indonesian,id,✅,✅,Both supported,nova-3
+Latvian,lv,✅,❌,Nova-2 only,nova-2
+Lithuanian,lt,✅,❌,Nova-2 only,nova-2
+Malay,ms,✅,❌,Nova-2 only,nova-2
+Norwegian,no,✅,✅,Both supported,nova-3
+Polish,pl,✅,❌,Nova-2 only,nova-2
+Romanian,ro,✅,❌,Nova-2 only,nova-2
+Slovak,sk,✅,❌,Nova-2 only,nova-2
+Thai,"th, th-TH",✅,❌,Nova-2 only,nova-2
+Turkish,tr,✅,✅,Both supported,nova-3
+Ukrainian,uk,✅,❌,Nova-2 only,nova-2
+Vietnamese,vi,✅,❌,Nova-2 only,nova-2
