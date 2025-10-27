@@ -16,126 +16,9 @@
 
 ---
 
-## 🚀 V2 Development Priorities
+## 🚀 Active Development
 
-### 🥉 Priority 3: Nova-3 Quality Enhancements
-**Effort:** Low | **Timeline:** 1-2 days total
-**Status:** ✅ Complete
-
-Optional Nova-3 features for specific use cases. Each should be implemented as a UI toggle in advanced settings:
-- [x] Add `numerals=True` parameter (convert "twenty twenty four" → "2024")
-- [x] Add `filler_words` toggle (optional transcription of "uh", "um" - default OFF for subtitles)
-- [x] Add `detect_language=True` (auto-detect language for international content)
-- [x] Add `measurements=True` (convert "fifty meters" → "50m" for sports/science content)
-- [x] **Adjust Nova cost estimator to match actual API charges**
-  - [x] Current estimates are ~25% lower than actual charges (e.g., estimated $0.71 vs actual $0.94)
-  - [x] Test data: Nova-3 with keyterms batch
-  - [x] Implement different rate calculations for Nova-2 vs Nova-3
-  - [x] Update cost calculation formula based on real-world data
-  - [x] Updated Nova-3 pricing: $0.0057/min (was $0.0043/min)
-  - [x] Added Nova-2 pricing constant: $0.0043/min for future language routing
-- [x] **Manual testing required**
-  - [x] Test each enhancement parameter with sample videos
-  - [x] Verify UI toggles work correctly
-  - [x] Confirm cost estimation accuracy with actual API usage
-  - [x] Validate CLI environment variables
-
-**Benefits:**
-- Improved number and date transcription
-- Better handling of international content
-- More accurate technical/scientific content
-- Accurate cost predictions prevent budget surprises
-
----
-
-### 🔧 Priority 4: File Selector UX Refinement
-**Effort:** Low | **Timeline:** 1-2 days
-**Status:** ⚠️ Implementation Complete - UI Status Update Issue Discovered
-
-Improve file selection workflow to be more intuitive and prevent confusion with folder navigation.
-
-**Known Issue - Status Display During Batch Processing:**
-- **Symptom:** UI shows "⏳ Queued - Waiting to start..." throughout entire batch, then jumps to "✓ Complete" at end
-- **Expected:** Should show "⚙️ Processing..." with real-time progress (e.g., "3 / 10 completed • 2 active (30%)")
-- **Backend Status:** ✅ Working perfectly - transcriptions complete successfully in 5-13 seconds per file
-- **Frontend Status:** ❌ [`updateJobDisplay()`](web/static/app.js:891-941) not receiving state updates or not rendering them
-- **Impact:** Low - transcriptions work correctly, just missing visual progress feedback during processing
-- **Investigation Needed:**
-  - Check if [`/api/job`](web/app.py:322-384) endpoint returning correct state during STARTED phase
-  - Verify [`checkJobStatus()`](web/static/app.js:823-866) polling is calling update function
-  - Console shows no errors, Network tab shows no failed requests
-  - May be timing issue where status polls complete too fast to catch STARTED state
-  - Consider adding debug logging to track state transitions
-
-**Completed Improvements:**
-
-#### 📁 Group A: Folder Navigation & Filtering
-Smart folder filtering to reduce clutter and improve discovery of video files.
-
-- [x] Implement smart folder filtering
-  - [x] Add toggle to only show folders that contain videos
-  - [x] Enable "show folders with videos only" by default
-  - [x] Add checkbox toggle for "show all folders" option
-- [x] Clean up folder/file tree display
-  - [x] Reduce visual clutter in video selector
-  - [x] Improve folder hierarchy display
-  - [x] Show folder count in filter bar
-
-#### ✅ Group B: File Selection & Scope
-Enforce single-folder operations and improve selection clarity.
-
-- [x] Add bulk selection features
-  - [x] Single-click "Select All Files in Folder" button
-  - [x] Clear visual feedback when folder is fully selected
-- [x] Enforce folder scope for operations
-  - [x] Automatically clear file selection when navigating to different folder
-  - [x] Restrict operations to one folder at a time
-  - [x] Track current folder for selection scope
-- [x] Improve selection state visibility
-  - [x] Clear indication of which folder files belong to
-  - [x] Better visual feedback for selected files
-  - [x] Simplified "Clear Selection" workflow
-
-#### 🎨 Group C: UI Layout & Mobile Optimization
-Prioritize critical controls and ensure mobile compatibility.
-
-- [x] Reorganize control layout
-  - [x] Move "Audio Language" selection to top of card with priority styling
-  - [x] Prioritize language selection as it's a critical program feature
-  - [x] Ensure language selection is immediately visible and accessible
-- [x] Optimize for mobile devices
-  - [x] Improve responsive design for mobile screens (< 768px)
-  - [x] Ensure all controls are touch-friendly (48px+ touch targets)
-  - [x] Test and optimize layout for various screen sizes
-  - [x] Add extra small device support (< 375px)
-  - [x] Add tablet optimization (769px - 1024px)
-
-#### 📊 Group D: Batch Processing Feedback
-Real-time progress indicators and persistent status messages.
-
-- [x] Fix processing banner display
-  - [x] Keep "Processing..." banner visible throughout entire batch operation
-  - [x] Show persistent toast notification during batch processing
-  - [x] Ensure banner persists until completion message displays
-- [x] Improve job status indicators
-  - [x] Show meaningful status in sticky menu (not just "waiting")
-  - [x] Display actual job progress with percentage
-  - [x] Show real-time progress: completed/total files with active count
-  - [x] Add animated loading dots indicator
-  - [x] Show detailed completion stats (processed, skipped, failed)
-
-**Benefits Achieved:**
-- Clearer, more predictable file selection behavior
-- Faster batch processing of entire folders
-- Reduced user confusion and errors
-- Better alignment with typical media library organization
-- Continuous visual feedback during long batch operations
-- Accurate job status information at all times
-- Improved mobile experience with touch-friendly controls
-
----
-
-### 🔄 Priority 5: Language Update
+### 🔄 Priority 5: Language Update (CURRENT PRIORITY)
 **Effort:** Moderate | **Timeline:** 3-5 days
 
 Expand language support by implementing intelligent model routing and multi-language detection.
@@ -146,17 +29,17 @@ Expand language support by implementing intelligent model routing and multi-lang
 
 **Implementation Tasks:**
 - [ ] Add Nova-2 fallback for languages not supported by Nova-3
-  - [ ] Implement language detection and model routing logic
+  - [ ] Implement model routing logic based on user-selected language
   - [ ] Route Nova-2-only languages (Korean, Chinese variants, etc.) to Nova-2
   - [ ] See [`docs/nova-languages.csv`](nova-languages.csv) for complete language mapping
 - [ ] Add Nova-3 "Multi" language support
   - [ ] Implement `language="multi"` parameter for code-switching audio
-  - [ ] Enable automatic language detection within single audio files
+  - [ ] Add "Multi" option to language dropdown for Nova-3 multi-language detection
   - [ ] Support mixed-language content (e.g., English-Spanish conversations)
 - [ ] Update UI with language selection options
-  - [ ] Language dropdown or auto-detect option
+  - [ ] Language dropdown with explicit user selection (no auto-detect)
   - [ ] Display which model will be used for selected language
-  - [ ] Show multi-language option for Nova-3
+  - [ ] Include "Multi" option in dropdown for Nova-3 multi-language detection
   - [ ] Default to English (monolingual Nova-3) to maximize keyterm benefits
   - [ ] Gray out/disable Nova-3-specific features (keyterms, etc.) when Nova-2 is selected
   - [ ] Dynamically show/hide UI elements based on selected model capabilities
@@ -182,33 +65,39 @@ Expand language support by implementing intelligent model routing and multi-lang
 
 ---
 
-## 📅 V2 Status & Next Steps
+## 📅 V2 Final Tasks
 
-### 🔄 Remaining for V2 Release
-- [ ] **Testing Phase:** Comprehensive testing of LLM features
-- [ ] **CLI/GUI Feature Parity Verification**
-  - [ ] Verify CLI offers exact same features as GUI version
-  - [ ] Ensure both can perform same capabilities and access same variables as choices
-  - [ ] Some users will only use CLI - must have full feature parity
-- [ ] **Documentation Update:** Update README with LLM setup instructions
-- [ ] **Environment Setup:** Add API key configuration to `.env.example`
-- [ ] **Branding and Identity Development**
-  - [ ] New project name: **Subgeneratorr**
-  - [ ] Update README with story-focused approach
-    - [ ] Brief technical stack overview near beginning
-    - [ ] Focus on the story: built to fill subtitle gaps in Radarr/Sonarr libraries
-    - [ ] Explain Bazarr finds most subtitles, but hundreds of episodes were missing
-    - [ ] Describe Deepgram Nova-3 keyterms testing success with $200 free credits
-    - [ ] Highlight LLM-powered keyterms generation feature
-  - [ ] Add disclaimer: not affiliated with Deepgram or any LLM providers
-  - [ ] Emphasize: free and open source project for media accessibility
-  - [ ] Target audience: movie buffs who care about subtitles
-  - [ ] Move deep technical writing to separate document
-- [ ] Nova-3 Quality Enhancements (Priority 3)
-- [ ] File Selector UX Refinement (Priority 4)
-- [ ] Language Update (Priority 5)
+### 🎯 What's Left for V2 Release
 
-**Target V2 Release:** After testing and documentation completion
+**Critical Path:**
+1. **Language Update (Priority 5)** - See detailed implementation tasks above
+2. **Testing Phase:** Comprehensive testing of LLM features
+3. **CLI/GUI Feature Parity Verification**
+   - Verify CLI offers exact same features as GUI version
+   - Ensure both can perform same capabilities and access same variables as choices
+   - Some users will only use CLI - must have full feature parity
+4. **Documentation Update:** Update README with LLM setup instructions
+5. **Environment Setup:** Add API key configuration to `.env.example`
+
+**Branding and Identity:**
+- [ ] New project name: **Subgeneratorr**
+- [ ] Update README with story-focused approach
+  - Brief technical stack overview near beginning
+  - Focus on the story: built to fill subtitle gaps in Radarr/Sonarr libraries
+  - Explain Bazarr finds most subtitles, but hundreds of episodes were missing
+  - Describe Deepgram Nova-3 keyterms testing success with $200 free credits
+  - Highlight LLM-powered keyterms generation feature
+- [ ] Add disclaimer: not affiliated with Deepgram or any LLM providers
+- [ ] Emphasize: free and open source project for media accessibility
+- [ ] Target audience: movie buffs who care about subtitles
+- [ ] Move deep technical writing to separate document
+
+**Minor Issue to Address:**
+- [ ] Fix batch processing status display (Priority 4 Known Issue)
+  - Status update polling works but UI doesn't reflect real-time progress during processing
+  - Low impact - transcriptions work correctly, just missing visual feedback
+
+**Target V2 Release:** After language update, testing, and documentation completion
 
 ---
 
@@ -301,22 +190,102 @@ Modern drag-and-drop interface for flexible file selection across multiple folde
 
 ---
 
-## ✅ V2 Completed Tasks (2025-10-26)
+## ✅ Completed Work
 
-### Keyterms Input Persistence Fix
+### V2 Completed Features (2025-10-26 - 2025-10-27)
+
+#### Priority 3: Nova-3 Quality Enhancements ✅
+**Completed:** 2025-10-27 | **Effort:** Low | **Timeline:** 1-2 days
+
+Optional Nova-3 features implemented as UI toggles in advanced settings:
+- ✅ Added `numerals=True` parameter (convert "twenty twenty four" → "2024")
+- ✅ Added `filler_words` toggle (optional transcription of "uh", "um" - default OFF)
+- ✅ Added `detect_language=True` (auto-detect language for international content)
+- ✅ Added `measurements=True` (convert "fifty meters" → "50m")
+- ✅ **Adjusted Nova cost estimator to match actual API charges**
+  - Fixed estimates that were ~25% lower than actual charges
+  - Updated Nova-3 pricing: $0.0057/min (was $0.0043/min)
+  - Added Nova-2 pricing constant: $0.0043/min for future language routing
+- ✅ Completed manual testing of all enhancement parameters
+
+**Benefits Achieved:**
+- Improved number and date transcription
+- Better handling of international content
+- More accurate technical/scientific content
+- Accurate cost predictions prevent budget surprises
+
+---
+
+#### Priority 4: File Selector UX Refinement ✅
+**Completed:** 2025-10-27 | **Effort:** Low | **Timeline:** 1-2 days
+**Status:** Implementation complete with one minor UI polish issue remaining
+
+Comprehensive file selection workflow improvements across four areas:
+
+**📁 Folder Navigation & Filtering:**
+- ✅ Smart folder filtering (only show folders with videos, enabled by default)
+- ✅ Cleaned up folder/file tree display
+- ✅ Improved folder hierarchy with count display in filter bar
+
+**✅ File Selection & Scope:**
+- ✅ Single-click "Select All Files in Folder" button with clear visual feedback
+- ✅ Automatic selection clearing when navigating folders
+- ✅ Restricted operations to one folder at a time for clarity
+- ✅ Enhanced selection state visibility with simplified workflow
+
+**🎨 UI Layout & Mobile Optimization:**
+- ✅ Reorganized control layout (Audio Language selection prioritized at top)
+- ✅ Responsive design for mobile screens (< 768px)
+- ✅ Touch-friendly controls (48px+ touch targets)
+- ✅ Extra small device support (< 375px)
+- ✅ Tablet optimization (769px - 1024px)
+
+**📊 Batch Processing Feedback:**
+- ✅ Persistent "Processing..." banner throughout batch operations
+- ✅ Real-time progress indicators with percentages
+- ✅ Animated loading dots indicator
+- ✅ Detailed completion stats (processed, skipped, failed)
+
+**Known Minor Issue:**
+- ⚠️ UI shows "⏳ Queued" throughout entire batch, then jumps to "✓ Complete"
+- Expected: Should show "⚙️ Processing..." with real-time progress updates
+- Backend: ✅ Works perfectly - transcriptions complete in 5-13 seconds per file
+- Frontend: Status polling may complete too fast to catch STARTED state
+- Impact: Low - transcriptions work correctly, just missing intermediate visual feedback
+
+**Benefits Achieved:**
+- Clearer, more predictable file selection behavior
+- Faster batch processing of entire folders
+- Reduced user confusion and errors
+- Improved mobile experience with touch-friendly controls
+- Continuous visual feedback during long operations
+
+---
+
+#### Keyterms Input Persistence Fix ✅
+**Completed:** 2025-10-26
+
 Field clearing, auto-loading from CSV, proper sizing
 
-### LLM-Enhanced Keyterms
+---
+
+#### LLM-Enhanced Keyterms ✅
+**Completed:** 2025-10-26
+
 Automatic keyterm generation using Claude/GPT with cost estimation, web UI integration, real-time progress tracking
 
-### Time Estimation Accuracy
+---
+
+#### Time Estimation Accuracy ✅
+**Completed:** 2025-10-26
+
 Updated from 0.1x to 0.0109x based on real data (9x improvement) - Nova-3 processes at ~92x real-time speed
 
 ---
 
-## ✅ V1 Completed Features
+### V1 Completed Features (Production)
 
-### Core Transcription
+#### Core Transcription System ✅
 - Nova-3 model with full configuration
 - Profanity filter (off/tag/remove)
 - Keyterms CSV management
