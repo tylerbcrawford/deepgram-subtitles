@@ -58,11 +58,24 @@ Improve file selection workflow to be more intuitive and prevent confusion with 
 - No quick way to select an entire folder at once
 - Confusing state when file selection persists across folder changes
 
-**Implementation Tasks:**
-- [ ] Add "Select All Files in Folder" button/option
-  - [ ] Single-click operation to select all videos in current folder
+#### 📁 Group A: Folder Navigation & Filtering
+Smart folder filtering to reduce clutter and improve discovery of video files.
+
+- [ ] Implement smart folder filtering
+  - [ ] Add toggle to only show folders that contain videos
+  - [ ] Enable "show folders with videos only" by default
+  - [ ] Add checkbox toggle for "show all folders" option
+- [ ] Clean up folder/file tree display
+  - [ ] Reduce visual clutter in video selector
+  - [ ] Improve folder hierarchy display
+
+#### ✅ Group B: File Selection & Scope
+Enforce single-folder operations and improve selection clarity.
+
+- [ ] Add bulk selection features
+  - [ ] Single-click "Select All Files in Folder" button
   - [ ] Clear visual feedback when folder is fully selected
-- [ ] Enforce folder scope for file operations
+- [ ] Enforce folder scope for operations
   - [ ] Automatically clear file selection when navigating to different folder
   - [ ] Restrict operations to one folder at a time
   - [ ] Show warning if user attempts cross-folder operations
@@ -70,12 +83,30 @@ Improve file selection workflow to be more intuitive and prevent confusion with 
   - [ ] Clear indication of which folder files belong to
   - [ ] Better visual feedback for selected files
   - [ ] Simplified "Clear Selection" workflow
-- [ ] Refine batch processing banners and alerts
-  - [ ] Fix large blank gap between start and completion messages during batch processing
+
+#### 🎨 Group C: UI Layout & Mobile Optimization
+Prioritize critical controls and ensure mobile compatibility.
+
+- [ ] Reorganize control layout
+  - [ ] Move "Audio Language" selection to top of card (where media/filepath box currently is)
+  - [ ] Prioritize language selection as it's a critical program feature
+  - [ ] Ensure language selection is immediately visible and accessible
+- [ ] Optimize for mobile devices
+  - [ ] Improve responsive design for mobile screens
+  - [ ] Ensure all controls are touch-friendly
+  - [ ] Test and optimize layout for various screen sizes
+
+#### 📊 Group D: Batch Processing Feedback
+Real-time progress indicators and persistent status messages.
+
+- [ ] Fix processing banner display
+  - [ ] Remove large blank gap between start and completion messages
   - [ ] Keep "Processing..." banner visible throughout entire batch operation
   - [ ] Ensure banner persists until completion message displays
-  - [ ] Fix "Job waiting" indicator in sticky menu to show meaningful processing status
+- [ ] Improve job status indicators
+  - [ ] Fix "Job waiting" indicator in sticky menu to show meaningful status
   - [ ] Display actual job progress instead of static "waiting" message
+  - [ ] Show real-time progress for batch operations
 
 **Benefits:**
 - Clearer, more predictable file selection behavior
