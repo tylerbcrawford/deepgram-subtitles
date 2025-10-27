@@ -29,8 +29,17 @@ class Config:
     # Model configuration - Nova 3 only
     MODEL = "nova-3"
     
-    # Cost per minute (USD) for Nova 3
-    COST_PER_MINUTE = 0.0043
+    # Nova-3 Quality Enhancement features
+    NUMERALS = os.environ.get("NUMERALS", "0") == "1"
+    FILLER_WORDS = os.environ.get("FILLER_WORDS", "0") == "1"
+    DETECT_LANGUAGE = os.environ.get("DETECT_LANGUAGE", "0") == "1"
+    MEASUREMENTS = os.environ.get("MEASUREMENTS", "0") == "1"
+    
+    # Cost per minute (USD) for Nova-3
+    # Updated to match actual API charges (previous estimate was ~25% low)
+    # Nova-3: $0.0057/min, Nova-2: $0.0043/min
+    COST_PER_MINUTE = 0.0057
+    NOVA_2_COST_PER_MINUTE = 0.0043
     
     @classmethod
     def validate(cls) -> bool:

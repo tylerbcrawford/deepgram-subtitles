@@ -201,7 +201,10 @@ def api_estimate():
     body = request.get_json(force=True) or {}
     raw_files = body.get("files", [])
     
-    NOVA3_PRICE_PER_MINUTE = 0.0043
+    # Updated Nova-3 pricing to match actual API charges
+    # Previous estimate was ~25% low (e.g., estimated $0.71 vs actual $0.94)
+    NOVA3_PRICE_PER_MINUTE = 0.0057  # Corrected from 0.0043
+    NOVA2_PRICE_PER_MINUTE = 0.0043
     PROCESSING_TIME_MULTIPLIER = 0.0109  # Based on real data: ~1.09% of video length (25 jobs, 23.3 hours analyzed)
     
     total_duration = 0.0
@@ -275,6 +278,12 @@ def api_submit():
     save_raw_json = body.get("save_raw_json", False)
     auto_save_keyterms = body.get("auto_save_keyterms", False)
     
+    # Nova-3 Quality Enhancement parameters
+    numerals = body.get("numerals", False)
+    filler_words = body.get("filler_words", False)
+    detect_language = body.get("detect_language", False)
+    measurements = body.get("measurements", False)
+    
     # Validate and filter files
     files = []
     for f in raw_files:
@@ -296,7 +305,11 @@ def api_submit():
         speaker_map=speaker_map,
         keyterms=keyterms,
         save_raw_json=save_raw_json,
-        auto_save_keyterms=auto_save_keyterms
+        auto_save_keyterms=auto_save_keyterms,
+        numerals=numerals,
+        filler_words=filler_words,
+        detect_language=detect_language,
+        measurements=measurements
     )
     
     return jsonify({

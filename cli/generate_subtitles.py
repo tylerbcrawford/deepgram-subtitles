@@ -106,7 +106,9 @@ class SubtitleGenerator:
         except Exception:
             return 0
     
-    def transcribe_audio(self, audio_path: str, enable_diarization: bool = False, keyterms: list = None) -> Optional[dict]:
+    def transcribe_audio(self, audio_path: str, enable_diarization: bool = False, keyterms: list = None,
+                        numerals: bool = False, filler_words: bool = False,
+                        detect_language: bool = False, measurements: bool = False) -> Optional[dict]:
         """
         Transcribe audio file using Deepgram API.
         
@@ -114,6 +116,10 @@ class SubtitleGenerator:
             audio_path: Path to audio file to transcribe
             enable_diarization: Enable speaker diarization for transcripts
             keyterms: Optional list of keyterms for better recognition (Nova-3)
+            numerals: Convert spoken numbers to digits (e.g., "twenty twenty four" → "2024")
+            filler_words: Include filler words like "uh", "um" in transcription (default: False)
+            detect_language: Auto-detect language for international content
+            measurements: Convert spoken measurements (e.g., "fifty meters" → "50m")
             
         Returns:
             Deepgram response object, or None if transcription failed
@@ -139,6 +145,19 @@ class SubtitleGenerator:
             # Add keyterms if provided (Nova-3 feature)
             if keyterms and Config.MODEL == "nova-3":
                 options.keyterm = keyterms
+            
+            # Add Nova-3 quality enhancement parameters
+            if numerals:
+                options.numerals = True
+            
+            if filler_words:
+                options.filler_words = True
+            
+            if detect_language:
+                options.detect_language = True
+            
+            if measurements:
+                options.measurements = True
             
             response = self.client.listen.rest.v("1").transcribe_file(
                 {"buffer": buffer_data}, options
@@ -251,7 +270,14 @@ class SubtitleGenerator:
             # Generate SRT if it doesn't exist OR if force regenerate is enabled
             if not srt_already_existed or Config.FORCE_REGENERATE:
                 self.log(f"  🧠 Transcribing (nova-3)...")
-                response = self.transcribe_audio(Config.TEMP_AUDIO_PATH, keyterms=keyterms)
+                response = self.transcribe_audio(
+                    Config.TEMP_AUDIO_PATH,
+                    keyterms=keyterms,
+                    numerals=Config.NUMERALS,
+                    filler_words=Config.FILLER_WORDS,
+                    detect_language=Config.DETECT_LANGUAGE,
+                    measurements=Config.MEASUREMENTS
+                )
                 if not response:
                     raise Exception("Transcription failed")
                 
@@ -330,7 +356,15 @@ class SubtitleGenerator:
                 response = existing_response
             else:
                 self.log(f"  🎤 Transcribing with speaker diarization...")
-                response = self.transcribe_audio(Config.TEMP_AUDIO_PATH, enable_diarization=True, keyterms=keyterms)
+                response = self.transcribe_audio(
+                    Config.TEMP_AUDIO_PATH,
+                    enable_diarization=True,
+                    keyterms=keyterms,
+                    numerals=Config.NUMERALS,
+                    filler_words=Config.FILLER_WORDS,
+                    detect_language=Config.DETECT_LANGUAGE,
+                    measurements=Config.MEASUREMENTS
+                )
                 if not response:
                     self.log(f"  ⚠️  Transcript transcription failed")
                     return False

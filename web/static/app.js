@@ -690,13 +690,23 @@ async function submitBatch() {
     const forceRegenerate = document.getElementById('forceRegenerate').checked;
     const saveRawJson = document.getElementById('saveRawJson').checked;
     
+    // Nova-3 Quality Enhancement parameters
+    const numerals = document.getElementById('numerals')?.checked || false;
+    const fillerWords = document.getElementById('fillerWords')?.checked || false;
+    const detectLanguage = document.getElementById('detectLanguage')?.checked || false;
+    const measurements = document.getElementById('measurements')?.checked || false;
+    
     const requestBody = {
         files: selectedFilesList,
         model: model,
         language: language,
         profanity_filter: profanityFilter,
         force_regenerate: forceRegenerate,
-        save_raw_json: saveRawJson
+        save_raw_json: saveRawJson,
+        numerals: numerals,
+        filler_words: fillerWords,
+        detect_language: detectLanguage,
+        measurements: measurements
     };
     
     const keyTerms = document.getElementById('keyTerms').value.trim();

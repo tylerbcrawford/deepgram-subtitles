@@ -60,7 +60,8 @@ def _save_job_log(payload: dict):
 @celery_app.task(bind=True, name="transcribe_task")
 def transcribe_task(self, video_path: str, model=DEFAULT_MODEL, language=DEFAULT_LANGUAGE,
                     profanity_filter="off", force_regenerate=False, enable_transcript=False,
-                    speaker_map=None, keyterms=None, save_raw_json=False, auto_save_keyterms=False):
+                    speaker_map=None, keyterms=None, save_raw_json=False, auto_save_keyterms=False,
+                    numerals=False, filler_words=False, detect_language=False, measurements=False):
     """
     Transcribe a single video file.
     
@@ -75,6 +76,10 @@ def transcribe_task(self, video_path: str, model=DEFAULT_MODEL, language=DEFAULT
         keyterms: Optional list of keyterms for better recognition (Nova-3, monolingual only)
         save_raw_json: Save raw Deepgram API response for debugging (default: false)
         auto_save_keyterms: Automatically save keyterms to CSV in Transcripts/Keyterms/ (default: false)
+        numerals: Convert spoken numbers to digits (e.g., "twenty twenty four" → "2024")
+        filler_words: Include filler words like "uh", "um" in transcription (default: False)
+        detect_language: Auto-detect language for international content
+        measurements: Convert spoken measurements (e.g., "fifty meters" → "50m")
         
     Returns:
         dict: Status and file paths
@@ -150,7 +155,11 @@ def transcribe_task(self, video_path: str, model=DEFAULT_MODEL, language=DEFAULT
                 language,
                 profanity_filter=profanity_filter,
                 diarize=enable_transcript,
-                keyterms=keyterms
+                keyterms=keyterms,
+                numerals=numerals,
+                filler_words=filler_words,
+                detect_language=detect_language,
+                measurements=measurements
             )
         
         # Generate SRT
@@ -378,7 +387,8 @@ def generate_keyterms_task(
 
 def make_batch(files, model, language, profanity_filter="off", force_regenerate=False,
                enable_transcript=False, speaker_map=None, keyterms=None, save_raw_json=False,
-               auto_save_keyterms=False):
+               auto_save_keyterms=False, numerals=False, filler_words=False,
+               detect_language=False, measurements=False):
     """
     Create a batch of transcription jobs.
     
@@ -396,6 +406,10 @@ def make_batch(files, model, language, profanity_filter="off", force_regenerate=
         keyterms: Optional list of keyterms for better recognition (Nova-3, monolingual)
         save_raw_json: Save raw Deepgram API response for debugging (default: false)
         auto_save_keyterms: Automatically save keyterms to CSV in Transcripts/Keyterms/ (default: false)
+        numerals: Convert spoken numbers to digits (e.g., "twenty twenty four" → "2024")
+        filler_words: Include filler words like "uh", "um" in transcription (default: False)
+        detect_language: Auto-detect language for international content
+        measurements: Convert spoken measurements (e.g., "fifty meters" → "50m")
         
     Returns:
         AsyncResult: Celery async result for tracking batch progress
@@ -411,7 +425,11 @@ def make_batch(files, model, language, profanity_filter="off", force_regenerate=
             speaker_map,
             keyterms,
             save_raw_json,
-            auto_save_keyterms
+            auto_save_keyterms,
+            numerals,
+            filler_words,
+            detect_language,
+            measurements
         ) for f in files
     ]
     return chord(group(jobs))(batch_finalize.s())

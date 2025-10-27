@@ -111,7 +111,9 @@ def extract_audio(video: Path) -> Path:
 
 
 def transcribe_file(buf: bytes, api_key: str, model: str, language: str,
-                    profanity_filter: str = "off", diarize: bool = False, keyterms: list = None) -> dict:
+                    profanity_filter: str = "off", diarize: bool = False, keyterms: list = None,
+                    numerals: bool = False, filler_words: bool = False,
+                    detect_language: bool = False, measurements: bool = False) -> dict:
     """
     Transcribe audio buffer using Deepgram API.
     
@@ -123,6 +125,10 @@ def transcribe_file(buf: bytes, api_key: str, model: str, language: str,
         profanity_filter: Profanity filter mode - "off", "tag", or "remove" (default: off)
         diarize: Enable speaker diarization
         keyterms: List of keyterms for better recognition (Nova-3 only, monolingual)
+        numerals: Convert spoken numbers to digits (e.g., "twenty twenty four" → "2024")
+        filler_words: Include filler words like "uh", "um" in transcription (default: False for subtitles)
+        detect_language: Auto-detect language for international content
+        measurements: Convert spoken measurements (e.g., "fifty meters" → "50m")
         
     Returns:
         Deepgram response object
@@ -150,6 +156,19 @@ def transcribe_file(buf: bytes, api_key: str, model: str, language: str,
     # Add keyterms if provided (Nova-3 feature - monolingual only)
     if keyterms and model == "nova-3":
         opts.keyterm = keyterms
+    
+    # Add Nova-3 quality enhancement parameters
+    if numerals:
+        opts.numerals = True
+    
+    if filler_words:
+        opts.filler_words = True
+    
+    if detect_language:
+        opts.detect_language = True
+    
+    if measurements:
+        opts.measurements = True
     
     return client.listen.rest.v("1").transcribe_file({"buffer": buf}, opts)
 
