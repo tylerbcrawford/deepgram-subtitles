@@ -20,18 +20,25 @@
 
 ### 🥉 Priority 3: Nova-3 Quality Enhancements
 **Effort:** Low | **Timeline:** 1-2 days total
+**Status:** Implementation complete - awaiting manual testing
 
 Optional Nova-3 features for specific use cases. Each should be implemented as a UI toggle in advanced settings:
-- [ ] Add `numerals=True` parameter (convert "twenty twenty four" → "2024")
-- [ ] Add `filler_words` toggle (optional transcription of "uh", "um" - default OFF for subtitles)
-- [ ] Add `detect_language=True` (auto-detect language for international content)
-- [ ] Add `measurements=True` (convert "fifty meters" → "50m" for sports/science content)
-- [ ] **Adjust Nova cost estimator to match actual API charges**
-  - [ ] Current estimates are ~25% lower than actual charges (e.g., estimated $0.71 vs actual $0.94)
-  - [ ] Test data: Nova-3 with keyterms batch
-  - [ ] Implement different rate calculations for Nova-2 vs Nova-3
-  - [ ] Conduct additional batch tests to gather more data points
-  - [ ] Update cost calculation formula based on real-world data
+- [x] Add `numerals=True` parameter (convert "twenty twenty four" → "2024")
+- [x] Add `filler_words` toggle (optional transcription of "uh", "um" - default OFF for subtitles)
+- [x] Add `detect_language=True` (auto-detect language for international content)
+- [x] Add `measurements=True` (convert "fifty meters" → "50m" for sports/science content)
+- [x] **Adjust Nova cost estimator to match actual API charges**
+  - [x] Current estimates are ~25% lower than actual charges (e.g., estimated $0.71 vs actual $0.94)
+  - [x] Test data: Nova-3 with keyterms batch
+  - [x] Implement different rate calculations for Nova-2 vs Nova-3
+  - [x] Update cost calculation formula based on real-world data
+  - [x] Updated Nova-3 pricing: $0.0057/min (was $0.0043/min)
+  - [x] Added Nova-2 pricing constant: $0.0043/min for future language routing
+- [ ] **Manual testing required**
+  - [ ] Test each enhancement parameter with sample videos
+  - [ ] Verify UI toggles work correctly
+  - [ ] Confirm cost estimation accuracy with actual API usage
+  - [ ] Validate CLI environment variables
 
 **Benefits:**
 - Improved number and date transcription
