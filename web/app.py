@@ -88,6 +88,7 @@ def api_browse():
     Query Parameters:
         path: Subdirectory to list (default: MEDIA_ROOT)
         show_all: Include videos with existing subtitles (default: false)
+        only_folders_with_videos: Filter out empty folders (default: true)
         
     Returns:
         JSON with list of subdirectories and video files
@@ -98,6 +99,7 @@ def api_browse():
     # _require_auth()
     path = request.args.get("path", str(MEDIA_ROOT))
     show_all = request.args.get("show_all", "false").lower() == "true"
+    only_folders_with_videos = request.args.get("only_folders_with_videos", "true").lower() == "true"
     path = Path(path).resolve()
     media_root_resolved = MEDIA_ROOT.resolve()
     
@@ -122,6 +124,11 @@ def api_browse():
             if item.is_dir() and not item.name.startswith('.'):
                 # Count media files in this directory (recursive)
                 media_count = sum(1 for p in item.rglob("*") if p.is_file() and is_media(p))
+                
+                # Apply folder filter if enabled
+                if only_folders_with_videos and media_count == 0:
+                    continue
+                    
                 directories.append({
                     "name": item.name,
                     "path": str(item),
@@ -339,31 +346,45 @@ def api_job(rid):
     try:
         if res.ready():
             data = res.get(propagate=False)
+            
+            # Handle ChordError or other exceptions that aren't JSON serializable
+            if isinstance(data, Exception):
+                data = {"error": str(data), "error_type": type(data).__name__}
         
         # Get child task information for detailed progress
         if hasattr(res, 'children') and res.children:
             for child in res.children:
-                child_result = celery_app.AsyncResult(child.id)
-                child_info = {
-                    'id': child.id,
-                    'state': child_result.state,
-                }
-                
-                # Get task metadata if available
-                if child_result.state == 'PROGRESS' and child_result.info:
-                    child_info['current_file'] = child_result.info.get('current_file', '')
-                    child_info['stage'] = child_result.info.get('stage', '')
-                elif child_result.ready():
-                    result = child_result.get(propagate=False)
-                    if isinstance(result, dict):
-                        child_info['filename'] = result.get('filename', '')
-                        child_info['status'] = result.get('status', '')
-                        child_info['video'] = result.get('video', '')
-                
-                children_info.append(child_info)
+                try:
+                    child_result = celery_app.AsyncResult(child.id)
+                    child_info = {
+                        'id': child.id,
+                        'state': child_result.state,
+                    }
+                    
+                    # Get task metadata if available
+                    if child_result.state == 'PROGRESS' and child_result.info:
+                        child_info['current_file'] = child_result.info.get('current_file', '')
+                        child_info['stage'] = child_result.info.get('stage', '')
+                    elif child_result.ready():
+                        result = child_result.get(propagate=False)
+                        # Handle exceptions in child results
+                        if isinstance(result, Exception):
+                            child_info['error'] = str(result)
+                            child_info['status'] = 'error'
+                        elif isinstance(result, dict):
+                            child_info['filename'] = result.get('filename', '')
+                            child_info['status'] = result.get('status', '')
+                            child_info['video'] = result.get('video', '')
+                    
+                    children_info.append(child_info)
+                except Exception as child_error:
+                    # Skip problematic children but continue processing
+                    print(f"Error processing child task: {child_error}")
+                    continue
     
     except Exception as e:
-        data = {"error": str(e)}
+        print(f"Error in api_job: {e}")
+        data = {"error": str(e), "error_type": type(e).__name__}
     
     return jsonify({
         "state": state,

@@ -2,9 +2,11 @@
 
 let selectedFiles = [];
 let currentPath = '/media';
+let currentFolder = '/media'; // Track which folder files are selected from
 let currentBatchId = null;
 let eventSource = null;
 let pollInterval = null;
+let onlyFoldersWithVideos = true; // Default to filtering empty folders
 
 /* ============================================
    INITIALIZATION
@@ -168,6 +170,13 @@ async function browseDirectories(path) {
     const directoryList = document.getElementById('directoryList');
     const showAll = true;
     
+    // Clear selection when navigating to a different folder (Group B: Folder Scope)
+    if (path !== currentFolder && selectedFiles.length > 0) {
+        selectedFiles = [];
+        currentFolder = path;
+        updateSelectionStatus();
+    }
+    
     // Clear keyterms when navigating directories
     clearKeytermField();
     
@@ -188,7 +197,7 @@ async function browseDirectories(path) {
     directoryList.style.display = 'block';
     
     try {
-        const response = await fetch(`/api/browse?path=${encodeURIComponent(path)}&show_all=${showAll}`);
+        const response = await fetch(`/api/browse?path=${encodeURIComponent(path)}&show_all=${showAll}&only_folders_with_videos=${onlyFoldersWithVideos}`);
         console.log('API Response status:', response.status);
         
         if (!response.ok) {
@@ -222,16 +231,24 @@ async function browseDirectories(path) {
             html += '<h3 class="section-header">Folders</h3>';
             html += '<div class="browser-section">';
             data.directories.forEach(dir => {
+                const videoText = dir.video_count === 1 ? 'video' : 'videos';
                 html += `
                     <button class="browser-item directory-item" data-path="${dir.path.replace(/"/g, '&quot;')}" data-video-count="${dir.video_count}">
                         <span class="item-icon">📁</span>
                         <span class="item-name">${dir.name}</span>
-                        <span class="item-meta">${dir.video_count} videos</span>
+                        <span class="item-meta">${dir.video_count} ${videoText}</span>
                         <span class="item-action">→</span>
                     </button>
                 `;
             });
             html += '</div>';
+        }
+        
+        // Update folder count display
+        const folderCount = document.getElementById('folderCount');
+        if (folderCount) {
+            const folderText = data.directories.length === 1 ? 'folder' : 'folders';
+            folderCount.textContent = `${data.directories.length} ${folderText}`;
         }
         
         // Add video files with checkboxes
@@ -303,6 +320,10 @@ function toggleFileSelection(filePath) {
     if (index > -1) {
         selectedFiles.splice(index, 1);
     } else {
+        // Group B: Set current folder when first file is selected
+        if (selectedFiles.length === 0) {
+            currentFolder = currentPath;
+        }
         selectedFiles.push(filePath);
     }
     updateSelectionStatus();
@@ -336,6 +357,21 @@ function toggleFileSelection(filePath) {
         // Clear keyterm cost estimate
         updateKeytermCostEstimate();
     }
+}
+
+/* ============================================
+   FOLDER FILTERING
+   ============================================ */
+
+function toggleFolderFilter() {
+    const checkbox = document.getElementById('onlyFoldersWithVideos');
+    onlyFoldersWithVideos = checkbox.checked;
+    
+    // Reload current directory with new filter
+    browseDirectories(currentPath);
+    
+    const filterText = onlyFoldersWithVideos ? 'Showing folders with videos only' : 'Showing all folders';
+    showToast('info', filterText);
 }
 
 /* ============================================
@@ -580,8 +616,10 @@ function updateSelectionStatus() {
     }
 }
 
-function selectAll() {
+// Group B: Select All in Current Folder
+function selectAllInFolder() {
     selectedFiles = [];
+    currentFolder = currentPath; // Lock to current folder
     document.querySelectorAll('.browser-file input[type="checkbox"]').forEach(cb => {
         cb.checked = true;
         const filePath = cb.value;
@@ -592,14 +630,21 @@ function selectAll() {
     });
     updateSelectionStatus();
     if (selectedFiles.length > 0) {
-        showToast('success', `Selected all ${selectedFiles.length} files`);
+        const fileText = selectedFiles.length === 1 ? 'file' : 'files';
+        showToast('success', `Selected ${selectedFiles.length} ${fileText} in this folder`);
         // Auto-load keyterms for the first selected file
         loadKeytermsForSelection();
     }
 }
 
+// Legacy function for backward compatibility
+function selectAll() {
+    selectAllInFolder();
+}
+
 function selectNone() {
     selectedFiles = [];
+    currentFolder = currentPath; // Reset folder scope
     document.querySelectorAll('.browser-file input[type="checkbox"]').forEach(cb => {
         cb.checked = false;
         cb.closest('.browser-file').classList.remove('selected');
@@ -683,11 +728,48 @@ async function submitBatch() {
         return;
     }
     
+    // Check if user is trying to process files that already have subtitles
+    const forceRegenerate = document.getElementById('forceRegenerate').checked;
+    if (!forceRegenerate) {
+        // Count how many selected files already have subtitles (green dot indicator)
+        const filesWithSubtitles = Array.from(
+            document.querySelectorAll('.browser-file input[type="checkbox"]:checked')
+        ).filter(cb => {
+            const fileItem = cb.closest('.browser-file');
+            const statusIndicator = fileItem.querySelector('.item-status[data-status="complete"]');
+            return statusIndicator !== null;
+        }).length;
+        
+        if (filesWithSubtitles > 0) {
+            const fileText = filesWithSubtitles === 1 ? 'file' : 'files';
+            const allFiles = filesWithSubtitles === selectedFilesList.length;
+            
+            if (allFiles) {
+                // All files already have subtitles - BLOCK submission
+                showToast('error',
+                    `All ${filesWithSubtitles} selected ${fileText} already have subtitles. ` +
+                    `Check "Overwrite Existing Subtitles" to regenerate them.`
+                );
+                return;
+            } else {
+                // Some files have subtitles - warn but allow
+                const proceed = confirm(
+                    `${filesWithSubtitles} of ${selectedFilesList.length} selected files already have subtitles and will be skipped.\n\n` +
+                    `To overwrite them, check the "Overwrite Existing Subtitles" option below.\n\n` +
+                    `Continue with remaining ${selectedFilesList.length - filesWithSubtitles} files?`
+                );
+                if (!proceed) {
+                    return;
+                }
+            }
+        }
+    }
+    
     const model = 'nova-3';
     const language = document.getElementById('language').value;
     const profanityFilter = document.getElementById('profanityFilter').value;
     const enableTranscript = document.getElementById('enableTranscript').checked;
-    const forceRegenerate = document.getElementById('forceRegenerate').checked;
+    // forceRegenerate already declared above in the check
     const saveRawJson = document.getElementById('saveRawJson').checked;
     
     // Nova-3 Quality Enhancement parameters
@@ -721,7 +803,10 @@ async function submitBatch() {
     }
     
     document.getElementById('submitBtn').disabled = true;
-    showToast('info', 'Submitting batch...');
+    
+    // Group D: Show persistent processing banner
+    const fileText = selectedFilesList.length === 1 ? 'file' : 'files';
+    showToast('info', `Starting batch: ${selectedFilesList.length} ${fileText}`, { persist: true });
     
     try {
         const response = await fetch('/api/submit', {
@@ -737,10 +822,9 @@ async function submitBatch() {
         const data = await response.json();
         currentBatchId = data.batch_id;
         
-        showToast('info', `Processing ${data.enqueued} files...`);
         announceToScreenReader(`Processing ${data.enqueued} files`);
         
-        // Show compact job status in action bar
+        // Group D: Show compact job status in action bar (persistent)
         const costSummary = document.querySelector('.cost-summary');
         if (costSummary) costSummary.style.display = 'none';
         document.getElementById('jobStatusCompact').style.display = 'flex';
@@ -850,17 +934,27 @@ function updateJobDisplay(data) {
     if (!jobStatusText || !jobStatusDetails) return;
     
     if (data.state === 'PENDING') {
-        jobStatusText.textContent = 'Job queued...';
-        jobStatusDetails.textContent = 'Waiting to start';
+        jobStatusText.textContent = '⏳ Queued';
+        jobStatusDetails.textContent = 'Waiting to start...';
     } else if (data.state === 'STARTED') {
-        jobStatusText.textContent = 'Processing';
+        // Group D: Show real-time progress with animation
+        jobStatusText.innerHTML = '⚙️ Processing<span class="loading-dots"></span>';
         
         if (data.children && data.children.length > 0) {
             const completed = data.children.filter(c => c.state === 'SUCCESS').length;
+            const processing = data.children.filter(c => c.state === 'STARTED' || c.state === 'PROGRESS').length;
             const total = data.children.length;
-            jobStatusDetails.textContent = `${completed} / ${total} files`;
+            const percentage = Math.round((completed / total) * 100);
+            
+            // Show detailed progress
+            let statusText = `${completed} / ${total} completed`;
+            if (processing > 0) {
+                statusText += ` • ${processing} active`;
+            }
+            statusText += ` (${percentage}%)`;
+            jobStatusDetails.textContent = statusText;
         } else {
-            jobStatusDetails.textContent = 'In progress...';
+            jobStatusDetails.textContent = 'Starting batch...';
         }
     } else if (data.state === 'SUCCESS') {
         jobStatusText.textContent = '✓ Complete';
@@ -868,14 +962,20 @@ function updateJobDisplay(data) {
         if (data.data && data.data.results) {
             const results = data.data.results;
             const successful = results.filter(r => r.status === 'ok').length;
-            jobStatusDetails.textContent = `${successful} processed`;
+            const skipped = results.filter(r => r.status === 'skipped').length;
+            const failed = results.filter(r => r.status === 'error').length;
+            
+            let statusText = `${successful} processed`;
+            if (skipped > 0) statusText += ` • ${skipped} skipped`;
+            if (failed > 0) statusText += ` • ${failed} failed`;
+            jobStatusDetails.textContent = statusText;
         }
     } else if (data.state === 'FAILURE') {
         jobStatusText.textContent = '✕ Failed';
-        jobStatusDetails.textContent = 'Check console for errors';
+        jobStatusDetails.textContent = data.data?.error || 'Check console for errors';
     } else if (data.state === 'REVOKED') {
         jobStatusText.textContent = '⊘ Cancelled';
-        jobStatusDetails.textContent = 'Job stopped';
+        jobStatusDetails.textContent = 'Job was stopped';
     }
 }
 
