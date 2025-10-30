@@ -1,6 +1,6 @@
 # Project Roadmap
 
-**Last Updated:** 2025-10-27
+**Last Updated:** 2025-10-30
 
 ## 🎯 Current Status
 **V1:** ✅ Released and in production testing
@@ -16,9 +16,138 @@
 
 ---
 
-## 🚀 Active Development
+## 📅 V2 Final Tasks
 
-### 🔄 Priority 5: Language Update (CURRENT PRIORITY)
+### 🎯 What's Left for V2 Release
+
+**Critical Path:**
+1. **GUI Refresh (Priority 5)** - See detailed implementation tasks below
+2. **Testing Phase:** Comprehensive testing of all features including GUI updates
+3. **CLI/GUI Feature Parity Verification**
+   - Verify CLI offers exact same features as GUI version
+   - Ensure both can perform same capabilities and access same variables as choices
+   - Some users will only use CLI - must have full feature parity
+4. **Documentation Update:** Update README with branding and LLM setup instructions
+5. **Environment Setup:** Add API key configuration to `.env.example`
+
+---
+
+### 🔄 Priority 5: GUI Refresh (CURRENT PRIORITY)
+**Effort:** Moderate | **Timeline:** 3-5 days
+
+Final polish pass on the web GUI to ensure a cohesive, professional interface with all features properly exposed and organized.
+
+**Implementation Tasks:**
+- [ ] **1. Remove media filepath box**
+  - Media folder is mounted by default, no need to show filepath
+  - Clean up top section of interface
+- [ ] **2. Move "show folders with videos only" checkbox to advanced options**
+  - Should be selected by default on startup/refresh
+  - Declutter main interface
+- [ ] **3. Remove "5 folders" label**
+  - Unnecessary visual noise
+- [ ] **4. Reorganize audio language dropdown**
+  - Remove blue border styling
+  - Remove "-- critical setting" text
+  - Move to top of main card (above file selector)
+  - Center the title and dropdown content
+- [ ] **5. Reorganize advanced options**
+  - Regroup and rename sections for clarity
+  - Create logical groupings of related features
+- [ ] **6. Convert profanity filter to radio buttons**
+  - Change from dropdown to radio button group
+  - Three options: Off, Tag, Remove
+  - Match font/style with other checkboxes
+  - Move into Nova-3 Quality Enhancements section
+  - Default to Off on startup/reset
+- [ ] **7. Create "Transcript Options" section**
+  - Group "Generate transcript" and "Save Raw JSON"
+  - Style consistently with Nova-3 Quality section
+  - Use same card/border styling
+- [ ] **8. Update filler words option**
+  - Change "Include filler words" to "Remove filler words"
+  - Check by default on startup/reset
+  - Part of default options (user can adjust)
+- [ ] **9. Set default checkboxes**
+  - "Converting measurements" - checked by default
+  - "Converting numbers" - checked by default
+- [ ] **10. Review auto-detect language**
+  - Verify necessity given Multi feature in language dropdown
+  - Check against plan and roadmap
+  - Remove or adjust as needed
+- [ ] **11. Fix AI Keyterms button**
+  - Reduce button width (match Transcribe button size)
+  - Change text to "Generate Keyterms" only (no emoji)
+- [ ] **12. Add consistent card styling**
+  - AI Keyterms section already has card/border (keep as reference)
+  - Add same card/border to "Nova-3 Quality Enhancements"
+  - Add same card/border to "Transcript Options"
+  - Ensure visual consistency across all sections
+- [ ] **13. Rename button**
+  - Change "Select All in Folder" to "Select All"
+- [ ] **14. Fix mobile view issues**
+  - "Batch Subtitle" smaller header not visible
+  - Reduce space between "Subtitle Generator" title and sticky menu
+  - Improve responsive behavior
+- [ ] **15. Expose all hidden features**
+  - Review app for implemented but unexposed features
+  - Add diarization, utterances, paragraphs to GUI as checkboxes
+  - Apply current defaults and check boxes on startup
+  - Make all features accessible to users
+- [ ] **16. Overall polish and cohesion**
+  - Bring all features into GUI
+  - Set best default settings
+  - Allow user overrides in Advanced Options
+  - Sort into "Transcript Options" or "Nova-3 Quality Enhancements"
+  - Ensure cohesive look with overall project design
+
+**Benefits:**
+- Clean, professional interface with clear visual hierarchy
+- All features properly exposed and accessible
+- Consistent styling and organization
+- Improved mobile experience
+- Better user experience with sensible defaults
+
+---
+
+**Branding and Identity:**
+- [ ] New project name: **Subgeneratorr**
+- [ ] Update README with story-focused approach
+  - Brief technical stack overview near beginning
+  - Focus on the story: built to fill subtitle gaps in Radarr/Sonarr libraries
+  - Explain Bazarr finds most subtitles, but hundreds of episodes were missing
+  - Describe Deepgram Nova-3 keyterms testing success with $200 free credits
+  - Highlight LLM-powered keyterms generation feature
+- [ ] Add disclaimer: not affiliated with Deepgram or any LLM providers
+- [ ] Emphasize: free and open source project for media accessibility
+- [ ] Target audience: movie buffs who care about subtitles
+- [ ] Move deep technical writing to separate document
+
+**UI/UX Polish Pass:**
+- [ ] **Final Design Review and Refinement**
+  - [ ] Complete once-over of GUI and mobile layouts
+  - [ ] Fix and reorganize elements to prioritize visual hierarchy
+  - [ ] Review all text and copy for conciseness and clarity
+  - [ ] Verify all progress indicators work correctly
+  - [ ] Improve banner integration to prevent text overlap
+    - Banners currently cover text in some scenarios
+    - Need better z-index management and positioning
+  - [ ] Make overall design more harmonious and cohesive
+  - [ ] Final manual evaluation and adjustments across all breakpoints
+  - [ ] Test visual consistency between desktop, tablet, and mobile views
+
+**Minor Issue to Address:**
+- [ ] Fix batch processing status display (Priority 4 Known Issue)
+  - Status update polling works but UI doesn't reflect real-time progress during processing
+  - Low impact - transcriptions work correctly, just missing visual feedback
+
+**Target V2 Release:** After GUI refresh, testing, documentation, and branding updates
+
+---
+
+## 🚀 V3 Future Development
+
+### Priority 6: Language Update
 **Effort:** Moderate | **Timeline:** 3-5 days
 
 Expand language support by implementing intelligent model routing and multi-language detection.
@@ -49,9 +178,9 @@ Expand language support by implementing intelligent model routing and multi-lang
   - [ ] Show appropriate keyterms options based on selected model
   - [ ] Hide or gray out Nova-3-only features when Nova-2 is active
 - [ ] **Profanity Filter Enhancement**
-  - [ ] Change profanity filter from dropdown to radio button with 3 options
+  - [ ] Update profanity filter radio button implementation for new languages
+  - [ ] Ensure radio button interface works with both Nova-2 and Nova-3
   - [ ] Options: Off, Tag, Remove
-  - [ ] Update both GUI and CLI to support radio button interface
 
 **Language Coverage:**
 - **Nova-3 Exclusive:** 15 languages (English, Spanish, French, German, Dutch, Swedish, Danish, Italian, Portuguese, Japanese, Russian, Hindi, Indonesian, Norwegian, Turkish)
@@ -65,45 +194,7 @@ Expand language support by implementing intelligent model routing and multi-lang
 
 ---
 
-## 📅 V2 Final Tasks
-
-### 🎯 What's Left for V2 Release
-
-**Critical Path:**
-1. **Language Update (Priority 5)** - See detailed implementation tasks above
-2. **Testing Phase:** Comprehensive testing of LLM features
-3. **CLI/GUI Feature Parity Verification**
-   - Verify CLI offers exact same features as GUI version
-   - Ensure both can perform same capabilities and access same variables as choices
-   - Some users will only use CLI - must have full feature parity
-4. **Documentation Update:** Update README with LLM setup instructions
-5. **Environment Setup:** Add API key configuration to `.env.example`
-
-**Branding and Identity:**
-- [ ] New project name: **Subgeneratorr**
-- [ ] Update README with story-focused approach
-  - Brief technical stack overview near beginning
-  - Focus on the story: built to fill subtitle gaps in Radarr/Sonarr libraries
-  - Explain Bazarr finds most subtitles, but hundreds of episodes were missing
-  - Describe Deepgram Nova-3 keyterms testing success with $200 free credits
-  - Highlight LLM-powered keyterms generation feature
-- [ ] Add disclaimer: not affiliated with Deepgram or any LLM providers
-- [ ] Emphasize: free and open source project for media accessibility
-- [ ] Target audience: movie buffs who care about subtitles
-- [ ] Move deep technical writing to separate document
-
-**Minor Issue to Address:**
-- [ ] Fix batch processing status display (Priority 4 Known Issue)
-  - Status update polling works but UI doesn't reflect real-time progress during processing
-  - Low impact - transcriptions work correctly, just missing visual feedback
-
-**Target V2 Release:** After language update, testing, and documentation completion
-
----
-
-## 🚀 V3 Future Development
-
-### Priority 6: Docker Container Consolidation
+### Priority 7: Docker Container Consolidation
 **Effort:** Moderate | **Timeline:** 1 week
 
 Simplify deployment and improve user experience by consolidating services.
@@ -125,7 +216,7 @@ Simplify deployment and improve user experience by consolidating services.
 
 ---
 
-### Priority 7: Advanced File Input Interface
+### Priority 8: Advanced File Input Interface
 **Effort:** Moderate | **Timeline:** 1 week
 
 Modern drag-and-drop interface for flexible file selection across multiple folders.
@@ -152,7 +243,7 @@ Modern drag-and-drop interface for flexible file selection across multiple folde
 
 ---
 
-### Priority 8: Translation
+### Priority 9: Translation
 **Effort:** High | **Timeline:** 2-3 weeks
 
 - [ ] LLM-powered subtitle translation (Anthropic/OpenAI)
@@ -162,7 +253,7 @@ Modern drag-and-drop interface for flexible file selection across multiple folde
 
 ---
 
-### Priority 9: Bazarr Auto-Fallback Workflow
+### Priority 10: Bazarr Auto-Fallback Workflow
 **Effort:** Moderate | **Timeline:** 1 week
 
 **Current:** Manual trigger after 24h wait
@@ -179,7 +270,7 @@ Modern drag-and-drop interface for flexible file selection across multiple folde
 
 ---
 
-### Priority 10: Subtitle Synchronization
+### Priority 11: Subtitle Synchronization
 **Effort:** Moderate-High | **Timeline:** 1-2 weeks
 
 - [ ] Internal FFmpeg sync function
