@@ -1314,9 +1314,8 @@ input[readonly] {
 /* Language Section - Centered, top of card */
 .language-section {
   text-align: center;
-  padding: var(--space-m) var(--space-l) var(--space-xl);
-  margin-bottom: var(--space-l);
-  border-bottom: 1px solid var(--border);
+  padding: var(--space-m) var(--space-l) var(--space-m);
+  margin-bottom: var(--space-m);
 }
 
 .language-section .form-group {
@@ -1377,12 +1376,16 @@ input[readonly] {
 /* Consistent Card Styling for Advanced Options Sections */
 .transcript-settings,
 .nova-settings,
-.advanced-transcript-settings,
 .browser-preferences-settings {
   padding: var(--space-l);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background-color: var(--bg-secondary);
+  margin-bottom: var(--space-l);
+}
+
+/* Fix spacing for LLM settings which already has margin-top in HTML */
+.llm-settings {
   margin-bottom: var(--space-l);
 }
 

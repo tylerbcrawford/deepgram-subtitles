@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Subtitle Generator</title>
+    <title>Subgeneratorr</title>
     <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
@@ -11,7 +11,7 @@
         <!-- Header with Theme Toggle -->
         <header>
             <div class="header-content">
-                <h1>Subtitle Generator</h1>
+                <h1>Subgeneratorr</h1>
                 <p class="subtitle">Batch subtitle generation using Deepgram Nova-3 API</p>
             </div>
             <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
@@ -77,6 +77,10 @@
                                 <option value="id">Indonesian</option>
                             </select>
                         </div>
+                        <label class="checkbox-label" style="margin-top: var(--space-m); justify-content: center;">
+                            <input type="checkbox" id="enableTranscript" onchange="toggleTranscriptOptions()">
+                            <span>Generate Transcript</span>
+                        </label>
                     </div>
 
                     <!-- Current Directory Display -->
@@ -118,9 +122,11 @@
                             <small style="color: var(--text-tertiary); display: block; margin-top: var(--space-xs);">
                                 Keyterms are auto-loaded and auto-saved from CSV if available.
                             </small>
-                            <button id="generateKeytermsBtn" class="btn-secondary" style="margin-top: var(--space-m);" title="Generate keyterms using AI">
-                                Generate Keyterms
-                            </button>
+                            <div style="text-align: center; margin-top: var(--space-m);">
+                                <button id="generateKeytermsBtn" class="btn-secondary" style="display: inline-flex;" title="Generate keyterms using AI">
+                                    Generate Keyterms
+                                </button>
+                            </div>
                         </div>
 
                         <!-- Advanced Options Toggle -->
@@ -134,52 +140,11 @@
                     <!-- Advanced Options (Collapsible) -->
                     <div id="advancedOptions" class="config-section hidden" style="padding-top: var(--space-l);">
 
-                        <!-- Transcript Options -->
-                        <div class="transcript-settings">
-                            <h3 class="section-title">Transcript Options</h3>
-                            <div class="checkbox-group">
-                                <label class="checkbox-label">
-                                    <input type="checkbox" id="enableTranscript" onchange="toggleTranscriptOptions()">
-                                    <span>Generate Transcript</span>
-                                </label>
-                                <label class="checkbox-label">
-                                    <input type="checkbox" id="saveRawJson">
-                                    <span>Save Raw JSON</span>
-                                </label>
-                            </div>
-                        </div>
-
                         <!-- Nova-3 Quality Enhancements -->
                         <div class="nova-settings">
-                            <h3 class="section-title">Nova-3 Quality Enhancements</h3>
-                            <div class="checkbox-group">
-                                <label class="checkbox-label">
-                                    <input type="checkbox" id="numerals" checked>
-                                    <span>Convert Numbers (e.g., "twenty twenty four" → "2024")</span>
-                                </label>
-                                <label class="checkbox-label">
-                                    <input type="checkbox" id="fillerWords" checked>
-                                    <span>Remove filler words ("uh", "um")</span>
-                                </label>
-                                <label class="checkbox-label">
-                                    <input type="checkbox" id="measurements" checked>
-                                    <span>Convert Measurements (e.g., "fifty meters" → "50m")</span>
-                                </label>
-                                <label class="checkbox-label">
-                                    <input type="checkbox" id="detectLanguage">
-                                    <span>Auto-detect language</span>
-                                </label>
-                                <label class="checkbox-label">
-                                    <input type="checkbox" id="multiLanguage" onchange="handleMultiLanguageToggle()">
-                                    <span>Multi-language code-switching</span>
-                                </label>
-                            </div>
-                            <p class="help-text" style="margin-top: var(--space-m);">
-                                <strong>Auto-detect</strong> identifies the dominant language in single-language audio. Use when the content language is unknown.<br>
-                                <strong>Multi-language</strong> is for bilingual conversations where speakers switch between languages (Nova-2/Nova-3 only).
-                            </p>
+                            <h3 class="section-title">Quality Enhancements</h3>
 
-                            <div class="form-group" style="margin-top: var(--space-l);">
+                            <div class="form-group">
                                 <label>Profanity Filter</label>
                                 <div class="radio-group">
                                     <label class="radio-label">
@@ -196,12 +161,46 @@
                                     </label>
                                 </div>
                             </div>
+
+                            <div class="checkbox-group" style="margin-top: var(--space-l);">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="numerals" checked>
+                                    <span>Convert numbers to digits</span>
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="measurements" checked>
+                                    <span>Convert measurements to symbols</span>
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="fillerWords" checked>
+                                    <span>Remove filler words</span>
+                                </label>
+                            </div>
+
+                            <div class="checkbox-group" style="margin-top: var(--space-l);">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="detectLanguage">
+                                    <span>Auto-detect language</span>
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="multiLanguage" onchange="handleMultiLanguageToggle()">
+                                    <span>Multi-language code-switching</span>
+                                </label>
+                            </div>
+                            <p class="help-text" style="margin-top: var(--space-s);">
+                                <strong>Auto-detect:</strong> Single-language content with unknown language.<br>
+                                <strong>Multi-language:</strong> Bilingual conversations with language switching.
+                            </p>
                         </div>
 
-                        <!-- Advanced Transcript Features -->
-                        <div class="advanced-transcript-settings">
-                            <h3 class="section-title">Advanced Transcript Features</h3>
+                        <!-- Transcript Options -->
+                        <div class="transcript-settings">
+                            <h3 class="section-title">Transcript Options</h3>
                             <div class="checkbox-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="saveRawJson">
+                                    <span>Save Raw JSON</span>
+                                </label>
                                 <label class="checkbox-label">
                                     <input type="checkbox" id="diarization" checked>
                                     <span>Speaker diarization</span>
@@ -258,7 +257,7 @@
                         </div>
 
                         <!-- Browser Preferences -->
-                        <div class="browser-preferences-settings">
+                        <div class="browser-preferences-settings" style="margin-top: var(--space-l);">
                             <h3 class="section-title">Browser Preferences</h3>
                             <label class="checkbox-label">
                                 <input type="checkbox" id="onlyFoldersWithVideos" checked onchange="toggleFolderFilter()">

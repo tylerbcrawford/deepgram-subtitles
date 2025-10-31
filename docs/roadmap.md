@@ -3,8 +3,8 @@
 **Last Updated:** 2025-10-30
 
 ## 🎯 Current Status
-**V1:** ✅ Released and in production testing
-**V2:** ✅ Core features complete - Ready for testing
+**V1:** ✅ Released and in production
+**V2:** 🚧 In progress - GUI refresh complete, documentation and polish remaining
 
 ---
 
@@ -21,133 +21,87 @@
 ### 🎯 What's Left for V2 Release
 
 **Critical Path:**
-1. **GUI Refresh (Priority 5)** - See detailed implementation tasks below
-2. **Testing Phase:** Comprehensive testing of all features including GUI updates
-3. **CLI/GUI Feature Parity Verification**
-   - Verify CLI offers exact same features as GUI version
-   - Ensure both can perform same capabilities and access same variables as choices
-   - Some users will only use CLI - must have full feature parity
-4. **Documentation Update:** Update README with branding and LLM setup instructions
-5. **Environment Setup:** Add API key configuration to `.env.example`
+1. ✅ **Priority 5: GUI Refresh** - Complete
+2. **Priority 6: Documentation & Branding** - Update README and environment setup
+3. **Priority 7: UI/UX Polish Pass** - Final design refinement
+4. **CLI/GUI Feature Parity Verification** - Ensure both interfaces offer same features
+5. **Comprehensive Testing** - Full testing of all features
 
 ---
 
-### 🔄 Priority 5: GUI Refresh (CURRENT PRIORITY)
-**Effort:** Moderate | **Timeline:** 3-5 days
+### 📝 Priority 6: Documentation & Branding
+**Effort:** Low | **Timeline:** 2-3 hours
 
-Final polish pass on the web GUI to ensure a cohesive, professional interface with all features properly exposed and organized.
+Rebrand project and update documentation with story-focused approach for V2 release.
 
-**Implementation Tasks:**
-- [ ] **1. Remove media filepath box**
-  - Media folder is mounted by default, no need to show filepath
-  - Clean up top section of interface
-- [ ] **2. Move "show folders with videos only" checkbox to advanced options**
-  - Should be selected by default on startup/refresh
-  - Declutter main interface
-- [ ] **3. Remove "5 folders" label**
-  - Unnecessary visual noise
-- [ ] **4. Reorganize audio language dropdown**
-  - Remove blue border styling
-  - Remove "-- critical setting" text
-  - Move to top of main card (above file selector)
-  - Center the title and dropdown content
-- [ ] **5. Reorganize advanced options**
-  - Regroup and rename sections for clarity
-  - Create logical groupings of related features
-- [ ] **6. Convert profanity filter to radio buttons**
-  - Change from dropdown to radio button group
-  - Three options: Off, Tag, Remove
-  - Match font/style with other checkboxes
-  - Move into Nova-3 Quality Enhancements section
-  - Default to Off on startup/reset
-- [ ] **7. Create "Transcript Options" section**
-  - Group "Generate transcript" and "Save Raw JSON"
-  - Style consistently with Nova-3 Quality section
-  - Use same card/border styling
-- [ ] **8. Update filler words option**
-  - Change "Include filler words" to "Remove filler words"
-  - Check by default on startup/reset
-  - Part of default options (user can adjust)
-- [ ] **9. Set default checkboxes**
-  - "Converting measurements" - checked by default
-  - "Converting numbers" - checked by default
-- [ ] **10. Review auto-detect language**
-  - Verify necessity given Multi feature in language dropdown
-  - Check against plan and roadmap
-  - Remove or adjust as needed
-- [ ] **11. Fix AI Keyterms button**
-  - Reduce button width (match Transcribe button size)
-  - Change text to "Generate Keyterms" only (no emoji)
-- [ ] **12. Add consistent card styling**
-  - AI Keyterms section already has card/border (keep as reference)
-  - Add same card/border to "Nova-3 Quality Enhancements"
-  - Add same card/border to "Transcript Options"
-  - Ensure visual consistency across all sections
-- [ ] **13. Rename button**
-  - Change "Select All in Folder" to "Select All"
-- [ ] **14. Fix mobile view issues**
-  - "Batch Subtitle" smaller header not visible
-  - Reduce space between "Subtitle Generator" title and sticky menu
-  - Improve responsive behavior
-- [ ] **15. Expose all hidden features**
-  - Review app for implemented but unexposed features
-  - Add diarization, utterances, paragraphs to GUI as checkboxes
-  - Apply current defaults and check boxes on startup
-  - Make all features accessible to users
-- [ ] **16. Overall polish and cohesion**
-  - Bring all features into GUI
-  - Set best default settings
-  - Allow user overrides in Advanced Options
-  - Sort into "Transcript Options" or "Nova-3 Quality Enhancements"
-  - Ensure cohesive look with overall project design
+**Branding Updates:**
+- [ ] Rename project to **Subgeneratorr**
+  - [ ] Update title and branding in README
+  - [ ] Update any remaining references in documentation
+  - [ ] Ensure consistent naming across all user-facing text
 
-**Benefits:**
-- Clean, professional interface with clear visual hierarchy
-- All features properly exposed and accessible
-- Consistent styling and organization
-- Improved mobile experience
-- Better user experience with sensible defaults
-
----
-
-**Branding and Identity:**
-- [ ] New project name: **Subgeneratorr**
-- [ ] Update README with story-focused approach
-  - Brief technical stack overview near beginning
-  - Focus on the story: built to fill subtitle gaps in Radarr/Sonarr libraries
-  - Explain Bazarr finds most subtitles, but hundreds of episodes were missing
-  - Describe Deepgram Nova-3 keyterms testing success with $200 free credits
-  - Highlight LLM-powered keyterms generation feature
+**README Rewrite:**
+- [ ] Lead with the origin story
+  - Why it was built: filling subtitle gaps in Radarr/Sonarr libraries
+  - Bazarr finds most subtitles, but hundreds of episodes were missing
+  - Deepgram Nova-3 keyterms testing yielded excellent results with $200 free credits
+  - LLM-powered keyterms generation makes accurate transcription accessible
+- [ ] Keep technical stack overview near top but concise
+- [ ] Target audience: media enthusiasts who care about subtitles and accessibility
 - [ ] Add disclaimer: not affiliated with Deepgram or any LLM providers
 - [ ] Emphasize: free and open source project for media accessibility
-- [ ] Target audience: movie buffs who care about subtitles
-- [ ] Move deep technical writing to separate document
+- [ ] Move deep technical implementation details to separate `docs/technical.md` file
 
-**UI/UX Polish Pass:**
-- [ ] **Final Design Review and Refinement**
-  - [ ] Complete once-over of GUI and mobile layouts
-  - [ ] Fix and reorganize elements to prioritize visual hierarchy
-  - [ ] Review all text and copy for conciseness and clarity
-  - [ ] Verify all progress indicators work correctly
-  - [ ] Improve banner integration to prevent text overlap
-    - Banners currently cover text in some scenarios
-    - Need better z-index management and positioning
-  - [ ] Make overall design more harmonious and cohesive
-  - [ ] Final manual evaluation and adjustments across all breakpoints
-  - [ ] Test visual consistency between desktop, tablet, and mobile views
+**Environment Setup:**
+- [ ] Add LLM API key configuration to `.env.example`
+  - [ ] Add `ANTHROPIC_API_KEY` (optional, for keyterms generation)
+  - [ ] Add `OPENAI_API_KEY` (optional, for keyterms generation)
+  - [ ] Document that LLM keys are optional features
 
-**Minor Issue to Address:**
-- [ ] Fix batch processing status display (Priority 4 Known Issue)
+**Benefits:**
+- Clear project identity and memorable name
+- Story-driven README that connects with users
+- Better documentation organization
+- Complete setup instructions
+
+---
+
+### 🎨 Priority 7: UI/UX Polish Pass
+**Effort:** Low | **Timeline:** 2-3 hours
+
+Final design review and refinement for V2 release.
+
+**Implementation Tasks:**
+- [ ] Complete once-over of GUI and mobile layouts
+- [ ] Fix and reorganize elements to prioritize visual hierarchy
+- [ ] Review all text and copy for conciseness and clarity
+- [ ] Verify all progress indicators work correctly
+- [ ] Improve banner integration to prevent text overlap
+  - Banners currently cover text in some scenarios
+  - Need better z-index management and positioning
+- [ ] Make overall design more harmonious and cohesive
+- [ ] Final manual evaluation and adjustments across all breakpoints
+- [ ] Test visual consistency between desktop, tablet, and mobile views
+
+**Known Issue to Address:**
+- [ ] Fix batch processing status display
   - Status update polling works but UI doesn't reflect real-time progress during processing
   - Low impact - transcriptions work correctly, just missing visual feedback
 
-**Target V2 Release:** After GUI refresh, testing, documentation, and branding updates
+**Benefits:**
+- Polished, professional interface
+- Consistent visual experience across devices
+- Better feedback during batch operations
+
+---
+
+**Target V2 Release:** After Priority 6 (Documentation & Branding), Priority 7 (UI/UX Polish), CLI/GUI feature parity verification, and comprehensive testing
 
 ---
 
 ## 🚀 V3 Future Development
 
-### Priority 6: Language Update
+### Priority 8: Language Update
 **Effort:** Moderate | **Timeline:** 3-5 days
 
 Expand language support by implementing intelligent model routing and multi-language detection.
@@ -194,7 +148,7 @@ Expand language support by implementing intelligent model routing and multi-lang
 
 ---
 
-### Priority 7: Docker Container Consolidation
+### Priority 9: Docker Container Consolidation
 **Effort:** Moderate | **Timeline:** 1 week
 
 Simplify deployment and improve user experience by consolidating services.
@@ -216,7 +170,7 @@ Simplify deployment and improve user experience by consolidating services.
 
 ---
 
-### Priority 8: Advanced File Input Interface
+### Priority 10: Advanced File Input Interface
 **Effort:** Moderate | **Timeline:** 1 week
 
 Modern drag-and-drop interface for flexible file selection across multiple folders.
@@ -243,7 +197,7 @@ Modern drag-and-drop interface for flexible file selection across multiple folde
 
 ---
 
-### Priority 9: Translation
+### Priority 11: Translation
 **Effort:** High | **Timeline:** 2-3 weeks
 
 - [ ] LLM-powered subtitle translation (Anthropic/OpenAI)
@@ -253,7 +207,7 @@ Modern drag-and-drop interface for flexible file selection across multiple folde
 
 ---
 
-### Priority 10: Bazarr Auto-Fallback Workflow
+### Priority 12: Bazarr Auto-Fallback Workflow
 **Effort:** Moderate | **Timeline:** 1 week
 
 **Current:** Manual trigger after 24h wait
@@ -270,7 +224,7 @@ Modern drag-and-drop interface for flexible file selection across multiple folde
 
 ---
 
-### Priority 11: Subtitle Synchronization
+### Priority 13: Subtitle Synchronization
 **Effort:** Moderate-High | **Timeline:** 1-2 weeks
 
 - [ ] Internal FFmpeg sync function
@@ -283,113 +237,60 @@ Modern drag-and-drop interface for flexible file selection across multiple folde
 
 ## ✅ Completed Work
 
-### V2 Completed Features (2025-10-26 - 2025-10-27)
+### Priority 5: GUI Refresh ✅
+**Completed:** 2025-10-30
 
-#### Priority 3: Nova-3 Quality Enhancements ✅
-**Completed:** 2025-10-27 | **Effort:** Low | **Timeline:** 1-2 days
+Comprehensive GUI refresh based on Dieter Rams' design principles. Complete overhaul of interface hierarchy, organization, and styling.
 
-Optional Nova-3 features implemented as UI toggles in advanced settings:
-- ✅ Added `numerals=True` parameter (convert "twenty twenty four" → "2024")
-- ✅ Added `filler_words` toggle (optional transcription of "uh", "um" - default OFF)
-- ✅ Added `detect_language=True` (auto-detect language for international content)
-- ✅ Added `measurements=True` (convert "fifty meters" → "50m")
-- ✅ **Adjusted Nova cost estimator to match actual API charges**
-  - Fixed estimates that were ~25% lower than actual charges
-  - Updated Nova-3 pricing: $0.0057/min (was $0.0043/min)
-  - Added Nova-2 pricing constant: $0.0043/min for future language routing
-- ✅ Completed manual testing of all enhancement parameters
+**Key Achievements:**
+- Removed visual clutter (media filepath box, folder labels)
+- Reorganized audio language dropdown (centered, top of card)
+- Converted profanity filter to radio buttons
+- Created unified Transcript Options section
+- Exposed all hidden features (diarization, utterances, paragraphs)
+- Applied consistent card styling throughout
+- Improved mobile responsiveness
+- Renamed to "Subgeneratorr"
 
-**Benefits Achieved:**
-- Improved number and date transcription
-- Better handling of international content
-- More accurate technical/scientific content
-- Accurate cost predictions prevent budget surprises
+**Benefits:** Clean interface following "less, but better" philosophy, all features exposed, sensible defaults, better mobile experience
 
 ---
 
-#### Priority 4: File Selector UX Refinement ✅
-**Completed:** 2025-10-27 | **Effort:** Low | **Timeline:** 1-2 days
-**Status:** Implementation complete with one minor UI polish issue remaining
+### Priority 3: Nova-3 Quality Enhancements ✅
+**Completed:** 2025-10-27
 
-Comprehensive file selection workflow improvements across four areas:
-
-**📁 Folder Navigation & Filtering:**
-- ✅ Smart folder filtering (only show folders with videos, enabled by default)
-- ✅ Cleaned up folder/file tree display
-- ✅ Improved folder hierarchy with count display in filter bar
-
-**✅ File Selection & Scope:**
-- ✅ Single-click "Select All Files in Folder" button with clear visual feedback
-- ✅ Automatic selection clearing when navigating folders
-- ✅ Restricted operations to one folder at a time for clarity
-- ✅ Enhanced selection state visibility with simplified workflow
-
-**🎨 UI Layout & Mobile Optimization:**
-- ✅ Reorganized control layout (Audio Language selection prioritized at top)
-- ✅ Responsive design for mobile screens (< 768px)
-- ✅ Touch-friendly controls (48px+ touch targets)
-- ✅ Extra small device support (< 375px)
-- ✅ Tablet optimization (769px - 1024px)
-
-**📊 Batch Processing Feedback:**
-- ✅ Persistent "Processing..." banner throughout batch operations
-- ✅ Real-time progress indicators with percentages
-- ✅ Animated loading dots indicator
-- ✅ Detailed completion stats (processed, skipped, failed)
-
-**Known Minor Issue:**
-- ⚠️ UI shows "⏳ Queued" throughout entire batch, then jumps to "✓ Complete"
-- Expected: Should show "⚙️ Processing..." with real-time progress updates
-- Backend: ✅ Works perfectly - transcriptions complete in 5-13 seconds per file
-- Frontend: Status polling may complete too fast to catch STARTED state
-- Impact: Low - transcriptions work correctly, just missing intermediate visual feedback
-
-**Benefits Achieved:**
-- Clearer, more predictable file selection behavior
-- Faster batch processing of entire folders
-- Reduced user confusion and errors
-- Improved mobile experience with touch-friendly controls
-- Continuous visual feedback during long operations
+Added optional Nova-3 features as UI toggles: numerals conversion, filler words removal, language detection, measurements conversion. Adjusted cost estimator to match actual API charges.
 
 ---
 
-#### Keyterms Input Persistence Fix ✅
-**Completed:** 2025-10-26
+### Priority 4: File Selector UX Refinement ✅
+**Completed:** 2025-10-27
 
-Field clearing, auto-loading from CSV, proper sizing
-
----
-
-#### LLM-Enhanced Keyterms ✅
-**Completed:** 2025-10-26
-
-Automatic keyterm generation using Claude/GPT with cost estimation, web UI integration, real-time progress tracking
+Comprehensive file selection improvements: smart folder filtering, single-click "Select All", mobile optimization, batch processing feedback.
 
 ---
 
-#### Time Estimation Accuracy ✅
-**Completed:** 2025-10-26
-
-Updated from 0.1x to 0.0109x based on real data (9x improvement) - Nova-3 processes at ~92x real-time speed
+### V2 Features (2025-10-26)
+- ✅ LLM-Enhanced Keyterms (Claude/GPT integration)
+- ✅ Keyterms Input Persistence Fix
+- ✅ Time Estimation Accuracy (0.0109x real-time)
 
 ---
 
-### V1 Completed Features (Production)
-
-#### Core Transcription System ✅
-- Nova-3 model with full configuration
-- Profanity filter (off/tag/remove)
-- Keyterms CSV management
-- Speaker maps with auto-detection
-- Batch processing with cost estimation
-- Force regenerate with Subsyncarr cleanup
-- CLI and Web UI
+### V1 Core Features (Production)
+- ✅ Nova-3 transcription model
+- ✅ Profanity filter (off/tag/remove)
+- ✅ Keyterms CSV management
+- ✅ Speaker maps with auto-detection
+- ✅ Batch processing with cost estimation
+- ✅ Force regenerate with Subsyncarr cleanup
+- ✅ CLI and Web UI
 
 ---
 
 ## 📝 Reference
 
-### Nova 3 Configuration (Current Implementation)
+### Nova 3 Configuration
 
 ```python
 opts = PrerecordedOptions(
