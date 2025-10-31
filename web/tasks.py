@@ -61,10 +61,11 @@ def _save_job_log(payload: dict):
 def transcribe_task(self, video_path: str, model=DEFAULT_MODEL, language=DEFAULT_LANGUAGE,
                     profanity_filter="off", force_regenerate=False, enable_transcript=False,
                     speaker_map=None, keyterms=None, save_raw_json=False, auto_save_keyterms=False,
-                    numerals=False, filler_words=False, detect_language=False, measurements=False):
+                    numerals=False, filler_words=False, detect_language=False, measurements=False,
+                    diarization=True, utterances=True, paragraphs=True):
     """
     Transcribe a single video file.
-    
+
     Args:
         video_path: Path to video file
         model: Deepgram model to use (default: nova-3)
@@ -80,7 +81,10 @@ def transcribe_task(self, video_path: str, model=DEFAULT_MODEL, language=DEFAULT
         filler_words: Include filler words like "uh", "um" in transcription (default: False)
         detect_language: Auto-detect language for international content
         measurements: Convert spoken measurements (e.g., "fifty meters" → "50m")
-        
+        diarization: Enable speaker diarization (default: True)
+        utterances: Enable utterance segmentation (default: True)
+        paragraphs: Enable paragraph formatting (default: True)
+
     Returns:
         dict: Status and file paths
         
@@ -154,12 +158,14 @@ def transcribe_task(self, video_path: str, model=DEFAULT_MODEL, language=DEFAULT
                 model,
                 language,
                 profanity_filter=profanity_filter,
-                diarize=enable_transcript,
+                diarize=diarization,  # Use the new parameter instead of enable_transcript
                 keyterms=keyterms,
                 numerals=numerals,
                 filler_words=filler_words,
                 detect_language=detect_language,
-                measurements=measurements
+                measurements=measurements,
+                utterances=utterances,
+                paragraphs=paragraphs
             )
         
         # Generate SRT
@@ -388,13 +394,14 @@ def generate_keyterms_task(
 def make_batch(files, model, language, profanity_filter="off", force_regenerate=False,
                enable_transcript=False, speaker_map=None, keyterms=None, save_raw_json=False,
                auto_save_keyterms=False, numerals=False, filler_words=False,
-               detect_language=False, measurements=False):
+               detect_language=False, measurements=False, diarization=True, utterances=True,
+               paragraphs=True):
     """
     Create a batch of transcription jobs.
-    
+
     Uses Celery's chord to run jobs in parallel and trigger a callback
     when all jobs complete.
-    
+
     Args:
         files: List of Path objects for videos to transcribe
         model: Deepgram model to use
@@ -410,7 +417,10 @@ def make_batch(files, model, language, profanity_filter="off", force_regenerate=
         filler_words: Include filler words like "uh", "um" in transcription (default: False)
         detect_language: Auto-detect language for international content
         measurements: Convert spoken measurements (e.g., "fifty meters" → "50m")
-        
+        diarization: Enable speaker diarization (default: True)
+        utterances: Enable utterance segmentation (default: True)
+        paragraphs: Enable paragraph formatting (default: True)
+
     Returns:
         AsyncResult: Celery async result for tracking batch progress
     """
@@ -429,7 +439,10 @@ def make_batch(files, model, language, profanity_filter="off", force_regenerate=
             numerals,
             filler_words,
             detect_language,
-            measurements
+            measurements,
+            diarization,
+            utterances,
+            paragraphs
         ) for f in files
     ]
     return chord(group(jobs))(batch_finalize.s())

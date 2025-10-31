@@ -290,7 +290,12 @@ def api_submit():
     filler_words = body.get("filler_words", False)
     detect_language = body.get("detect_language", False)
     measurements = body.get("measurements", False)
-    
+
+    # Advanced Transcript Features
+    diarization = body.get("diarization", True)  # Default to True (current behavior)
+    utterances = body.get("utterances", True)   # Default to True (current behavior)
+    paragraphs = body.get("paragraphs", True)   # Default to True (current behavior)
+
     # Validate and filter files
     files = []
     for f in raw_files:
@@ -316,7 +321,10 @@ def api_submit():
         numerals=numerals,
         filler_words=filler_words,
         detect_language=detect_language,
-        measurements=measurements
+        measurements=measurements,
+        diarization=diarization,
+        utterances=utterances,
+        paragraphs=paragraphs
     )
     
     return jsonify({

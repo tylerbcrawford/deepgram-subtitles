@@ -113,41 +113,44 @@ def extract_audio(video: Path) -> Path:
 def transcribe_file(buf: bytes, api_key: str, model: str, language: str,
                     profanity_filter: str = "off", diarize: bool = False, keyterms: list = None,
                     numerals: bool = False, filler_words: bool = False,
-                    detect_language: bool = False, measurements: bool = False) -> dict:
+                    detect_language: bool = False, measurements: bool = False,
+                    utterances: bool = True, paragraphs: bool = True) -> dict:
     """
     Transcribe audio buffer using Deepgram API.
-    
+
     Args:
         buf: Audio file contents as bytes
         api_key: Deepgram API key
         model: Model to use (e.g., 'nova-3')
         language: Language code (e.g., 'en')
         profanity_filter: Profanity filter mode - "off", "tag", or "remove" (default: off)
-        diarize: Enable speaker diarization
+        diarize: Enable speaker diarization (default: False)
         keyterms: List of keyterms for better recognition (Nova-3 only, monolingual)
         numerals: Convert spoken numbers to digits (e.g., "twenty twenty four" → "2024")
         filler_words: Include filler words like "uh", "um" in transcription (default: False for subtitles)
         detect_language: Auto-detect language for international content
         measurements: Convert spoken measurements (e.g., "fifty meters" → "50m")
-        
+        utterances: Enable utterance segmentation (default: True)
+        paragraphs: Enable paragraph formatting (default: True)
+
     Returns:
         Deepgram response object
-        
+
     Raises:
         Exception: If transcription fails
     """
     client = DeepgramClient(api_key=api_key)
-    
+
     # Convert profanity_filter to boolean for API compatibility
     # API expects True/False, not "off"/"tag"/"remove"
     use_profanity_filter = profanity_filter != "off"
-    
+
     opts = PrerecordedOptions(
         model=model,
         smart_format=True,
-        utterances=True,
+        utterances=utterances,
         punctuate=True,
-        paragraphs=True,
+        paragraphs=paragraphs,
         diarize=diarize,
         language=language,
         profanity_filter=use_profanity_filter

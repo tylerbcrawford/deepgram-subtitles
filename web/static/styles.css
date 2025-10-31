@@ -881,15 +881,16 @@ input[readonly] {
   }
 
   header {
-    padding: var(--space-m) 0;
+    padding: var(--space-s) 0 var(--space-m) 0; /* Reduced top padding on mobile */
     flex-direction: row;
     justify-content: space-between;
+    margin-bottom: var(--space-m); /* Reduced gap between header and action bar */
   }
-  
+
   h1 {
     font-size: 20px;
   }
-  
+
   .subtitle {
     display: none; /* Hide subtitle on mobile to save space */
   }
@@ -1308,28 +1309,94 @@ input[readonly] {
   margin-bottom: var(--space-m);
 }
 
-/* Priority Control Styling */
-.priority-control {
-  background: var(--bg-secondary);
-  padding: var(--space-l);
-  border-radius: var(--radius-md);
-  border: 2px solid var(--color-blue);
-  box-shadow: 0 0 0 3px rgba(0, 174, 239, 0.1);
+/* Priority Control Styling - REMOVED for Dieter Rams design refresh */
+
+/* Language Section - Centered, top of card */
+.language-section {
+  text-align: center;
+  padding: var(--space-m) var(--space-l) var(--space-xl);
+  margin-bottom: var(--space-l);
+  border-bottom: 1px solid var(--border);
 }
 
-.priority-control label {
+.language-section .form-group {
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.language-section label[for="language"] {
+  display: block;
+  margin-bottom: var(--space-m);
+  font-size: var(--font-h3);
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.language-section select {
+  width: 100%;
+  max-width: 300px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.language-section .help-text {
+  font-size: var(--font-small);
+  color: var(--text-tertiary);
+  margin: 0 auto;
+  max-width: 400px;
+  line-height: var(--line-height-normal);
+}
+
+/* Radio Button Styling */
+.radio-group {
+  display: flex;
+  gap: var(--space-l);
+  flex-wrap: wrap;
+}
+
+.radio-label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
   font-size: var(--font-body);
+  color: var(--text-secondary);
+  transition: color 0.2s ease;
+}
+
+.radio-label:hover {
+  color: var(--text-primary);
+}
+
+.radio-label input[type="radio"] {
+  margin-right: var(--space-s);
+  cursor: pointer;
+  accent-color: var(--color-blue);
+}
+
+/* Consistent Card Styling for Advanced Options Sections */
+.transcript-settings,
+.nova-settings,
+.advanced-transcript-settings,
+.browser-preferences-settings {
+  padding: var(--space-l);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background-color: var(--bg-secondary);
+  margin-bottom: var(--space-l);
+}
+
+.section-title {
+  font-size: var(--font-h3);
+  font-weight: 500;
+  color: var(--text-primary);
   margin-bottom: var(--space-m);
 }
 
-.priority-control select {
-  font-weight: 500;
-  border: 2px solid var(--border);
-}
-
-.priority-control select:focus {
-  border-color: var(--color-blue);
-  box-shadow: 0 0 0 3px rgba(0, 174, 239, 0.1);
+.help-text {
+  font-size: var(--font-small);
+  color: var(--text-tertiary);
+  line-height: var(--line-height-normal);
 }
 
 /* ============================================

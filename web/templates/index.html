@@ -42,58 +42,11 @@
             <!-- File Selection Section -->
             <section aria-label="File selection">
                 <div class="card">
-                    <!-- Current Directory Display -->
-                    <div class="breadcrumb" id="breadcrumb">
-                        <span class="breadcrumb-item current">media</span>
-                    </div>
-
-                    <!-- Folder Filter Toggle -->
-                    <div class="browser-toolbar" style="border-bottom: 1px solid var(--border); padding-bottom: var(--space-m);">
-                        <div class="toolbar-left">
-                            <label class="checkbox-label minimal" style="margin: 0;">
-                                <input type="checkbox" id="onlyFoldersWithVideos" checked onchange="toggleFolderFilter()">
-                                <span>Show folders with videos only</span>
-                            </label>
-                        </div>
-                        <div class="toolbar-right">
-                            <span id="folderCount" style="font-size: var(--font-caption); color: var(--text-tertiary);"></span>
-                        </div>
-                    </div>
-
-                    <!-- Directory Browser -->
-                    <div id="directoryBrowser">
-                        <div id="directoryList" class="files-list">
-                            <div id="skeleton" class="skeleton-loader hidden">
-                                <div class="skeleton-item"></div>
-                                <div class="skeleton-item"></div>
-                                <div class="skeleton-item"></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Selection Actions with Overwrite Option -->
-                    <div class="browser-toolbar" style="border-bottom: none; padding-top: var(--space-m);">
-                        <div class="toolbar-left">
-                            <label class="checkbox-label" style="margin: 0;">
-                                <input type="checkbox" id="forceRegenerate">
-                                <span>Overwrite Existing Subtitles</span>
-                            </label>
-                        </div>
-                        <div class="toolbar-right">
-                            <button class="btn-link" onclick="selectAllInFolder()" id="selectAllBtn">Select All in Folder</button>
-                            <span class="separator">•</span>
-                            <button class="btn-link" onclick="selectNone()">Clear Selection</button>
-                        </div>
-                    </div>
-
-                    <!-- Configuration Options - Language First (Priority Control) -->
-                    <div class="config-section" style="margin-top: var(--space-l);">
-                        <div class="form-group priority-control">
-                            <label for="language">
-                                <span style="font-weight: 600; color: var(--text-primary);">Audio Language</span>
-                                <span style="color: var(--text-tertiary); font-size: var(--font-small); margin-left: var(--space-xs);">— Critical setting</span>
-                            </label>
-                            <select id="language" style="font-size: var(--font-body); padding: var(--space-m);">
+                    <!-- Language Selection - Top Priority -->
+                    <div class="language-section">
+                        <div class="form-group">
+                            <label for="language">Audio Language</label>
+                            <select id="language">
                                 <option value="en">English</option>
                                 <option value="en-US">English (US)</option>
                                 <option value="en-AU">English (Australia)</option>
@@ -124,13 +77,50 @@
                                 <option value="id">Indonesian</option>
                             </select>
                         </div>
-                        
-                        <div class="form-group" style="margin-top: var(--space-l);">
+                    </div>
+
+                    <!-- Current Directory Display -->
+                    <div class="breadcrumb" id="breadcrumb">
+                        <span class="breadcrumb-item current">media</span>
+                    </div>
+
+                    <!-- Directory Browser -->
+                    <div id="directoryBrowser">
+                        <div id="directoryList" class="files-list">
+                            <div id="skeleton" class="skeleton-loader hidden">
+                                <div class="skeleton-item"></div>
+                                <div class="skeleton-item"></div>
+                                <div class="skeleton-item"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Selection Actions with Overwrite Option -->
+                    <div class="browser-toolbar" style="border-bottom: none; padding-top: var(--space-m);">
+                        <div class="toolbar-left">
+                            <label class="checkbox-label" style="margin: 0;">
+                                <input type="checkbox" id="forceRegenerate">
+                                <span>Overwrite Existing Subtitles</span>
+                            </label>
+                        </div>
+                        <div class="toolbar-right">
+                            <button class="btn-link" onclick="selectAllInFolder()" id="selectAllBtn">Select All</button>
+                            <span class="separator">•</span>
+                            <button class="btn-link" onclick="selectNone()">Clear Selection</button>
+                        </div>
+                    </div>
+
+                    <!-- Configuration Options -->
+                    <div class="config-section" style="margin-top: var(--space-l);">
+                        <div class="form-group">
                             <label for="keyTerms">Keyterm Prompting (optional)</label>
                             <textarea id="keyTerms" rows="7" placeholder="e.g., Deepgram, iPhone, customer service" aria-label="Keyterm prompting (optional)"></textarea>
                             <small style="color: var(--text-tertiary); display: block; margin-top: var(--space-xs);">
-                                Keyterms are auto-loaded and auto-saved from CSV if available. Use AI generation in Advanced Options below.
+                                Keyterms are auto-loaded and auto-saved from CSV if available.
                             </small>
+                            <button id="generateKeytermsBtn" class="btn-secondary" style="margin-top: var(--space-m);" title="Generate keyterms using AI">
+                                Generate Keyterms
+                            </button>
                         </div>
 
                         <!-- Advanced Options Toggle -->
@@ -143,49 +133,90 @@
 
                     <!-- Advanced Options (Collapsible) -->
                     <div id="advancedOptions" class="config-section hidden" style="padding-top: var(--space-l);">
-                        <div class="form-group">
-                            <label for="profanityFilter">Profanity Filter</label>
-                            <select id="profanityFilter">
-                                <option value="off">Off</option>
-                                <option value="tag">Tag</option>
-                                <option value="remove">Remove</option>
-                            </select>
-                        </div>
-                        
-                        <div class="checkbox-group">
-                            <label class="checkbox-label">
-                                <input type="checkbox" id="enableTranscript" onchange="toggleTranscriptOptions()">
-                                <span>Generate Transcript</span>
-                            </label>
-                            <label class="checkbox-label">
-                                <input type="checkbox" id="saveRawJson">
-                                <span>Save Raw JSON</span>
-                            </label>
-                        </div>
-                        
-                        <!-- Nova-3 Quality Enhancements -->
-                        <div style="margin-top: var(--space-l);">
-                            <h4 style="margin-bottom: var(--space-s); color: var(--text-secondary);">Nova-3 Quality Enhancements</h4>
+
+                        <!-- Transcript Options -->
+                        <div class="transcript-settings">
+                            <h3 class="section-title">Transcript Options</h3>
                             <div class="checkbox-group">
                                 <label class="checkbox-label">
-                                    <input type="checkbox" id="numerals">
-                                    <span>Convert Numbers (e.g., "twenty twenty four" → "2024")</span>
+                                    <input type="checkbox" id="enableTranscript" onchange="toggleTranscriptOptions()">
+                                    <span>Generate Transcript</span>
                                 </label>
                                 <label class="checkbox-label">
-                                    <input type="checkbox" id="fillerWords">
-                                    <span>Include Filler Words ("uh", "um" - usually off for subtitles)</span>
-                                </label>
-                                <label class="checkbox-label">
-                                    <input type="checkbox" id="detectLanguage">
-                                    <span>Auto-detect Language (for international content)</span>
-                                </label>
-                                <label class="checkbox-label">
-                                    <input type="checkbox" id="measurements">
-                                    <span>Convert Measurements (e.g., "fifty meters" → "50m")</span>
+                                    <input type="checkbox" id="saveRawJson">
+                                    <span>Save Raw JSON</span>
                                 </label>
                             </div>
                         </div>
-                        
+
+                        <!-- Nova-3 Quality Enhancements -->
+                        <div class="nova-settings">
+                            <h3 class="section-title">Nova-3 Quality Enhancements</h3>
+                            <div class="checkbox-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="numerals" checked>
+                                    <span>Convert Numbers (e.g., "twenty twenty four" → "2024")</span>
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="fillerWords" checked>
+                                    <span>Remove filler words ("uh", "um")</span>
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="measurements" checked>
+                                    <span>Convert Measurements (e.g., "fifty meters" → "50m")</span>
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="detectLanguage">
+                                    <span>Auto-detect language</span>
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="multiLanguage" onchange="handleMultiLanguageToggle()">
+                                    <span>Multi-language code-switching</span>
+                                </label>
+                            </div>
+                            <p class="help-text" style="margin-top: var(--space-m);">
+                                <strong>Auto-detect</strong> identifies the dominant language in single-language audio. Use when the content language is unknown.<br>
+                                <strong>Multi-language</strong> is for bilingual conversations where speakers switch between languages (Nova-2/Nova-3 only).
+                            </p>
+
+                            <div class="form-group" style="margin-top: var(--space-l);">
+                                <label>Profanity Filter</label>
+                                <div class="radio-group">
+                                    <label class="radio-label">
+                                        <input type="radio" name="profanityFilter" value="off" checked>
+                                        <span>Off</span>
+                                    </label>
+                                    <label class="radio-label">
+                                        <input type="radio" name="profanityFilter" value="tag">
+                                        <span>Tag</span>
+                                    </label>
+                                    <label class="radio-label">
+                                        <input type="radio" name="profanityFilter" value="remove">
+                                        <span>Remove</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Advanced Transcript Features -->
+                        <div class="advanced-transcript-settings">
+                            <h3 class="section-title">Advanced Transcript Features</h3>
+                            <div class="checkbox-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="diarization" checked>
+                                    <span>Speaker diarization</span>
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="utterances" checked>
+                                    <span>Utterance segmentation</span>
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="paragraphs" checked>
+                                    <span>Paragraph formatting</span>
+                                </label>
+                            </div>
+                        </div>
+
                         <div id="transcriptOptions" style="display: none; margin-top: var(--space-m);">
                             <div class="status info">
                                 <span style="color: var(--color-blue); font-size: var(--font-caption);">
@@ -193,7 +224,7 @@
                                 </span>
                             </div>
                         </div>
-                        
+
                         <!-- LLM Keyterm Generation -->
                         <div class="llm-settings" style="margin-top: var(--space-l);">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-m);">
@@ -224,10 +255,15 @@
                                 <input type="checkbox" id="preserveExisting">
                                 <span>Merge with existing keyterms (instead of replacing)</span>
                             </label>
-                            
-                            <button id="generateKeytermsBtn" class="btn-secondary" style="width: 100%; margin-top: var(--space-m);" title="Generate keyterms using AI">
-                                <span class="icon">🤖</span> Generate Keyterms with AI
-                            </button>
+                        </div>
+
+                        <!-- Browser Preferences -->
+                        <div class="browser-preferences-settings">
+                            <h3 class="section-title">Browser Preferences</h3>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="onlyFoldersWithVideos" checked onchange="toggleFolderFilter()">
+                                <span>Show folders with videos only</span>
+                            </label>
                         </div>
                     </div>
                 </div>

@@ -27,19 +27,38 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .catch(err => console.error('Failed to load config:', err));
     
-    // Reset all checkboxes to default (unchecked) state
+    // Reset checkboxes that should be unchecked by default
     const enableTranscript = document.getElementById('enableTranscript');
     const forceRegenerate = document.getElementById('forceRegenerate');
     const saveRawJson = document.getElementById('saveRawJson');
-    const profanityFilter = document.getElementById('profanityFilter');
-    
+    const detectLanguage = document.getElementById('detectLanguage');
+    const multiLanguage = document.getElementById('multiLanguage');
+
     if (enableTranscript) enableTranscript.checked = false;
     if (forceRegenerate) forceRegenerate.checked = false;
     if (saveRawJson) saveRawJson.checked = false;
-    
-    // Reset profanity filter to default (off)
-    if (profanityFilter) profanityFilter.value = 'off';
-    
+    if (detectLanguage) detectLanguage.checked = false;
+    if (multiLanguage) multiLanguage.checked = false;
+
+    // Set checkboxes that should be checked by default (best practices for subtitles)
+    const numerals = document.getElementById('numerals');
+    const fillerWords = document.getElementById('fillerWords');
+    const measurements = document.getElementById('measurements');
+    const diarization = document.getElementById('diarization');
+    const utterances = document.getElementById('utterances');
+    const paragraphs = document.getElementById('paragraphs');
+
+    if (numerals) numerals.checked = true;
+    if (fillerWords) fillerWords.checked = true; // Remember: this is "Remove filler words"
+    if (measurements) measurements.checked = true;
+    if (diarization) diarization.checked = true;
+    if (utterances) utterances.checked = true;
+    if (paragraphs) paragraphs.checked = true;
+
+    // Reset profanity filter radio buttons to default (off)
+    const profanityFilterOff = document.querySelector('input[name="profanityFilter"][value="off"]');
+    if (profanityFilterOff) profanityFilterOff.checked = true;
+
     // Hide transcript options
     document.getElementById('transcriptOptions').style.display = 'none';
     
@@ -471,6 +490,19 @@ function toggleTheme() {
 }
 
 /* ============================================
+   MULTI-LANGUAGE TOGGLE HANDLER
+   ============================================ */
+
+function handleMultiLanguageToggle() {
+    const multiLanguage = document.getElementById('multiLanguage');
+    const keyTerms = document.getElementById('keyTerms');
+
+    if (multiLanguage && multiLanguage.checked && keyTerms && keyTerms.value.trim()) {
+        showToast('warning', 'Note: Keyterm prompting is not available with multi-language mode');
+    }
+}
+
+/* ============================================
    KEYBOARD SHORTCUTS
    ============================================ */
 
@@ -766,18 +798,35 @@ async function submitBatch() {
     }
     
     const model = 'nova-3';
-    const language = document.getElementById('language').value;
-    const profanityFilter = document.getElementById('profanityFilter').value;
+    const multiLanguage = document.getElementById('multiLanguage')?.checked || false;
+    let language = document.getElementById('language').value;
+
+    // If multi-language is enabled, use "multi" instead of dropdown value
+    if (multiLanguage) {
+        language = 'multi';
+    }
+
+    // Get profanity filter value from radio buttons
+    const profanityFilterRadio = document.querySelector('input[name="profanityFilter"]:checked');
+    const profanityFilter = profanityFilterRadio ? profanityFilterRadio.value : 'off';
+
     const enableTranscript = document.getElementById('enableTranscript').checked;
     // forceRegenerate already declared above in the check
     const saveRawJson = document.getElementById('saveRawJson').checked;
-    
+
     // Nova-3 Quality Enhancement parameters
     const numerals = document.getElementById('numerals')?.checked || false;
-    const fillerWords = document.getElementById('fillerWords')?.checked || false;
+    // NOTE: fillerWords checkbox is now "Remove filler words" so we need to reverse the logic
+    const removeFillerWords = document.getElementById('fillerWords')?.checked || false;
+    const fillerWords = !removeFillerWords; // Backend expects true to INCLUDE them
     const detectLanguage = document.getElementById('detectLanguage')?.checked || false;
     const measurements = document.getElementById('measurements')?.checked || false;
-    
+
+    // Advanced Transcript Features
+    const diarization = document.getElementById('diarization')?.checked || false;
+    const utterances = document.getElementById('utterances')?.checked || false;
+    const paragraphs = document.getElementById('paragraphs')?.checked || false;
+
     const requestBody = {
         files: selectedFilesList,
         model: model,
@@ -788,14 +837,26 @@ async function submitBatch() {
         numerals: numerals,
         filler_words: fillerWords,
         detect_language: detectLanguage,
-        measurements: measurements
+        measurements: measurements,
+        diarization: diarization,
+        utterances: utterances,
+        paragraphs: paragraphs
     };
-    
+
     const keyTerms = document.getElementById('keyTerms').value.trim();
     if (keyTerms) {
-        requestBody.keyterms = keyTerms.split(',').map(t => t.trim()).filter(t => t.length > 0);
-        // Auto-save keyterms whenever they are provided
-        requestBody.auto_save_keyterms = true;
+        // Validate: keyterms don't work with multi-language
+        if (multiLanguage) {
+            const proceed = confirm('Keyterm prompting is not available with multi-language code-switching mode. Continue without keyterms?');
+            if (!proceed) {
+                document.getElementById('submitBtn').disabled = false;
+                return;
+            }
+        } else {
+            requestBody.keyterms = keyTerms.split(',').map(t => t.trim()).filter(t => t.length > 0);
+            // Auto-save keyterms whenever they are provided
+            requestBody.auto_save_keyterms = true;
+        }
     }
     
     if (enableTranscript) {
