@@ -1087,23 +1087,21 @@ async function cancelJob() {
 }
 
 function updateJobDisplay(data) {
-    if (data.state === 'PENDING') {
-        updateUnifiedStatus('Queued, waiting to start...', true, 0);
-    } else if (data.state === 'STARTED') {
-        if (data.children && data.children.length > 0) {
-            const completed = data.children.filter(c => c.state === 'SUCCESS').length;
-            const processing = data.children.filter(c => c.state === 'STARTED' || c.state === 'PROGRESS').length;
-            const total = data.children.length;
-            const percentage = (completed / total) * 100;
+    const submitBtn = document.getElementById('submitBtn');
 
-            let statusText = `Processing: ${completed} / ${total}`;
-            if (processing > 0) {
-                statusText += ` (${processing} active)`;
-            }
-            updateUnifiedStatus(statusText, true, percentage);
-        } else {
-            updateUnifiedStatus('Starting batch...', true, 0);
-        }
+    if (data.state === 'PENDING' || data.state === 'STARTED') {
+        // Just show "Processing" - no progress bar, no counts
+        updateUnifiedStatus('Processing', false);
+        // Add pulsing animation to button
+        if (submitBtn) submitBtn.classList.add('processing');
+    } else if (data.state === 'SUCCESS') {
+        updateUnifiedStatus('Complete', false);
+        // Remove pulsing animation
+        if (submitBtn) submitBtn.classList.remove('processing');
+    } else if (data.state === 'FAILURE') {
+        updateUnifiedStatus('Batch failed', false);
+        // Remove pulsing animation
+        if (submitBtn) submitBtn.classList.remove('processing');
     }
 }
 

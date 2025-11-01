@@ -338,27 +338,130 @@ def api_submit():
 def api_job(rid):
     """
     Get status of a specific job or batch.
-    
+
     Parameters:
         rid: Job/batch ID returned from /api/submit
-        
+
     Returns:
         JSON with job state and result data including detailed child task progress
     """
     # _require_auth()
+    from celery.result import GroupResult
+
+    # Try to get as GroupResult first (for batch jobs)
+    try:
+        group_result = GroupResult.restore(rid, app=celery_app)
+    except Exception as e:
+        print(f"Failed to restore GroupResult: {e}")
+        group_result = None
+
+    # If it's a group result, handle it specially
+    if group_result is not None and hasattr(group_result, 'results') and group_result.results:
+        print(f"Processing GroupResult with {len(group_result.results)} tasks")
+        children_info = []
+        completed_count = 0
+        failed_count = 0
+        started_count = 0
+        pending_count = 0
+
+        for child in group_result.results:
+            try:
+                child_info = {
+                    'id': child.id,
+                    'state': child.state,
+                }
+
+                print(f"Child task {child.id}: state={child.state}")
+
+                # Get task metadata if available
+                if child.state == 'PROGRESS':
+                    started_count += 1
+                    if child.info:
+                        child_info['current_file'] = child.info.get('current_file', '')
+                        child_info['stage'] = child.info.get('stage', '')
+                elif child.state == 'SUCCESS':
+                    completed_count += 1
+                    try:
+                        result = child.get(propagate=False)
+                        if isinstance(result, dict):
+                            child_info['filename'] = result.get('filename', '')
+                            child_info['status'] = result.get('status', '')
+                            child_info['video'] = result.get('video', '')
+                    except Exception as e:
+                        print(f"Error getting result for {child.id}: {e}")
+                elif child.state == 'STARTED':
+                    started_count += 1
+                elif child.state == 'FAILURE':
+                    failed_count += 1
+                    try:
+                        result = child.get(propagate=False)
+                        if isinstance(result, Exception):
+                            child_info['error'] = str(result)
+                            child_info['status'] = 'error'
+                    except Exception as e:
+                        print(f"Error getting failure info for {child.id}: {e}")
+                elif child.state == 'PENDING':
+                    pending_count += 1
+
+                children_info.append(child_info)
+            except Exception as child_error:
+                print(f"Error processing child task: {child_error}")
+                import traceback
+                traceback.print_exc()
+                continue
+
+        # Determine overall state
+        total = len(group_result.results)
+        print(f"Task counts - Total: {total}, Completed: {completed_count}, Failed: {failed_count}, Started: {started_count}, Pending: {pending_count}")
+
+        if total == 0:
+            state = 'PENDING'
+        elif completed_count == total:
+            state = 'SUCCESS'
+        elif failed_count == total:
+            state = 'FAILURE'
+        elif started_count > 0 or completed_count > 0:
+            state = 'STARTED'
+        else:
+            state = 'PENDING'
+
+        print(f"Determined state: {state}")
+
+        # Build results array for SUCCESS state
+        # The frontend expects data.data.results with status='ok'|'skipped'|'error'
+        results_data = None
+        if state == 'SUCCESS':
+            results_data = {
+                'results': [
+                    {
+                        'status': child.get('status', 'ok'),
+                        'filename': child.get('filename', ''),
+                        'video': child.get('video', '')
+                    }
+                    for child in children_info
+                ]
+            }
+
+        return jsonify({
+            "state": state,
+            "data": results_data,
+            "children": children_info
+        })
+
+    # Fall back to regular AsyncResult handling
     res = celery_app.AsyncResult(rid)
     state = res.state
     data = None
     children_info = []
-    
+
     try:
         if res.ready():
             data = res.get(propagate=False)
-            
+
             # Handle ChordError or other exceptions that aren't JSON serializable
             if isinstance(data, Exception):
                 data = {"error": str(data), "error_type": type(data).__name__}
-        
+
         # Get child task information for detailed progress
         if hasattr(res, 'children') and res.children:
             for child in res.children:
@@ -368,7 +471,7 @@ def api_job(rid):
                         'id': child.id,
                         'state': child_result.state,
                     }
-                    
+
                     # Get task metadata if available
                     if child_result.state == 'PROGRESS' and child_result.info:
                         child_info['current_file'] = child_result.info.get('current_file', '')
@@ -383,17 +486,17 @@ def api_job(rid):
                             child_info['filename'] = result.get('filename', '')
                             child_info['status'] = result.get('status', '')
                             child_info['video'] = result.get('video', '')
-                    
+
                     children_info.append(child_info)
                 except Exception as child_error:
                     # Skip problematic children but continue processing
                     print(f"Error processing child task: {child_error}")
                     continue
-    
+
     except Exception as e:
         print(f"Error in api_job: {e}")
         data = {"error": str(e), "error_type": type(e).__name__}
-    
+
     return jsonify({
         "state": state,
         "data": data,

@@ -445,4 +445,12 @@ def make_batch(files, model, language, profanity_filter="off", force_regenerate=
             paragraphs
         ) for f in files
     ]
-    return chord(group(jobs))(batch_finalize.s())
+    # Use group() instead of chord to allow progress tracking
+    # GroupResult allows the API to query individual task states
+    job_group = group(jobs)
+    result = job_group.apply_async()
+
+    # Save the GroupResult so it can be restored later
+    result.save()
+
+    return result

@@ -225,6 +225,22 @@ h2, h3 {
   box-shadow: none;
 }
 
+.btn-primary.processing {
+  animation: pulse-blue 2s ease-in-out infinite;
+  background: var(--color-blue) !important;
+}
+
+@keyframes pulse-blue {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 4px 12px rgba(0, 174, 239, 0.6);
+  }
+  50% {
+    opacity: 0.6;
+    box-shadow: 0 4px 12px rgba(0, 174, 239, 0.3);
+  }
+}
+
 .btn-primary:focus-visible {
   outline: 2px solid var(--color-blue);
   outline-offset: 2px;
