@@ -15,10 +15,10 @@ let onlyFoldersWithVideos = true; // Default to filtering empty folders
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize theme
     initTheme();
-    
+
     // Clear keyterms field on page load
     clearKeytermField();
-    
+
     // Load config
     fetch('/api/config')
         .then(r => r.json())
@@ -26,38 +26,18 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('language').value = config.default_language;
         })
         .catch(err => console.error('Failed to load config:', err));
-    
-    // Reset checkboxes that should be unchecked by default
-    const enableTranscript = document.getElementById('enableTranscript');
-    const forceRegenerate = document.getElementById('forceRegenerate');
-    const saveRawJson = document.getElementById('saveRawJson');
-    const detectLanguage = document.getElementById('detectLanguage');
-    const multiLanguage = document.getElementById('multiLanguage');
 
-    if (enableTranscript) enableTranscript.checked = false;
-    if (forceRegenerate) forceRegenerate.checked = false;
-    if (saveRawJson) saveRawJson.checked = false;
-    if (detectLanguage) detectLanguage.checked = false;
-    if (multiLanguage) multiLanguage.checked = false;
+    // Check if we should load saved settings
+    const savedSettings = localStorage.getItem('deepgramSettings');
+    const shouldLoadSaved = savedSettings !== null;
 
-    // Set checkboxes that should be checked by default (best practices for subtitles)
-    const numerals = document.getElementById('numerals');
-    const fillerWords = document.getElementById('fillerWords');
-    const measurements = document.getElementById('measurements');
-    const diarization = document.getElementById('diarization');
-    const utterances = document.getElementById('utterances');
-    const paragraphs = document.getElementById('paragraphs');
-
-    if (numerals) numerals.checked = true;
-    if (fillerWords) fillerWords.checked = true; // Remember: this is "Remove filler words"
-    if (measurements) measurements.checked = true;
-    if (diarization) diarization.checked = true;
-    if (utterances) utterances.checked = true;
-    if (paragraphs) paragraphs.checked = true;
-
-    // Reset profanity filter radio buttons to default (off)
-    const profanityFilterOff = document.querySelector('input[name="profanityFilter"][value="off"]');
-    if (profanityFilterOff) profanityFilterOff.checked = true;
+    if (shouldLoadSaved) {
+        // Load saved settings
+        loadSavedSettings();
+    } else {
+        // Apply default settings
+        applyDefaultSettings();
+    }
 
     // Hide transcript options
     document.getElementById('transcriptOptions').style.display = 'none';
@@ -139,6 +119,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function updateBreadcrumb(path) {
     const breadcrumb = document.getElementById('breadcrumb');
+    if (!breadcrumb) return;  // Exit early if breadcrumb element doesn't exist
+
     const parts = path.split('/').filter(p => p.length > 0);
     let html = '';
     
@@ -385,12 +367,137 @@ function toggleFileSelection(filePath) {
 function toggleFolderFilter() {
     const checkbox = document.getElementById('onlyFoldersWithVideos');
     onlyFoldersWithVideos = checkbox.checked;
-    
+
     // Reload current directory with new filter
     browseDirectories(currentPath);
-    
-    const filterText = onlyFoldersWithVideos ? 'Showing folders with videos only' : 'Showing all folders';
+
+    const filterText = onlyFoldersWithVideos ? 'Showing folders with media only' : 'Showing all folders';
     showToast('info', filterText);
+}
+
+/* ============================================
+   SETTINGS PERSISTENCE
+   ============================================ */
+
+function toggleRememberSettings() {
+    const rememberCheckbox = document.getElementById('rememberSettings');
+
+    if (rememberCheckbox.checked) {
+        // Save current settings to localStorage
+        saveCurrentSettings();
+        showToast('info', 'Settings will be remembered');
+    } else {
+        // Clear saved settings from localStorage
+        localStorage.removeItem('deepgramSettings');
+        showToast('info', 'Settings cleared - using defaults');
+    }
+}
+
+function applyDefaultSettings() {
+    // Reset checkboxes that should be unchecked by default
+    const enableTranscript = document.getElementById('enableTranscript');
+    const forceRegenerate = document.getElementById('forceRegenerate');
+    const saveRawJson = document.getElementById('saveRawJson');
+    const detectLanguage = document.getElementById('detectLanguage');
+    const multiLanguage = document.getElementById('multiLanguage');
+    const preserveExisting = document.getElementById('preserveExisting');
+
+    if (enableTranscript) enableTranscript.checked = false;
+    if (forceRegenerate) forceRegenerate.checked = false;
+    if (saveRawJson) saveRawJson.checked = false;
+    if (detectLanguage) detectLanguage.checked = false;
+    if (multiLanguage) multiLanguage.checked = false;
+    if (preserveExisting) preserveExisting.checked = false;
+
+    // Set checkboxes that should be checked by default (best practices for subtitles)
+    const numerals = document.getElementById('numerals');
+    const fillerWords = document.getElementById('fillerWords');
+    const measurements = document.getElementById('measurements');
+    const diarization = document.getElementById('diarization');
+    const utterances = document.getElementById('utterances');
+    const paragraphs = document.getElementById('paragraphs');
+    const onlyFoldersWithVideos = document.getElementById('onlyFoldersWithVideos');
+
+    if (numerals) numerals.checked = true;
+    // fillerWords defaults to unchecked (not enabled by default)
+    if (fillerWords) fillerWords.checked = false;
+    if (measurements) measurements.checked = true;
+    if (diarization) diarization.checked = true;
+    if (utterances) utterances.checked = true;
+    if (paragraphs) paragraphs.checked = true;
+    if (onlyFoldersWithVideos) onlyFoldersWithVideos.checked = true;
+
+    // Reset profanity filter radio buttons to default (off)
+    const profanityFilterOff = document.querySelector('input[name="profanityFilter"][value="off"]');
+    if (profanityFilterOff) profanityFilterOff.checked = true;
+
+    // Uncheck remember settings
+    const rememberCheckbox = document.getElementById('rememberSettings');
+    if (rememberCheckbox) rememberCheckbox.checked = false;
+}
+
+function saveCurrentSettings() {
+    const settings = {
+        language: document.getElementById('language')?.value,
+        enableTranscript: document.getElementById('enableTranscript')?.checked,
+        forceRegenerate: document.getElementById('forceRegenerate')?.checked,
+        numerals: document.getElementById('numerals')?.checked,
+        measurements: document.getElementById('measurements')?.checked,
+        fillerWords: document.getElementById('fillerWords')?.checked,
+        detectLanguage: document.getElementById('detectLanguage')?.checked,
+        multiLanguage: document.getElementById('multiLanguage')?.checked,
+        profanityFilter: document.querySelector('input[name="profanityFilter"]:checked')?.value,
+        saveRawJson: document.getElementById('saveRawJson')?.checked,
+        diarization: document.getElementById('diarization')?.checked,
+        utterances: document.getElementById('utterances')?.checked,
+        paragraphs: document.getElementById('paragraphs')?.checked,
+        preserveExisting: document.getElementById('preserveExisting')?.checked,
+        onlyFoldersWithVideos: document.getElementById('onlyFoldersWithVideos')?.checked
+    };
+
+    localStorage.setItem('deepgramSettings', JSON.stringify(settings));
+}
+
+function loadSavedSettings() {
+    const rememberCheckbox = document.getElementById('rememberSettings');
+    const savedSettings = localStorage.getItem('deepgramSettings');
+
+    if (savedSettings) {
+        try {
+            const settings = JSON.parse(savedSettings);
+
+            // Apply saved settings
+            if (settings.language) document.getElementById('language').value = settings.language;
+            if (settings.enableTranscript !== undefined) document.getElementById('enableTranscript').checked = settings.enableTranscript;
+            if (settings.forceRegenerate !== undefined) document.getElementById('forceRegenerate').checked = settings.forceRegenerate;
+            if (settings.numerals !== undefined) document.getElementById('numerals').checked = settings.numerals;
+            if (settings.measurements !== undefined) document.getElementById('measurements').checked = settings.measurements;
+            if (settings.fillerWords !== undefined) document.getElementById('fillerWords').checked = settings.fillerWords;
+            if (settings.detectLanguage !== undefined) document.getElementById('detectLanguage').checked = settings.detectLanguage;
+            if (settings.multiLanguage !== undefined) document.getElementById('multiLanguage').checked = settings.multiLanguage;
+            if (settings.saveRawJson !== undefined) document.getElementById('saveRawJson').checked = settings.saveRawJson;
+            if (settings.diarization !== undefined) document.getElementById('diarization').checked = settings.diarization;
+            if (settings.utterances !== undefined) document.getElementById('utterances').checked = settings.utterances;
+            if (settings.paragraphs !== undefined) document.getElementById('paragraphs').checked = settings.paragraphs;
+            if (settings.preserveExisting !== undefined) document.getElementById('preserveExisting').checked = settings.preserveExisting;
+            if (settings.onlyFoldersWithVideos !== undefined) {
+                document.getElementById('onlyFoldersWithVideos').checked = settings.onlyFoldersWithVideos;
+                onlyFoldersWithVideos = settings.onlyFoldersWithVideos;
+            }
+
+            if (settings.profanityFilter) {
+                const radio = document.querySelector(`input[name="profanityFilter"][value="${settings.profanityFilter}"]`);
+                if (radio) radio.checked = true;
+            }
+
+            // Check the remember settings checkbox
+            if (rememberCheckbox) rememberCheckbox.checked = true;
+        } catch (e) {
+            console.error('Error loading saved settings:', e);
+            localStorage.removeItem('deepgramSettings');
+            applyDefaultSettings();
+        }
+    }
 }
 
 /* ============================================
@@ -540,39 +647,46 @@ function setupKeyboardShortcuts() {
 let generatingToast = null;
 
 function showToast(type, message, options = {}) {
+    // Remove any existing toasts
+    document.querySelectorAll('.toast').forEach(t => t.remove());
+
     const toast = document.createElement('div');
     toast.className = `toast toast-${type}`;
-    toast.innerHTML = `
-        <span class="toast-icon">${getToastIcon(type)}</span>
-        <span class="toast-message">${message}</span>
-        <button class="toast-close" onclick="this.parentElement.remove()">✕</button>
-    `;
-    
+    toast.innerHTML = `<span class="toast-message">${message}</span>`;
+
     document.body.appendChild(toast);
-    
+
     setTimeout(() => {
         toast.classList.add('show');
     }, 10);
-    
-    // Don't auto-dismiss if it's an error or if persist flag is set
+
+    // Auto-dismiss after 3 seconds unless it's an error or persist flag
     if (type !== 'error' && !options.persist) {
         setTimeout(() => {
             toast.classList.remove('show');
             setTimeout(() => toast.remove(), 300);
-        }, 5000);
+        }, 3000);
     }
-    
+
     return toast;
 }
 
-function getToastIcon(type) {
-    const icons = {
-        success: '✓',
-        error: '✕',
-        warning: '⚠',
-        info: 'ℹ'
-    };
-    return icons[type] || 'ℹ';
+// Update unified status display
+function updateUnifiedStatus(text, showProgress = false, progressPercent = 0) {
+    const statusText = document.getElementById('statusText');
+    const statusProgress = document.getElementById('statusProgress');
+    const progressFill = document.getElementById('progressFill');
+    const progressLabel = document.getElementById('progressLabel');
+
+    if (statusText) statusText.textContent = text;
+
+    if (showProgress) {
+        if (statusProgress) statusProgress.style.display = 'flex';
+        if (progressFill) progressFill.style.width = progressPercent + '%';
+        if (progressLabel) progressLabel.textContent = Math.round(progressPercent) + '%';
+    } else {
+        if (statusProgress) statusProgress.style.display = 'none';
+    }
 }
 
 /* ============================================
@@ -625,26 +739,20 @@ function toggleAdvancedOptions() {
 function updateSelectionStatus() {
     const count = selectedFiles.length;
     const submitBtn = document.getElementById('submitBtn');
-    const scanStatus = document.getElementById('scanStatus');
-    
+
     if (count > 0) {
-        if (scanStatus) scanStatus.textContent = `${count} file${count > 1 ? 's' : ''} selected`;
         if (submitBtn) {
             submitBtn.disabled = false;
-            submitBtn.textContent = `Transcribe ${count} File${count > 1 ? 's' : ''}`;
+            submitBtn.textContent = 'Transcribe';
         }
         announceToScreenReader(`${count} file${count > 1 ? 's' : ''} selected`);
         calculateEstimatesAuto();
     } else {
-        if (scanStatus) scanStatus.textContent = '';
         if (submitBtn) {
             submitBtn.disabled = true;
-            submitBtn.textContent = 'Select Files to Continue';
+            submitBtn.textContent = 'Transcribe';
         }
-        const costPrimary = document.getElementById('costPrimary');
-        const costSecondary = document.getElementById('costSecondary');
-        costPrimary.textContent = '0 files selected';
-        costSecondary.textContent = 'Select videos to see estimates';
+        updateUnifiedStatus('', false);
     }
 }
 
@@ -696,40 +804,32 @@ function clearSelection() {
    ============================================ */
 
 async function calculateEstimatesAuto() {
-    const costPrimary = document.getElementById('costPrimary');
-    const costSecondary = document.getElementById('costSecondary');
-    
     if (selectedFiles.length === 0) {
-        costPrimary.textContent = '0 files selected';
-        costSecondary.textContent = 'Select videos to see estimates';
+        updateUnifiedStatus('', false);
         return;
     }
-    
+
     try {
         const response = await fetch('/api/estimate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ files: selectedFiles })
         });
-        
+
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
-        
+
         const data = await response.json();
         displayEstimates(data);
-        
+
     } catch (error) {
         console.error('Estimate error:', error);
-        costPrimary.textContent = '0 files selected';
-        costSecondary.textContent = 'Select videos to see estimates';
+        updateUnifiedStatus('', false);
     }
 }
 
 function displayEstimates(data) {
-    const costPrimary = document.getElementById('costPrimary');
-    const costSecondary = document.getElementById('costSecondary');
-    
     function formatDuration(seconds) {
         const h = Math.floor(seconds / 3600);
         const m = Math.floor((seconds % 3600) / 60);
@@ -739,10 +839,10 @@ function displayEstimates(data) {
         }
         return `${m}:${String(s).padStart(2, '0')}`;
     }
-    
+
     const fileText = data.total_files === 1 ? 'file' : 'files';
-    costPrimary.textContent = `${data.total_files} ${fileText} • ${formatDuration(data.total_duration_seconds)}`;
-    costSecondary.textContent = `$${data.estimated_cost_usd.toFixed(2)} cost • ~${formatDuration(data.estimated_processing_time_seconds)} processing`;
+    const statusText = `${data.total_files} ${fileText} • ${formatDuration(data.total_duration_seconds)} • $${data.estimated_cost_usd.toFixed(2)}`;
+    updateUnifiedStatus(statusText, false);
 }
 
 /* ============================================
@@ -753,9 +853,8 @@ async function submitBatch() {
     const selectedFilesList = Array.from(
         document.querySelectorAll('.browser-file input[type="checkbox"]:checked')
     ).map(cb => cb.value);
-    
+
     if (selectedFilesList.length === 0) {
-        showStatus('submitStatus', '⚠️ Please select at least one file', 'error');
         showToast('warning', 'Please select at least one file');
         return;
     }
@@ -862,39 +961,40 @@ async function submitBatch() {
     if (enableTranscript) {
         requestBody.enable_transcript = true;
     }
-    
+
+    // Save settings if "Remember my last settings" is enabled
+    const rememberCheckbox = document.getElementById('rememberSettings');
+    if (rememberCheckbox && rememberCheckbox.checked) {
+        saveCurrentSettings();
+    }
+
     document.getElementById('submitBtn').disabled = true;
-    
-    // Group D: Show persistent processing banner
+
     const fileText = selectedFilesList.length === 1 ? 'file' : 'files';
-    showToast('info', `Starting batch: ${selectedFilesList.length} ${fileText}`, { persist: true });
-    
+    updateUnifiedStatus(`Starting ${selectedFilesList.length} ${fileText}...`, true, 0);
+
     try {
         const response = await fetch('/api/submit', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(requestBody)
         });
-        
+
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
-        
+
         const data = await response.json();
         currentBatchId = data.batch_id;
-        
+
         announceToScreenReader(`Processing ${data.enqueued} files`);
-        
-        // Group D: Show compact job status in action bar (persistent)
-        const costSummary = document.querySelector('.cost-summary');
-        if (costSummary) costSummary.style.display = 'none';
-        document.getElementById('jobStatusCompact').style.display = 'flex';
-        
+
         startJobMonitoring(currentBatchId);
-        
+
     } catch (error) {
         console.error('Submit error:', error);
-        showToast('error', `Failed to submit batch: ${error.message}`);
+        showToast('error', `Failed to start: ${error.message}`);
+        updateUnifiedStatus('Error starting batch', false);
         document.getElementById('submitBtn').disabled = false;
     }
 }
@@ -923,43 +1023,41 @@ function startJobMonitoring(batchId) {
 async function checkJobStatus(batchId) {
     try {
         const response = await fetch(`/api/job/${batchId}`);
-        
+
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);
         }
-        
+
         const data = await response.json();
         updateJobDisplay(data);
-        
+
         if (data.state === 'SUCCESS' || data.state === 'FAILURE' || data.state === 'REVOKED') {
             clearInterval(pollInterval);
             if (eventSource) {
                 eventSource.close();
             }
             document.getElementById('submitBtn').disabled = false;
-            
-            // Hide job status and show cost summary again
-            document.getElementById('jobStatusCompact').style.display = 'none';
-            const costSummary = document.querySelector('.cost-summary');
-            if (costSummary) costSummary.style.display = 'flex';
-            
+
             if (data.state === 'SUCCESS') {
                 const results = data.data?.results || [];
                 const successful = results.filter(r => r.status === 'ok').length;
                 const skipped = results.filter(r => r.status === 'skipped').length;
                 const failed = results.filter(r => r.status === 'error').length;
-                
-                showToast('success', `Batch complete! ${successful} processed, ${skipped} skipped, ${failed} failed`);
+
+                updateUnifiedStatus(`Complete: ${successful} processed, ${skipped} skipped, ${failed} failed`, false);
+                showToast('success', 'Batch complete');
                 announceToScreenReader('Batch processing completed');
             } else if (data.state === 'FAILURE') {
-                showToast('error', 'Batch processing failed');
+                updateUnifiedStatus('Batch failed', false);
+                showToast('error', 'Processing failed');
                 announceToScreenReader('Batch processing failed');
             } else if (data.state === 'REVOKED') {
+                updateUnifiedStatus('Cancelled', false);
                 showToast('info', 'Job cancelled');
                 announceToScreenReader('Job cancelled');
             }
         }
-        
+
     } catch (error) {
         console.error('Status check error:', error);
     }
@@ -989,54 +1087,23 @@ async function cancelJob() {
 }
 
 function updateJobDisplay(data) {
-    const jobStatusText = document.getElementById('jobStatusText');
-    const jobStatusDetails = document.getElementById('jobStatusDetails');
-    
-    if (!jobStatusText || !jobStatusDetails) return;
-    
     if (data.state === 'PENDING') {
-        jobStatusText.textContent = '⏳ Queued';
-        jobStatusDetails.textContent = 'Waiting to start...';
+        updateUnifiedStatus('Queued, waiting to start...', true, 0);
     } else if (data.state === 'STARTED') {
-        // Group D: Show real-time progress with animation
-        jobStatusText.innerHTML = '⚙️ Processing<span class="loading-dots"></span>';
-        
         if (data.children && data.children.length > 0) {
             const completed = data.children.filter(c => c.state === 'SUCCESS').length;
             const processing = data.children.filter(c => c.state === 'STARTED' || c.state === 'PROGRESS').length;
             const total = data.children.length;
-            const percentage = Math.round((completed / total) * 100);
-            
-            // Show detailed progress
-            let statusText = `${completed} / ${total} completed`;
+            const percentage = (completed / total) * 100;
+
+            let statusText = `Processing: ${completed} / ${total}`;
             if (processing > 0) {
-                statusText += ` • ${processing} active`;
+                statusText += ` (${processing} active)`;
             }
-            statusText += ` (${percentage}%)`;
-            jobStatusDetails.textContent = statusText;
+            updateUnifiedStatus(statusText, true, percentage);
         } else {
-            jobStatusDetails.textContent = 'Starting batch...';
+            updateUnifiedStatus('Starting batch...', true, 0);
         }
-    } else if (data.state === 'SUCCESS') {
-        jobStatusText.textContent = '✓ Complete';
-        
-        if (data.data && data.data.results) {
-            const results = data.data.results;
-            const successful = results.filter(r => r.status === 'ok').length;
-            const skipped = results.filter(r => r.status === 'skipped').length;
-            const failed = results.filter(r => r.status === 'error').length;
-            
-            let statusText = `${successful} processed`;
-            if (skipped > 0) statusText += ` • ${skipped} skipped`;
-            if (failed > 0) statusText += ` • ${failed} failed`;
-            jobStatusDetails.textContent = statusText;
-        }
-    } else if (data.state === 'FAILURE') {
-        jobStatusText.textContent = '✕ Failed';
-        jobStatusDetails.textContent = data.data?.error || 'Check console for errors';
-    } else if (data.state === 'REVOKED') {
-        jobStatusText.textContent = '⊘ Cancelled';
-        jobStatusDetails.textContent = 'Job was stopped';
     }
 }
 
