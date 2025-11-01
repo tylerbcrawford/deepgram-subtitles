@@ -3,6 +3,9 @@
 
 # Personal setup documentation (keep local only)
 DEEPGRAM-SETUP-SUMMARY.md
+# Development documentation (keep local only)
+_devdocs/
+
 
 # Python
 __pycache__/
@@ -46,3 +49,4 @@ Thumbs.db
 # Docker
 docker-compose.yml
 docker-compose.override.yml
+.mcp.json
