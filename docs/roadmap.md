@@ -1,10 +1,11 @@
 # Project Roadmap
 
-**Last Updated:** 2025-10-30
+**Last Updated:** 2025-11-01
 
 ## 🎯 Current Status
 **V1:** ✅ Released and in production
-**V2:** 🚧 In progress - GUI refresh complete, documentation and polish remaining
+**V2:** 🚧 In progress - GUI refresh and documentation complete
+**Next Step:** Priority 7 - UI/UX Polish Pass
 
 ---
 
@@ -16,92 +17,201 @@
 
 ---
 
-## 📅 V2 Final Tasks
+## 📊 Current Progress Summary
 
-### 🎯 What's Left for V2 Release
+**Completed for V2:**
+- ✅ Priority 5: GUI Refresh (2025-10-30)
+- ✅ Priority 6: Documentation & Branding (2025-11-01)
 
-**Critical Path:**
-1. ✅ **Priority 5: GUI Refresh** - Complete
-2. **Priority 6: Documentation & Branding** - Update README and environment setup
-3. **Priority 7: UI/UX Polish Pass** - Final design refinement
-4. **CLI/GUI Feature Parity Verification** - Ensure both interfaces offer same features
-5. **Comprehensive Testing** - Full testing of all features
-
----
-
-### 📝 Priority 6: Documentation & Branding
-**Effort:** Low | **Timeline:** 2-3 hours
-
-Rebrand project and update documentation with story-focused approach for V2 release.
-
-**Branding Updates:**
-- [ ] Rename project to **Subgeneratorr**
-  - [ ] Update title and branding in README
-  - [ ] Update any remaining references in documentation
-  - [ ] Ensure consistent naming across all user-facing text
-
-**README Rewrite:**
-- [ ] Lead with the origin story
-  - Why it was built: filling subtitle gaps in Radarr/Sonarr libraries
-  - Bazarr finds most subtitles, but hundreds of episodes were missing
-  - Deepgram Nova-3 keyterms testing yielded excellent results with $200 free credits
-  - LLM-powered keyterms generation makes accurate transcription accessible
-- [ ] Keep technical stack overview near top but concise
-- [ ] Target audience: media enthusiasts who care about subtitles and accessibility
-- [ ] Add disclaimer: not affiliated with Deepgram or any LLM providers
-- [ ] Emphasize: free and open source project for media accessibility
-- [ ] Move deep technical implementation details to separate `docs/technical.md` file
-
-**Environment Setup:**
-- [ ] Add LLM API key configuration to `.env.example`
-  - [ ] Add `ANTHROPIC_API_KEY` (optional, for keyterms generation)
-  - [ ] Add `OPENAI_API_KEY` (optional, for keyterms generation)
-  - [ ] Document that LLM keys are optional features
-
-**Benefits:**
-- Clear project identity and memorable name
-- Story-driven README that connects with users
-- Better documentation organization
-- Complete setup instructions
+**V2 Remaining Tasks:**
+- 🔜 Priority 7: UI/UX Polish Pass - Ready to start
+- ⏳ Priority 8: CLI/GUI Feature Parity Verification
+- ⏳ Priority 9: Comprehensive Testing
+- 🚀 V2 Release
 
 ---
 
-### 🎨 Priority 7: UI/UX Polish Pass
+## 📅 V2 Remaining Tasks
+
+### 🎨 Priority 7: UI/UX Polish Pass (NEXT)
 **Effort:** Low | **Timeline:** 2-3 hours
+**Status:** 🔜 Ready to start
 
 Final design review and refinement for V2 release.
 
 **Implementation Tasks:**
-- [ ] Complete once-over of GUI and mobile layouts
-- [ ] Fix and reorganize elements to prioritize visual hierarchy
-- [ ] Review all text and copy for conciseness and clarity
-- [ ] Verify all progress indicators work correctly
-- [ ] Improve banner integration to prevent text overlap
-  - Banners currently cover text in some scenarios
-  - Need better z-index management and positioning
-- [ ] Make overall design more harmonious and cohesive
-- [ ] Final manual evaluation and adjustments across all breakpoints
-- [ ] Test visual consistency between desktop, tablet, and mobile views
+- [ ] Complete visual review of GUI across all breakpoints
+  - [ ] Desktop layout (1920px, 1440px, 1024px)
+  - [ ] Tablet layout (768px, 834px)
+  - [ ] Mobile layout (375px, 414px)
+- [ ] Review and refine visual hierarchy
+  - [ ] Ensure most important elements stand out (Transcribe button, status, file selection)
+  - [ ] Check spacing, alignment, and visual weight of all elements
+  - [ ] Verify color contrast meets accessibility standards
+- [ ] Text and copy review
+  - [ ] Check all labels, buttons, and help text for clarity
+  - [ ] Ensure consistent terminology throughout UI
+  - [ ] Remove any redundant or verbose text
+- [ ] Status and progress indicators
+  - [ ] Verify unified status area displays correctly
+  - [ ] Test progress bar during batch processing
+  - [ ] Check if real-time progress updates work during transcription
+  - [ ] Ensure status messages are clear and actionable
+- [ ] Fix any banner/notification overlap issues
+  - [ ] Review z-index hierarchy for modals, toasts, and notifications
+  - [ ] Test notification positioning doesn't cover critical UI elements
+- [ ] Final cohesion and harmony pass
+  - [ ] Ensure consistent styling across all cards and sections
+  - [ ] Verify theme (dark/light) works correctly throughout
+  - [ ] Check animations and transitions are smooth
 
-**Known Issue to Address:**
-- [ ] Fix batch processing status display
-  - Status update polling works but UI doesn't reflect real-time progress during processing
-  - Low impact - transcriptions work correctly, just missing visual feedback
+**Known Issues to Verify:**
+- [ ] Batch processing status display
+  - Reports suggest UI doesn't show real-time progress during processing
+  - Verify if this is still an issue or has been resolved
+  - If broken: Fix SSE updates or polling mechanism
+  - If working: Mark as resolved
 
 **Benefits:**
-- Polished, professional interface
-- Consistent visual experience across devices
-- Better feedback during batch operations
+- Polished, professional interface ready for V2 release
+- Consistent visual experience across all devices
+- Better user feedback during batch operations
+- Accessible and clear UI for all users
 
 ---
 
-**Target V2 Release:** After Priority 6 (Documentation & Branding), Priority 7 (UI/UX Polish), CLI/GUI feature parity verification, and comprehensive testing
+### 🔍 Priority 8: CLI/GUI Feature Parity Verification
+**Effort:** Low | **Timeline:** 1-2 hours
+**Status:** ⏳ After Priority 7
+
+Ensure both CLI and Web UI offer the same features and functionality.
+
+**Implementation Tasks:**
+- [ ] Create feature comparison matrix
+  - [ ] List all CLI options and flags
+  - [ ] List all Web UI options and settings
+  - [ ] Identify any missing features in either interface
+- [ ] Core transcription features
+  - [ ] Verify language selection works in both CLI and Web UI
+  - [ ] Verify profanity filter options (off/tag/remove) available in both
+  - [ ] Verify force regenerate works in both interfaces
+  - [ ] Verify transcript generation toggle exists in both
+- [ ] Advanced features
+  - [ ] Verify keyterms CSV loading works in both CLI and Web UI
+  - [ ] Verify speaker maps auto-detection in both interfaces
+  - [ ] Check Nova-3 quality options (numerals, measurements, filler words, detect language) in both
+  - [ ] Verify diarization, utterances, paragraphs options in both
+- [ ] LLM-powered keyterm generation
+  - [ ] Confirm this is Web UI exclusive (by design)
+  - [ ] Document in technical docs as Web UI-only feature
+- [ ] Batch processing
+  - [ ] Verify batch size limits work in CLI
+  - [ ] Verify batch processing in Web UI with parallel workers
+  - [ ] Test file list processing in both interfaces
+- [ ] Documentation parity
+  - [ ] Ensure README documents both CLI and Web UI usage
+  - [ ] Verify all features are documented in technical.md
+  - [ ] Add any missing usage examples
+
+**Expected Findings:**
+- Most features should already have parity from previous work
+- LLM keyterm generation is intentionally Web UI-only
+- Document any intentional differences between CLI and Web UI
+
+**Benefits:**
+- Consistent user experience across both interfaces
+- Clear documentation of any interface-specific features
+- Confidence that users can choose CLI or Web UI based on preference
+
+---
+
+### ✅ Priority 9: Comprehensive Testing
+**Effort:** Moderate | **Timeline:** 2-4 hours
+**Status:** ⏳ After Priority 8
+
+Final testing pass before V2 release.
+
+**Implementation Tasks:**
+- [ ] Functional testing
+  - [ ] Test single file transcription (CLI and Web UI)
+  - [ ] Test batch processing with multiple files
+  - [ ] Test force regenerate functionality
+  - [ ] Test transcript generation with speaker maps
+  - [ ] Test keyterms CSV auto-loading
+  - [ ] Test LLM keyterm generation (Web UI)
+- [ ] Cross-platform testing
+  - [ ] Test on Linux (Docker Engine)
+  - [ ] Test on macOS (Docker Desktop)
+  - [ ] Test on Windows (Docker Desktop with WSL2)
+- [ ] Browser testing (Web UI)
+  - [ ] Test on Chrome/Chromium
+  - [ ] Test on Firefox
+  - [ ] Test on Safari (macOS)
+  - [ ] Test on mobile browsers (iOS Safari, Chrome Mobile)
+- [ ] Responsive design testing (Web UI)
+  - [ ] Test desktop layouts (1920px, 1440px, 1024px)
+  - [ ] Test tablet layouts (768px, 834px)
+  - [ ] Test mobile layouts (375px, 414px)
+  - [ ] Test landscape and portrait orientations
+- [ ] Edge cases and error handling
+  - [ ] Test with missing API key
+  - [ ] Test with invalid file paths
+  - [ ] Test with unsupported file formats
+  - [ ] Test with very large files
+  - [ ] Test with network interruptions
+  - [ ] Test with insufficient API credits
+- [ ] Integration testing
+  - [ ] Verify .eng.srt files recognized by Plex
+  - [ ] Verify .eng.srt files recognized by Jellyfin
+  - [ ] Test Bazarr integration (if configured)
+- [ ] Documentation validation
+  - [ ] Follow README Quick Start guide
+  - [ ] Verify all docker-compose examples work
+  - [ ] Test all CLI command examples
+  - [ ] Verify all links work in documentation
+
+**Success Criteria:**
+- All core features work as expected
+- No critical bugs found
+- Documentation is accurate and complete
+- Ready for V2 release
+
+**Benefits:**
+- High confidence in V2 release quality
+- Reduced post-release bug reports
+- Better user experience for V2 users
+
+---
+
+### 🚀 V2 Release
+**Status:** ⏳ After Priority 9
+
+Final steps for V2 release.
+
+**Release Checklist:**
+- [ ] All Priority 7, 8, and 9 tasks completed
+- [ ] README.md finalized with V2 features
+- [ ] docs/technical.md is complete and accurate
+- [ ] docs/roadmap.md updated to show V2 complete
+- [ ] Git tag V2 release with version number
+- [ ] Create GitHub release with changelog
+- [ ] Update any deployment documentation
+- [ ] Announce V2 release (if applicable)
+
+**Changelog Highlights:**
+- Subgeneratorr rebrand with user-focused documentation
+- Comprehensive GUI refresh based on Dieter Rams principles
+- LLM-powered keyterm generation (optional)
+- Enhanced Nova-3 quality options
+- Improved file selector UX
+- Mobile-responsive design
+- Complete technical documentation
 
 ---
 
 ## 🚀 V3 Future Development
 
-### Priority 8: Language Update
+### Priority 10: Language Update
 **Effort:** Moderate | **Timeline:** 3-5 days
 
 Expand language support by implementing intelligent model routing and multi-language detection.
@@ -148,7 +258,7 @@ Expand language support by implementing intelligent model routing and multi-lang
 
 ---
 
-### Priority 9: Docker Container Consolidation
+### Priority 11: Docker Container Consolidation
 **Effort:** Moderate | **Timeline:** 1 week
 
 Simplify deployment and improve user experience by consolidating services.
@@ -170,7 +280,7 @@ Simplify deployment and improve user experience by consolidating services.
 
 ---
 
-### Priority 10: Advanced File Input Interface
+### Priority 12: Advanced File Input Interface
 **Effort:** Moderate | **Timeline:** 1 week
 
 Modern drag-and-drop interface for flexible file selection across multiple folders.
@@ -197,7 +307,7 @@ Modern drag-and-drop interface for flexible file selection across multiple folde
 
 ---
 
-### Priority 11: Translation
+### Priority 13: Translation
 **Effort:** High | **Timeline:** 2-3 weeks
 
 - [ ] LLM-powered subtitle translation (Anthropic/OpenAI)
@@ -207,7 +317,7 @@ Modern drag-and-drop interface for flexible file selection across multiple folde
 
 ---
 
-### Priority 12: Bazarr Auto-Fallback Workflow
+### Priority 14: Bazarr Auto-Fallback Workflow
 **Effort:** Moderate | **Timeline:** 1 week
 
 **Current:** Manual trigger after 24h wait
@@ -224,7 +334,7 @@ Modern drag-and-drop interface for flexible file selection across multiple folde
 
 ---
 
-### Priority 13: Subtitle Synchronization
+### Priority 15: Subtitle Synchronization
 **Effort:** Moderate-High | **Timeline:** 1-2 weeks
 
 - [ ] Internal FFmpeg sync function
@@ -236,6 +346,25 @@ Modern drag-and-drop interface for flexible file selection across multiple folde
 ---
 
 ## ✅ Completed Work
+
+### Priority 6: Documentation & Branding ✅
+**Completed:** 2025-11-01
+
+Complete project rebrand and documentation overhaul with user-focused story-driven approach.
+
+**Key Achievements:**
+- Rebranded project to "Subgeneratorr"
+- Rewrote README with origin story (Bazarr gaps, Deepgram testing, LLM-powered keyterms)
+- Created concise, Trailarr-inspired README structure
+- Moved deep technical details to new `docs/technical.md` file
+- Enhanced `.env.example` with clear LLM API key documentation
+- Emphasized optional nature of LLM features
+- Added disclaimer about project independence
+- Targeted media enthusiasts who care about subtitle coverage and accessibility
+
+**Benefits:** Clear project identity, story-driven documentation that connects with users, better documentation organization, complete setup instructions
+
+---
 
 ### Priority 5: GUI Refresh ✅
 **Completed:** 2025-10-30
