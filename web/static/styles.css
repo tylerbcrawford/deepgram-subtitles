@@ -150,7 +150,7 @@ h1 {
 }
 
 .sticky-title .subtitle {
-  font-size: var(--font-small);
+  font-size: var(--font-caption);
 }
 
 h2, h3 {
@@ -226,18 +226,23 @@ h2, h3 {
 }
 
 .btn-primary.processing {
-  animation: pulse-blue 2s ease-in-out infinite;
-  background: var(--color-blue) !important;
+  animation: pulse-green 2s ease-in-out infinite;
+  background: var(--color-green) !important;
 }
 
-@keyframes pulse-blue {
+.btn-primary.completed {
+  background: var(--color-green) !important;
+  box-shadow: 0 4px 12px rgba(0, 179, 152, 0.6);
+}
+
+@keyframes pulse-green {
   0%, 100% {
     opacity: 1;
-    box-shadow: 0 4px 12px rgba(0, 174, 239, 0.6);
+    box-shadow: 0 4px 12px rgba(0, 179, 152, 0.6);
   }
   50% {
     opacity: 0.6;
-    box-shadow: 0 4px 12px rgba(0, 174, 239, 0.3);
+    box-shadow: 0 4px 12px rgba(0, 179, 152, 0.3);
   }
 }
 
@@ -925,7 +930,7 @@ input[readonly] {
   }
 
   .sticky-title .subtitle {
-    font-size: 11px;
+    font-size: 12px;
   }
 
   .action-bar {
@@ -1454,7 +1459,7 @@ input[readonly] {
 .section-title {
   font-size: var(--font-h3);
   font-weight: 500;
-  color: var(--text-primary);
+  color: var(--text-tertiary);
   margin-bottom: var(--space-m);
 }
 

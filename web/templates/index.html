@@ -116,7 +116,7 @@
                         <div class="form-group">
                             <label for="keyTerms" style="font-size: var(--font-h3); color: var(--text-primary); text-align: center;">Keyterms</label>
                             <textarea id="keyTerms" rows="7" placeholder="e.g., Deepgram, iPhone, customer service" aria-label="Keyterms prompting" style="text-align: center;"></textarea>
-                            <small style="color: var(--text-tertiary); display: block; margin-top: var(--space-xs); text-align: center;">
+                            <small style="color: var(--text-tertiary); display: block; margin-top: var(--space-xs); text-align: center; font-size: var(--font-caption);">
                                 Keyterms are auto-loaded and auto-saved from CSV if available.
                             </small>
                             <div style="text-align: center; margin-top: var(--space-m);">
@@ -128,8 +128,8 @@
 
                         <!-- Advanced Options Toggle -->
                         <div style="margin-top: var(--space-m); text-align: center;">
-                            <button class="btn-link" onclick="toggleAdvancedOptions()" id="advancedToggle" style="font-size: var(--font-caption); color: var(--text-tertiary);">
-                                Show Advanced Options ▼
+                            <button class="btn-link" onclick="toggleAdvancedOptions()" id="advancedToggle" style="font-size: var(--font-h3); color: var(--text-primary);">
+                                Advanced Options ▼
                             </button>
                         </div>
                     </div>
@@ -210,12 +210,12 @@
                         <!-- LLM Keyterm Generation -->
                         <div class="llm-settings" style="margin-top: var(--space-l); text-align: center;">
                             <div style="display: flex; justify-content: center; align-items: center; margin-bottom: var(--space-m); flex-direction: column; gap: var(--space-xs);">
-                                <h4 style="margin: 0; text-align: center;">AI Keyterm Generation</h4>
+                                <h3 class="section-title" style="margin: 0; text-align: center;">AI Keyterm Generation</h3>
                                 <span id="keytermCostEstimate" style="color: var(--text-tertiary); font-size: var(--font-small);"></span>
                             </div>
 
                             <div class="form-group" style="text-align: center;">
-                                <label for="llmProvider" style="text-align: center;">
+                                <label for="llmProvider" style="text-align: center; color: var(--text-tertiary);">
                                     LLM Provider
                                     <span id="apiKeyStatus" class="api-key-status" title="API key status"></span>
                                 </label>
@@ -226,7 +226,7 @@
                             </div>
 
                             <div class="form-group" style="text-align: center;">
-                                <label for="llmModel" style="text-align: center;">Model</label>
+                                <label for="llmModel" style="text-align: center; color: var(--text-tertiary);">Model</label>
                                 <select id="llmModel" style="text-align: center; max-width: 300px; margin: 0 auto;">
                                     <option value="claude-sonnet-4-5">Claude Sonnet 4.5 (Best Quality)</option>
                                     <option value="claude-haiku-4-5">Claude Haiku 4.5 (Faster, Cheaper)</option>

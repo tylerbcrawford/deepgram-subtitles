@@ -118,9 +118,9 @@ def api_browse():
     
     directories = []
     files = []
-    
+
     try:
-        for item in sorted(path.iterdir()):
+        for item in sorted(path.iterdir(), key=lambda x: x.name.lower()):
             if item.is_dir() and not item.name.startswith('.'):
                 # Count media files in this directory (recursive)
                 media_count = sum(1 for p in item.rglob("*") if p.is_file() and is_media(p))

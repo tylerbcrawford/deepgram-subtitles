@@ -722,13 +722,13 @@ function toggleTranscriptOptions() {
 function toggleAdvancedOptions() {
     const advancedOptions = document.getElementById('advancedOptions');
     const toggleBtn = document.getElementById('advancedToggle');
-    
+
     if (advancedOptions.classList.contains('hidden')) {
         advancedOptions.classList.remove('hidden');
-        toggleBtn.textContent = 'Hide Advanced Options ▲';
+        toggleBtn.textContent = 'Advanced Options ▲';
     } else {
         advancedOptions.classList.add('hidden');
-        toggleBtn.textContent = 'Show Advanced Options ▼';
+        toggleBtn.textContent = 'Advanced Options ▼';
     }
 }
 
@@ -751,6 +751,7 @@ function updateSelectionStatus() {
         if (submitBtn) {
             submitBtn.disabled = true;
             submitBtn.textContent = 'Transcribe';
+            submitBtn.classList.remove('completed');
         }
         updateUnifiedStatus('', false);
     }
@@ -968,7 +969,9 @@ async function submitBatch() {
         saveCurrentSettings();
     }
 
-    document.getElementById('submitBtn').disabled = true;
+    const submitBtn = document.getElementById('submitBtn');
+    submitBtn.disabled = true;
+    submitBtn.classList.remove('completed');
 
     const fileText = selectedFilesList.length === 1 ? 'file' : 'files';
     updateUnifiedStatus(`Starting ${selectedFilesList.length} ${fileText}...`, true, 0);
@@ -1093,15 +1096,24 @@ function updateJobDisplay(data) {
         // Just show "Processing" - no progress bar, no counts
         updateUnifiedStatus('Processing', false);
         // Add pulsing animation to button
-        if (submitBtn) submitBtn.classList.add('processing');
+        if (submitBtn) {
+            submitBtn.classList.add('processing');
+            submitBtn.classList.remove('completed');
+        }
     } else if (data.state === 'SUCCESS') {
         updateUnifiedStatus('Complete', false);
-        // Remove pulsing animation
-        if (submitBtn) submitBtn.classList.remove('processing');
+        // Remove pulsing animation and add completed state
+        if (submitBtn) {
+            submitBtn.classList.remove('processing');
+            submitBtn.classList.add('completed');
+        }
     } else if (data.state === 'FAILURE') {
         updateUnifiedStatus('Batch failed', false);
-        // Remove pulsing animation
-        if (submitBtn) submitBtn.classList.remove('processing');
+        // Remove pulsing animation and completed state
+        if (submitBtn) {
+            submitBtn.classList.remove('processing');
+            submitBtn.classList.remove('completed');
+        }
     }
 }
 
