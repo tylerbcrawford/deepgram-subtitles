@@ -29,7 +29,7 @@
                     <p class="subtitle">Subtitle + Transcript Generation via Deepgram Nova-3</p>
                 </div>
 
-                <button onclick="submitBatch()" id="submitBtn" class="btn-primary" disabled style="width: auto; max-width: fit-content; margin: 0 auto;">Transcribe</button>
+                <button onclick="submitBatch()" id="submitBtn" class="btn-primary" disabled style="min-width: 160px; margin: 0 auto;">Transcribe</button>
 
                 <!-- Unified Status Area -->
                 <div class="unified-status" id="unifiedStatus">
@@ -216,7 +216,7 @@
 
                             <div class="form-group" style="text-align: center;">
                                 <label for="llmProvider" style="text-align: center; color: var(--text-tertiary);">
-                                    LLM Provider
+                                    API Key Status:
                                     <span id="apiKeyStatus" class="api-key-status" title="API key status"></span>
                                 </label>
                                 <select id="llmProvider" style="text-align: center; max-width: 300px; margin: 0 auto;">
@@ -265,6 +265,10 @@
                             <label class="checkbox-label" style="justify-content: center; color: var(--text-tertiary);">
                                 <input type="checkbox" id="onlyFoldersWithVideos" checked onchange="toggleFolderFilter()" style="opacity: 0.6;">
                                 <span>Show folders with media only</span>
+                            </label>
+                            <label class="checkbox-label" style="justify-content: center; color: var(--text-tertiary); margin-top: var(--space-m);">
+                                <input type="checkbox" id="autoClearFiles" checked style="opacity: 0.6;">
+                                <span>Auto-clear files after completion</span>
                             </label>
                             <label class="checkbox-label" style="justify-content: center; color: var(--text-tertiary); margin-top: var(--space-m);">
                                 <input type="checkbox" id="rememberSettings" onchange="toggleRememberSettings()" style="opacity: 0.6;">

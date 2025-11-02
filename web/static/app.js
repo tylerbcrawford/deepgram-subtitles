@@ -111,6 +111,38 @@ document.addEventListener('DOMContentLoaded', function() {
     if (llmProvider) {
         llmProvider.addEventListener('change', checkApiKeyStatus);
     }
+
+    // Handle overwrite checkbox to control file text color
+    const forceRegenerateCheckbox = document.getElementById('forceRegenerate');
+    if (forceRegenerateCheckbox) {
+        forceRegenerateCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                document.body.classList.add('overwrite-enabled');
+            } else {
+                document.body.classList.remove('overwrite-enabled');
+            }
+            // Update button state when overwrite checkbox changes
+            updateSelectionStatus();
+        });
+    }
+
+    // Handle auto-clear files checkbox
+    const autoClearFilesCheckbox = document.getElementById('autoClearFiles');
+    if (autoClearFilesCheckbox) {
+        autoClearFilesCheckbox.addEventListener('change', function() {
+            localStorage.setItem('autoClearFiles', this.checked);
+        });
+    }
+
+    // Update cost estimate when keyterms change
+    const keytermsField = document.getElementById('keyterms');
+    if (keytermsField) {
+        keytermsField.addEventListener('input', function() {
+            if (selectedFiles.length > 0) {
+                calculateEstimatesAuto();
+            }
+        });
+    }
 });
 
 /* ============================================
@@ -261,7 +293,7 @@ async function browseDirectories(path) {
                 const statusIcon = getStatusIcon(file);
                 const escapedPath = file.path.replace(/"/g, '&quot;');
                 html += `
-                    <label class="browser-item browser-file ${isSelected ? 'selected' : ''}">
+                    <label class="browser-item browser-file ${isSelected ? 'selected' : ''}" data-has-subtitles="${file.has_subtitles ? 'true' : 'false'}">
                         <input type="checkbox" class="item-checkbox" id="file-${index}" value="${escapedPath}"
                                ${isSelected ? 'checked' : ''}
                                onchange="toggleFileSelection(this.value)">
@@ -452,7 +484,8 @@ function saveCurrentSettings() {
         utterances: document.getElementById('utterances')?.checked,
         paragraphs: document.getElementById('paragraphs')?.checked,
         preserveExisting: document.getElementById('preserveExisting')?.checked,
-        onlyFoldersWithVideos: document.getElementById('onlyFoldersWithVideos')?.checked
+        onlyFoldersWithVideos: document.getElementById('onlyFoldersWithVideos')?.checked,
+        autoClearFiles: document.getElementById('autoClearFiles')?.checked
     };
 
     localStorage.setItem('deepgramSettings', JSON.stringify(settings));
@@ -483,6 +516,10 @@ function loadSavedSettings() {
             if (settings.onlyFoldersWithVideos !== undefined) {
                 document.getElementById('onlyFoldersWithVideos').checked = settings.onlyFoldersWithVideos;
                 onlyFoldersWithVideos = settings.onlyFoldersWithVideos;
+            }
+            if (settings.autoClearFiles !== undefined) {
+                document.getElementById('autoClearFiles').checked = settings.autoClearFiles;
+                localStorage.setItem('autoClearFiles', settings.autoClearFiles);
             }
 
             if (settings.profanityFilter) {
@@ -741,8 +778,25 @@ function updateSelectionStatus() {
     const submitBtn = document.getElementById('submitBtn');
 
     if (count > 0) {
+        // Check if any selected files need transcription
+        const forceRegenerate = document.getElementById('forceRegenerate')?.checked || false;
+        const selectedElements = document.querySelectorAll('.browser-file input[type="checkbox"]:checked');
+
+        // Check if all selected files already have subtitles
+        let allHaveSubtitles = true;
+        selectedElements.forEach(checkbox => {
+            const fileElement = checkbox.closest('.browser-file');
+            const hasSubtitles = fileElement?.getAttribute('data-has-subtitles') === 'true';
+            if (!hasSubtitles) {
+                allHaveSubtitles = false;
+            }
+        });
+
+        // Disable button if all files have subtitles and overwrite is not checked
+        const shouldDisable = allHaveSubtitles && !forceRegenerate;
+
         if (submitBtn) {
-            submitBtn.disabled = false;
+            submitBtn.disabled = shouldDisable;
             submitBtn.textContent = 'Transcribe';
         }
         announceToScreenReader(`${count} file${count > 1 ? 's' : ''} selected`);
@@ -753,7 +807,8 @@ function updateSelectionStatus() {
             submitBtn.textContent = 'Transcribe';
             submitBtn.classList.remove('completed');
         }
-        updateUnifiedStatus('', false);
+        // Show 0 cost estimate when no files selected
+        updateUnifiedStatus('0 files • 0:00 • $0.00', false);
     }
 }
 
@@ -822,6 +877,18 @@ async function calculateEstimatesAuto() {
         }
 
         const data = await response.json();
+
+        // Add LLM keyterm cost if applicable
+        let llmCost = 0;
+        const keytermField = document.getElementById('keyterms');
+        if (keytermField && keytermField.value.trim()) {
+            // Estimate LLM cost for all selected files
+            llmCost = await estimateLLMCostForBatch(selectedFiles);
+        }
+
+        data.llm_cost = llmCost;
+        data.total_cost = data.estimated_cost_usd + llmCost;
+
         displayEstimates(data);
 
     } catch (error) {
@@ -842,8 +909,50 @@ function displayEstimates(data) {
     }
 
     const fileText = data.total_files === 1 ? 'file' : 'files';
-    const statusText = `${data.total_files} ${fileText} • ${formatDuration(data.total_duration_seconds)} • $${data.estimated_cost_usd.toFixed(2)}`;
+    const totalCost = data.total_cost !== undefined ? data.total_cost : data.estimated_cost_usd;
+    const statusText = `${data.total_files} ${fileText} • ${formatDuration(data.total_duration_seconds)} • $${totalCost.toFixed(2)}`;
     updateUnifiedStatus(statusText, false);
+}
+
+async function estimateLLMCostForBatch(files) {
+    // This is a rough estimation based on typical transcript sizes
+    // Claude Sonnet pricing: ~$3 per million input tokens, ~$15 per million output tokens
+    // GPT pricing: ~$2.50 per million input tokens, ~$10 per million output tokens
+
+    const provider = document.getElementById('llmProvider')?.value || 'anthropic';
+    const model = document.getElementById('llmModel')?.value || 'claude-sonnet-4-5';
+
+    try {
+        // Make parallel requests to estimate cost for each file
+        const costPromises = files.map(async (file) => {
+            try {
+                const response = await fetch('/api/keyterms/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        video_path: file,
+                        provider: provider,
+                        model: model,
+                        estimate_only: true
+                    })
+                });
+
+                if (!response.ok) return 0;
+
+                const data = await response.json();
+                return data.estimated_cost || 0;
+            } catch (error) {
+                console.error(`Failed to estimate LLM cost for ${file}:`, error);
+                return 0;
+            }
+        });
+
+        const costs = await Promise.all(costPromises);
+        return costs.reduce((sum, cost) => sum + cost, 0);
+    } catch (error) {
+        console.error('Failed to estimate LLM costs:', error);
+        return 0;
+    }
 }
 
 /* ============================================
@@ -973,8 +1082,7 @@ async function submitBatch() {
     submitBtn.disabled = true;
     submitBtn.classList.remove('completed');
 
-    const fileText = selectedFilesList.length === 1 ? 'file' : 'files';
-    updateUnifiedStatus(`Starting ${selectedFilesList.length} ${fileText}...`, true, 0);
+    // Keep the cost estimate visible (don't update status bar)
 
     try {
         const response = await fetch('/api/submit', {
@@ -1050,6 +1158,24 @@ async function checkJobStatus(batchId) {
                 updateUnifiedStatus(`Complete: ${successful} processed, ${skipped} skipped, ${failed} failed`, false);
                 showToast('success', 'Batch complete');
                 announceToScreenReader('Batch processing completed');
+
+                // After 10 seconds, reset button and optionally clear files
+                setTimeout(() => {
+                    const submitBtn = document.getElementById('submitBtn');
+                    if (submitBtn) {
+                        submitBtn.classList.remove('completed');
+                        submitBtn.textContent = 'Transcribe';
+                    }
+
+                    // Check if auto-clear is enabled (default: true)
+                    const autoClearEnabled = localStorage.getItem('autoClearFiles') !== 'false';
+                    if (autoClearEnabled) {
+                        // Clear file selections
+                        selectNone();
+                        // Refresh the current directory to show updated subtitle indicators
+                        browseDirectories(currentPath);
+                    }
+                }, 10000);
             } else if (data.state === 'FAILURE') {
                 updateUnifiedStatus('Batch failed', false);
                 showToast('error', 'Processing failed');
@@ -1093,12 +1219,12 @@ function updateJobDisplay(data) {
     const submitBtn = document.getElementById('submitBtn');
 
     if (data.state === 'PENDING' || data.state === 'STARTED') {
-        // Just show "Processing" - no progress bar, no counts
-        updateUnifiedStatus('Processing', false);
-        // Add pulsing animation to button
+        // Keep the cost estimate visible during processing (don't clear status bar)
+        // Add pulsing animation to button and change text
         if (submitBtn) {
             submitBtn.classList.add('processing');
             submitBtn.classList.remove('completed');
+            submitBtn.textContent = 'Processing';
         }
     } else if (data.state === 'SUCCESS') {
         updateUnifiedStatus('Complete', false);
@@ -1106,6 +1232,7 @@ function updateJobDisplay(data) {
         if (submitBtn) {
             submitBtn.classList.remove('processing');
             submitBtn.classList.add('completed');
+            submitBtn.textContent = 'Done!';
         }
     } else if (data.state === 'FAILURE') {
         updateUnifiedStatus('Batch failed', false);
@@ -1320,12 +1447,16 @@ async function checkApiKeyStatus() {
         if (hasKey) {
             statusIndicator.className = 'api-key-status configured';
             statusIndicator.setAttribute('data-status', statusMessage);
-            if (generateBtn) generateBtn.disabled = false;
+            if (generateBtn) {
+                generateBtn.disabled = false;
+                generateBtn.style.display = 'inline-flex';
+            }
         } else {
             statusIndicator.className = 'api-key-status missing';
             statusIndicator.setAttribute('data-status', statusMessage);
             if (generateBtn) {
                 generateBtn.disabled = true;
+                generateBtn.style.display = 'none';
                 generateBtn.title = `${statusMessage}. Configure in .env file.`;
             }
         }
@@ -1333,7 +1464,10 @@ async function checkApiKeyStatus() {
         console.error('Failed to check API key status:', error);
         statusIndicator.className = 'api-key-status missing';
         statusIndicator.setAttribute('data-status', 'Unable to check API key status');
-        if (generateBtn) generateBtn.disabled = true;
+        if (generateBtn) {
+            generateBtn.disabled = true;
+            generateBtn.style.display = 'none';
+        }
     }
 }
 
