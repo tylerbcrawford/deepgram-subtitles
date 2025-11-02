@@ -195,18 +195,26 @@ h2, h3 {
    ============================================ */
 
 /* Primary Button - Enhanced */
-.btn-primary {
+.btn-primary,
+.btn-secondary {
   background: var(--color-blue);
   color: #FFFFFF;
-  border: none;
-  padding: 14px 32px;
+  border: 2px solid transparent;
+  padding: 16px 48px;
   border-radius: var(--radius-lg);
-  font-size: var(--font-h3);
+  font-size: 18px;
   font-weight: 700;
   cursor: pointer;
   transition: all 200ms ease;
-  min-height: 44px;
-  border: 2px solid transparent;
+  min-height: 48px;
+  width: 280px;
+  max-width: 100%;
+  margin: 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-sizing: border-box;
 }
 
 .btn-primary:hover:not(:disabled) {
@@ -1019,17 +1027,6 @@ input[readonly] {
     margin-bottom: var(--space-m);
   }
 
-  .btn-primary,
-  button {
-    width: 100%;
-    min-height: 48px; /* Larger touch targets */
-    font-size: var(--font-body);
-  }
-
-  .btn-secondary {
-    width: auto;
-  }
-
   .btn-link {
     padding: var(--space-s);
     min-height: 44px;
@@ -1118,12 +1115,12 @@ input[readonly] {
   .empty-state {
     padding: var(--space-l);
   }
-  
+
   .empty-icon {
     width: 48px;
     height: 48px;
   }
-  
+
   .empty-icon svg {
     width: 24px;
     height: 24px;
@@ -1748,49 +1745,7 @@ button:active,
   margin-bottom: var(--space-m);
 }
 
-/* Secondary button variant for LLM generation */
-.btn-secondary {
-  background: var(--color-blue);
-  color: #FFFFFF;
-  border: 2px solid transparent;
-  padding: 12px 24px;
-  border-radius: var(--radius-md);
-  font-size: var(--font-h3);
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 200ms ease;
-  min-height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-s);
-}
-
-.btn-secondary:hover:not(:disabled) {
-  transform: translateY(-2px);
-  border-color: rgba(0, 174, 239, 0.5);
-}
-
-.btn-secondary:active:not(:disabled) {
-  transform: scale(0.97);
-}
-
-.btn-secondary:disabled {
-  background: var(--disabled);
-  cursor: not-allowed;
-  opacity: 0.6;
-  border-color: transparent;
-}
-
-.btn-secondary:focus-visible {
-  outline: 2px solid var(--color-blue);
-  outline-offset: 2px;
-}
-
-.btn-secondary .icon {
-  font-size: 18px;
-  line-height: 1;
-}
+/* Secondary button - shares styles with primary */
 
 /* Compact button variant */
 .btn-compact {

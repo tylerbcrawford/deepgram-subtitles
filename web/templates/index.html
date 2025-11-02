@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Subgeneratorr</title>
-    <link rel="stylesheet" href="/static/styles.css">
+    <link rel="stylesheet" href="/static/styles.css?v=2">
 </head>
 <body>
     <div class="container">
@@ -29,7 +29,7 @@
                     <p class="subtitle">Subtitle + Transcript Generation via Deepgram Nova-3</p>
                 </div>
 
-                <button onclick="submitBatch()" id="submitBtn" class="btn-primary" disabled style="min-width: 160px; margin: 0 auto;">Transcribe</button>
+                <button onclick="submitBatch()" id="submitBtn" class="btn-primary" disabled>Transcribe</button>
 
                 <!-- Unified Status Area -->
                 <div class="unified-status" id="unifiedStatus">
@@ -120,7 +120,7 @@
                                 Keyterms are auto-loaded and auto-saved from CSV if available.
                             </small>
                             <div style="text-align: center; margin-top: var(--space-m);">
-                                <button id="generateKeytermsBtn" class="btn-secondary" style="display: inline-flex;" title="Generate keyterms using AI">
+                                <button id="generateKeytermsBtn" class="btn-secondary" title="Generate keyterms using AI">
                                     Generate Keyterms
                                 </button>
                             </div>
@@ -211,7 +211,7 @@
                         <div class="llm-settings" style="margin-top: var(--space-l); text-align: center;">
                             <div style="display: flex; justify-content: center; align-items: center; margin-bottom: var(--space-m); flex-direction: column; gap: var(--space-xs);">
                                 <h3 class="section-title" style="margin: 0; text-align: center;">AI Keyterm Generation</h3>
-                                <span id="keytermCostEstimate" style="color: var(--text-tertiary); font-size: var(--font-small);"></span>
+                                <span id="keytermCostEstimate" style="color: var(--text-secondary); font-size: var(--font-small);"></span>
                             </div>
 
                             <div class="form-group" style="text-align: center;">

@@ -106,7 +106,10 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Check API key status on page load
     checkApiKeyStatus();
-    
+
+    // Initialize keyterm cost estimate
+    updateKeytermCostEstimate();
+
     // Re-check API key status when provider changes
     if (llmProvider) {
         llmProvider.addEventListener('change', checkApiKeyStatus);
@@ -848,7 +851,7 @@ function selectNone() {
     // Clear keyterms when clearing selection
     clearKeytermField();
     updateSelectionStatus();
-    showToast('info', 'Selection cleared');
+    // showToast('info', 'Selection cleared'); // Disabled
 }
 
 function clearSelection() {
@@ -1156,7 +1159,7 @@ async function checkJobStatus(batchId) {
                 const failed = results.filter(r => r.status === 'error').length;
 
                 updateUnifiedStatus(`Complete: ${successful} processed, ${skipped} skipped, ${failed} failed`, false);
-                showToast('success', 'Batch complete');
+                // showToast('success', 'Batch complete'); // Disabled
                 announceToScreenReader('Batch processing completed');
 
                 // After 10 seconds, reset button and optionally clear files
@@ -1306,26 +1309,34 @@ function hideSpinner() {
  */
 async function updateKeytermCostEstimate() {
     const costElement = document.getElementById('keytermCostEstimate');
-    
-    // Get the current video path
-    const videoPath = getCurrentVideoPath();
-    
-    if (!videoPath) {
-        costElement.textContent = '';
+
+    if (!costElement) {
+        console.error('keytermCostEstimate element not found');
         return;
     }
-    
+
+    // Get the current video path
+    const videoPath = getCurrentVideoPath();
+
+    if (!videoPath) {
+        costElement.textContent = 'Est. cost: $0.00';
+        costElement.style.color = 'var(--text-tertiary)';
+        return;
+    }
+
     const provider = document.getElementById('llmProvider').value;
     const model = document.getElementById('llmModel').value;
-    
+
     try {
         costElement.textContent = 'Calculating...';
+        costElement.style.color = 'var(--text-tertiary)';
         const estimate = await fetchCostEstimate(videoPath, provider, model);
         costElement.textContent = `Est. cost: $${estimate.estimated_cost.toFixed(4)}`;
-        costElement.style.color = 'var(--color-green)';
+        costElement.style.color = 'var(--text-secondary)';
     } catch (error) {
         console.error('Failed to estimate cost:', error);
-        costElement.textContent = '';
+        costElement.textContent = 'Unable to estimate cost';
+        costElement.style.color = 'var(--text-tertiary)';
     }
 }
 
