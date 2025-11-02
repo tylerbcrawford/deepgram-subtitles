@@ -1104,6 +1104,13 @@ input[readonly] {
   .llm-settings {
     padding: var(--space-m);
   }
+
+  /* Advanced Options Toggle Button - Center on Mobile */
+  #advancedToggle {
+    display: block;
+    margin: 0 auto;
+    text-align: center;
+  }
   
   /* Section headers */
   .section-header {

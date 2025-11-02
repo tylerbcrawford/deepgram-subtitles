@@ -687,6 +687,9 @@ function setupKeyboardShortcuts() {
 let generatingToast = null;
 
 function showToast(type, message, options = {}) {
+    // DISABLED: Toast notifications are currently disabled
+    return null;
+
     // Remove any existing toasts
     document.querySelectorAll('.toast').forEach(t => t.remove());
 
