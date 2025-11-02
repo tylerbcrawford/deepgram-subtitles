@@ -26,7 +26,6 @@ from deepgram import DeepgramClient, PrerecordedOptions
 from deepgram_captions import DeepgramConverter, srt
 
 from config import Config
-from transcript_generator import TranscriptGenerator
 import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 from core.transcribe import (
@@ -343,8 +342,8 @@ class SubtitleGenerator:
             transcripts_folder = get_transcripts_folder(video_path)
             transcript_path = transcripts_folder / f"{video_path.stem}.transcript.speakers.txt"
             
-            # Auto-detect speaker map (checks Transcripts/Speakermap/ and falls back to speaker_maps/)
-            speaker_map_path = find_speaker_map(video_path, fallback_path=Config.SPEAKER_MAPS_PATH)
+            # Auto-detect speaker map from Transcripts/Speakermap/
+            speaker_map_path = find_speaker_map(video_path)
             if speaker_map_path:
                 self.log(f"  📋 Using speaker map: {speaker_map_path}")
             else:

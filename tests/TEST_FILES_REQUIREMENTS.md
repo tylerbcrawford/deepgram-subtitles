@@ -19,9 +19,10 @@ test_data/
 │   └── test_audio.mp3          # File 5: Audio file
 ├── file_lists/
 │   └── test_list.txt           # Created automatically by test script
-└── speaker_maps/
-    └── TestShow/
-        └── speakers.csv         # Optional: For speaker map testing
+└── TestShow/
+    └── Transcripts/
+        └── Speakermap/
+            └── speakers.csv     # Optional: For speaker map testing
 ```
 
 ---
@@ -189,7 +190,7 @@ ffmpeg -i input.mp4 -vn -acodec mp3 -ar 16000 -ac 1 test_audio.mp3
 
 ### Speaker Map CSV (optional but recommended)
 
-**Location:** `test_data/speaker_maps/TestShow/speakers.csv`
+**Location:** `test_data/videos/TestShow/Transcripts/Speakermap/speakers.csv`
 
 **Purpose:** Test speaker name mapping functionality
 

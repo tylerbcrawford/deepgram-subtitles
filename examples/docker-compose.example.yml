@@ -30,7 +30,7 @@ services:
       # Mount logs directory to persist processing statistics
       - ./deepgram-logs:/logs
       
-      # Mount config directory for video list files and speaker maps
+      # Mount config directory for video list files
       - .:/config
     
     # Set to "no" to prevent auto-restart (run manually)

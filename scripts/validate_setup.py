@@ -79,7 +79,6 @@ def main():
     checks.append(check_directory("docs", "Documentation directory"))
     checks.append(check_directory("examples", "Example files directory"))
     checks.append(check_directory("tests", "Test scripts directory"))
-    checks.append(check_directory("speaker_maps", "Speaker maps directory"))
     warnings.append(check_directory("deepgram-logs", "Logs directory", required=False))
     print()
     
@@ -157,14 +156,6 @@ def main():
     checks.append(check_file("Makefile", "Make commands"))
     checks.append(check_file("README.md", "Main documentation"))
     checks.append(check_file("LICENSE", "License file"))
-    print()
-    
-    # ========================================================================
-    # Speaker Maps
-    # ========================================================================
-    print("🗣️  Speaker Maps:")
-    checks.append(check_file("speaker_maps/README.md", "Speaker maps documentation"))
-    warnings.append(check_directory("speaker_maps/Breaking Bad", "Example speaker map", required=False))
     print()
     
     # ========================================================================

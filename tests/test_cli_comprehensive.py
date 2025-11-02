@@ -423,23 +423,24 @@ class CLITestRunner:
     def test_transcript_with_speaker_map(self) -> bool:
         """Test 4.2: Transcript generation with speaker name mapping"""
         self.log("TEST 4.2: Transcript with Speaker Map", "HEADER")
-        
-        # Check if speaker map exists
-        speaker_maps_dir = self.test_data_dir / "speaker_maps" / "TestShow"
-        speaker_csv = speaker_maps_dir / "speakers.csv"
-        
+
+        # Check if speaker map exists in new Transcripts/Speakermap/ location
+        # For TestShow, the speaker map should be at:
+        # test_data/videos/TestShow/Transcripts/Speakermap/speakers.csv
+        transcripts_dir = self.test_data_dir / "videos" / "TestShow" / "Transcripts" / "Speakermap"
+        speaker_csv = transcripts_dir / "speakers.csv"
+
         if not speaker_csv.exists():
             self.log("No speaker map found, test will use generic labels", "WARNING")
-            self.record_test_result("Transcript with Speaker Map", False, 
+            self.record_test_result("Transcript with Speaker Map", False,
                                    "Speaker map not provided", skipped=True)
             return False
-        
+
         self.cleanup_test_outputs()
-        
+
         env_vars = {
             "MEDIA_PATH": str(self.test_data_dir / "videos"),
             "ENABLE_TRANSCRIPT": "1",
-            "SPEAKER_MAPS_PATH": str(self.test_data_dir / "speaker_maps"),
             "BATCH_SIZE": "1"
         }
         

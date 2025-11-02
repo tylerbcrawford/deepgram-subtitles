@@ -93,9 +93,6 @@ subgeneratorr/
 │   └── video-list-example.txt   # Example file list
 ├── tests/                        # Test scripts
 │   └── test_single_video.py     # Single video test script
-├── speaker_maps/                 # Speaker name mappings (legacy location)
-│   └── [Show Name]/
-│       └── speakers.csv
 ├── deepgram-logs/               # Processing logs (gitignored)
 ├── .env.example                 # Environment template
 ├── .gitignore
@@ -407,7 +404,6 @@ Submit batch of files for processing.
   "force_regenerate": false,
   "enable_transcript": false,
   "profanity_filter": "off",
-  "speaker_map": null,
   "keyterms": ["ProductName", "TechnicalTerm", "account number"],
   "numerals": false,
   "filler_words": false,
@@ -708,9 +704,8 @@ The Web UI supports AI-powered keyterm generation using Anthropic Claude or Open
 
 Speaker maps replace generic "Speaker 0", "Speaker 1" labels with character names in transcripts.
 
-**Detection Priority:**
-1. Per-show/movie location: `Transcripts/Speakermap/speakers.csv` (recommended)
-2. Root directory (legacy): `speaker_maps/{ShowName}/speakers.csv`
+**Location:**
+- Per-show/movie location: `Transcripts/Speakermap/speakers.csv`
 
 ### CSV Format
 

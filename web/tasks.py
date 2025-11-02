@@ -60,7 +60,7 @@ def _save_job_log(payload: dict):
 @celery_app.task(bind=True, name="transcribe_task")
 def transcribe_task(self, video_path: str, model=DEFAULT_MODEL, language=DEFAULT_LANGUAGE,
                     profanity_filter="off", force_regenerate=False, enable_transcript=False,
-                    speaker_map=None, keyterms=None, save_raw_json=False, auto_save_keyterms=False,
+                    keyterms=None, save_raw_json=False, auto_save_keyterms=False,
                     numerals=False, filler_words=False, detect_language=False, measurements=False,
                     diarization=True, utterances=True, paragraphs=True):
     """
@@ -73,7 +73,6 @@ def transcribe_task(self, video_path: str, model=DEFAULT_MODEL, language=DEFAULT
         profanity_filter: Profanity filter mode - "off", "tag", or "remove" (default: off)
         force_regenerate: Force overwrite existing subtitles
         enable_transcript: Generate transcript file in addition to subtitles
-        speaker_map: Optional speaker map name for diarization (deprecated - auto-detected now)
         keyterms: Optional list of keyterms for better recognition (Nova-3, monolingual only)
         save_raw_json: Save raw Deepgram API response for debugging (default: false)
         auto_save_keyterms: Automatically save keyterms to CSV in Transcripts/Keyterms/ (default: false)
@@ -189,14 +188,13 @@ def transcribe_task(self, video_path: str, model=DEFAULT_MODEL, language=DEFAULT
         # Generate transcript if requested
         if enable_transcript:
             self.update_state(state='PROGRESS', meta={'current_file': vp.name, 'stage': 'generating_transcript'})
-            
-            # Auto-detect speaker map (checks Transcripts/Speakermap/ and falls back to speaker_maps/)
-            speaker_maps_root = Path(os.environ.get("SPEAKER_MAPS_PATH", "/config/speaker_maps"))
-            speaker_map_path = find_speaker_map(vp, fallback_path=speaker_maps_root)
-            
+
+            # Auto-detect speaker map from Transcripts/Speakermap/
+            speaker_map_path = find_speaker_map(vp)
+
             if speaker_map_path:
                 print(f"Using speaker map: {speaker_map_path}")
-            
+
             write_transcript(resp, txt_out, speaker_map_path)
         
         # Save raw JSON if enabled (either globally or per-request)
@@ -392,7 +390,7 @@ def generate_keyterms_task(
 
 
 def make_batch(files, model, language, profanity_filter="off", force_regenerate=False,
-               enable_transcript=False, speaker_map=None, keyterms=None, save_raw_json=False,
+               enable_transcript=False, keyterms=None, save_raw_json=False,
                auto_save_keyterms=False, numerals=False, filler_words=False,
                detect_language=False, measurements=False, diarization=True, utterances=True,
                paragraphs=True):
@@ -409,7 +407,6 @@ def make_batch(files, model, language, profanity_filter="off", force_regenerate=
         profanity_filter: Profanity filter mode - "off", "tag", or "remove"
         force_regenerate: Force overwrite existing subtitles
         enable_transcript: Generate transcript files in addition to subtitles
-        speaker_map: Optional speaker map name for diarization (deprecated - auto-detected now)
         keyterms: Optional list of keyterms for better recognition (Nova-3, monolingual)
         save_raw_json: Save raw Deepgram API response for debugging (default: false)
         auto_save_keyterms: Automatically save keyterms to CSV in Transcripts/Keyterms/ (default: false)
@@ -432,7 +429,6 @@ def make_batch(files, model, language, profanity_filter="off", force_regenerate=
             profanity_filter,
             force_regenerate,
             enable_transcript,
-            speaker_map,
             keyterms,
             save_raw_json,
             auto_save_keyterms,

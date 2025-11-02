@@ -258,7 +258,6 @@ def api_submit():
         files: List of video file paths to process
         force_regenerate: Force overwrite existing subtitles (default: false)
         enable_transcript: Generate transcript in addition to subtitles (default: false)
-        speaker_map: Optional speaker map name for diarization (deprecated - auto-detected)
         keyterms: Optional list of key terms for better recognition (Nova-3)
         save_raw_json: Save raw Deepgram API response for debugging (default: false)
         auto_save_keyterms: Automatically save keyterms to CSV (default: false)
@@ -280,7 +279,6 @@ def api_submit():
     raw_files = body.get("files", [])
     force_regenerate = body.get("force_regenerate", False)
     enable_transcript = body.get("enable_transcript", False)
-    speaker_map = body.get("speaker_map")
     keyterms = body.get("keyterms")
     save_raw_json = body.get("save_raw_json", False)
     auto_save_keyterms = body.get("auto_save_keyterms", False)
@@ -314,7 +312,6 @@ def api_submit():
         profanity_filter=profanity_filter,
         force_regenerate=force_regenerate,
         enable_transcript=enable_transcript,
-        speaker_map=speaker_map,
         keyterms=keyterms,
         save_raw_json=save_raw_json,
         auto_save_keyterms=auto_save_keyterms,

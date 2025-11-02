@@ -28,13 +28,12 @@ test_data/
 ├── file_lists/
 │   ├── test_list.txt           # File list for batch processing
 │   └── empty_list.txt          # Empty file list
-└── speaker_maps/
-    └── TestShow/
-        └── speakers.csv         # Test speaker map
-
-Transcripts/                     # Generated during tests
-└── Keyterms/
-    └── TestShow_keyterms.csv    # Test keyterms file
+└── TestShow/
+    └── Transcripts/             # Generated during tests
+        ├── Keyterms/
+        │   └── TestShow_keyterms.csv    # Test keyterms file
+        └── Speakermap/
+            └── speakers.csv     # Test speaker map
 ```
 
 ---

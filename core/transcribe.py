@@ -438,53 +438,28 @@ def save_keyterms_to_csv(video_path: Path, keyterms: List[str]) -> bool:
         return False
 
 
-def find_speaker_map(video_path: Path, fallback_path: Optional[Path] = None) -> Optional[Path]:
+def find_speaker_map(video_path: Path) -> Optional[Path]:
     """
     Find speaker map for a video file.
-    
-    Search order:
-    1. Transcripts/Speakermap/speakers.csv (per show/movie)
-    2. Root speaker_maps/{show_or_movie_name}/speakers.csv (backwards compatibility)
-    
+
+    Looks for: Transcripts/Speakermap/speakers.csv
+
     Args:
         video_path: Path to the video file
-        fallback_path: Optional fallback path to root speaker_maps directory
-        
+
     Returns:
         Path to speakers.csv if found, None otherwise
     """
     try:
-        # First check Transcripts/Speakermap/ folder
+        # Check Transcripts/Speakermap/ folder
         speakermap_folder = get_speakermap_folder(video_path)
         local_map = speakermap_folder / "speakers.csv"
-        
+
         if local_map.exists():
             return local_map
-        
-        # Fallback to root speaker_maps directory
-        if fallback_path:
-            # Determine show/movie name from path
-            path_parts = video_path.parts
-            show_or_movie_name = None
-            
-            for i, part in enumerate(path_parts):
-                part_lower = part.lower()
-                # Check for season folders or specials folders
-                if 'season' in part_lower or part_lower == 'specials':
-                    if i > 0:
-                        show_or_movie_name = path_parts[i - 1]
-                    break
-            
-            if not show_or_movie_name:
-                show_or_movie_name = video_path.parent.name
-            
-            # Check root speaker_maps directory
-            root_map = fallback_path / show_or_movie_name / "speakers.csv"
-            if root_map.exists():
-                return root_map
-        
+
         return None
-        
+
     except Exception as e:
         print(f"Warning: Failed to find speaker map: {e}")
         return None

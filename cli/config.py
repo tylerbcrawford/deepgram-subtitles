@@ -15,7 +15,6 @@ class Config:
     
     # Transcript feature settings
     ENABLE_TRANSCRIPT = os.environ.get("ENABLE_TRANSCRIPT", "0") == "1"
-    SPEAKER_MAPS_PATH = os.environ.get("SPEAKER_MAPS_PATH", "/config/speaker_maps")
     
     # Raw JSON output toggle - saves raw Deepgram API response for debugging
     SAVE_RAW_JSON = os.environ.get("SAVE_RAW_JSON", "0") == "1"
