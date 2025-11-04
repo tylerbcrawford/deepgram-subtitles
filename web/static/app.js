@@ -264,7 +264,6 @@ async function browseDirectories(path) {
         
         // Add subdirectories
         if (data.directories.length > 0) {
-            html += '<h3 class="section-header">Folders</h3>';
             html += '<div class="browser-section">';
             data.directories.forEach(dir => {
                 const videoText = dir.video_count === 1 ? 'video' : 'videos';
