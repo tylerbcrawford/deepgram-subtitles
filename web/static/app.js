@@ -453,11 +453,11 @@ function applyDefaultSettings() {
     const paragraphs = document.getElementById('paragraphs');
     const onlyFoldersWithVideos = document.getElementById('onlyFoldersWithVideos');
 
-    if (numerals) numerals.checked = true;
+    if (numerals) numerals.checked = false;
     // fillerWords defaults to unchecked (not enabled by default)
     if (fillerWords) fillerWords.checked = false;
     if (measurements) measurements.checked = true;
-    if (diarization) diarization.checked = true;
+    if (diarization) diarization.checked = false;
     if (utterances) utterances.checked = true;
     if (paragraphs) paragraphs.checked = true;
     if (onlyFoldersWithVideos) onlyFoldersWithVideos.checked = true;
