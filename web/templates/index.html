@@ -8,18 +8,6 @@
 </head>
 <body>
     <div class="container">
-        <!-- Header with Theme Toggle -->
-        <header>
-            <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
-                <svg class="theme-icon theme-icon-dark" width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-                    <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"/>
-                </svg>
-                <svg class="theme-icon theme-icon-light" width="20" height="20" viewBox="0 0 20 20" fill="currentColor" style="display: none;">
-                    <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd"/>
-                </svg>
-            </button>
-        </header>
-
         <!-- Main Content -->
         <main>
             <!-- File Selection Section -->
@@ -98,7 +86,7 @@
 
                     <!-- Directory Browser -->
                     <div id="directoryBrowser">
-                        <label class="section-label">Folders</label>
+                        <label class="section-label" style="text-align: center;">Folders</label>
                         <div id="directoryList" class="files-list">
                             <div id="skeleton" class="skeleton-loader hidden">
                                 <div class="skeleton-item"></div>
@@ -150,18 +138,18 @@
                         <div class="nova-settings" style="text-align: center;">
                             <h3 class="section-title" style="text-align: center;">Quality Enhancements</h3>
 
-                            <div class="form-group" style="text-align: center;">
+                            <div class="form-group">
                                 <label style="text-align: center; font-size: var(--font-body); color: var(--text-tertiary);">Profanity Filter</label>
-                                <div class="radio-group" style="justify-content: center; margin: 0 auto;">
-                                    <label class="radio-label" style="font-size: var(--font-small); color: var(--text-tertiary);">
+                                <div class="radio-group">
+                                    <label class="radio-label">
                                         <input type="radio" name="profanityFilter" value="off" checked style="opacity: 0.6;">
                                         <span>Off</span>
                                     </label>
-                                    <label class="radio-label" style="font-size: var(--font-small); color: var(--text-tertiary);">
+                                    <label class="radio-label">
                                         <input type="radio" name="profanityFilter" value="tag" style="opacity: 0.6;">
                                         <span>Tag</span>
                                     </label>
-                                    <label class="radio-label" style="font-size: var(--font-small); color: var(--text-tertiary);">
+                                    <label class="radio-label">
                                         <input type="radio" name="profanityFilter" value="remove" style="opacity: 0.6;">
                                         <span>Remove</span>
                                     </label>
@@ -242,7 +230,7 @@
                                 </select>
                             </div>
 
-                            <label class="checkbox-label" style="justify-content: center; color: var(--text-tertiary);">
+                            <label class="checkbox-label" style="justify-content: center; color: var(--text-tertiary); margin-top: var(--space-m);">
                                 <input type="checkbox" id="preserveExisting" style="opacity: 0.6;">
                                 <span>Merge with existing keyterms (instead of replacing)</span>
                             </label>
@@ -283,6 +271,14 @@
                                 <input type="checkbox" id="rememberSettings" onchange="toggleRememberSettings()" style="opacity: 0.6;">
                                 <span>Remember my last settings (instead of defaults)</span>
                             </label>
+
+                            <!-- Theme Toggle -->
+                            <div style="display: flex; justify-content: center; margin-top: var(--space-m); margin-bottom: var(--space-m);">
+                                <button class="theme-toggle theme-toggle-small" onclick="toggleTheme()" aria-label="Toggle theme">
+                                    <span class="theme-icon theme-icon-dark">🌙</span>
+                                    <span class="theme-icon theme-icon-light" style="display: none;">☀️</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
