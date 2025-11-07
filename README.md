@@ -25,12 +25,50 @@ I looked around for options with free trials but most only gave a couple hours f
 - 🎯 **Nova-3 Transcription** - Deepgram's flagship model for best-in-class accuracy
 - 🔑 **LLM-Enhanced Keyterms** - AI-powered generation of character names and terminology (optional)
 - 🗣️ **Speaker Diarization** - Identify speakers and create labeled transcripts
-- 🌍 **Multi-Language Support** - 29+ languages supported
+- 🌍 **Multi-Language Support** - 36 languages spanning Europe, Asia, Americas, and beyond
 - 🐳 **Docker-Based** - Easy deployment with CLI and optional Web UI
 - 📁 **Flexible Processing** - Batch process directories, specific files, or from lists
 - 💰 **Cost Tracking** - Real-time estimates and detailed logs (~$0.0043/min)
 - ⚡ **Smart Skipping** - Skip files that already have subtitles
 - 📺 **Media Server Ready** - Auto-recognized by Plex, Jellyfin, Emby (`.eng.srt` format)
+
+---
+
+## Global Language Support
+
+**Nova-3 supports 36 languages** with enterprise-grade accuracy across multiple language families, scripts, and linguistic structures. Whether you're processing English dialogue, tonal Vietnamese, inflection-heavy Polish, or Japanese with mixed writing systems, Nova-3 adapts to the linguistic structure of each language.
+
+### Supported Languages
+
+**Western Europe:**
+- English (en), Spanish (es), French (fr), German (de), Italian (it), Portuguese (pt), Dutch (nl), Catalan (ca), Galician (gl)
+
+**Eastern Europe & Eurasia:**
+- Russian (ru), Ukrainian (uk), Polish (pl), Czech (cs), Bulgarian (bg), Hungarian (hu)
+
+**Nordics & Baltics:**
+- Swedish (sv), Norwegian (no), Danish (da), Finnish (fi)
+
+**South Asia:**
+- Hindi (hi), Tamil (ta), Marathi (mr)
+
+**East Asia:**
+- Chinese/Mandarin (zh, zh-CN, zh-TW), Japanese (ja), Korean (ko)
+
+**Southeast Asia:**
+- Indonesian (id), Malay (ms), Vietnamese (vi), Thai (th), Filipino/Tagalog (tl)
+
+**Other:**
+- Turkish (tr), Romanian (ro)
+
+Nova-3's multi-language capabilities include:
+- **Tonal language support** - Accurate tone resolution in Vietnamese, Thai, and Mandarin
+- **Complex morphology** - Handles agglutinative languages like Hungarian, Finnish, and Turkish
+- **Non-Latin scripts** - Native support for Cyrillic, Hangul, Kanji, Kana, and Devanagari
+- **Code-switching** - Recognizes mixed-language speech (Hinglish, Spanglish, etc.)
+- **Keyterm prompting** - Available across all languages for domain-specific terminology
+
+Simply set `LANGUAGE=` to any supported code (e.g., `ko` for Korean, `hi` for Hindi, `vi` for Vietnamese) to process media in that language.
 
 ---
 
@@ -160,7 +198,7 @@ Key settings in `.env`:
 |----------|-------------|---------|
 | `DEEPGRAM_API_KEY` | Deepgram API key (required) | - |
 | `MEDIA_PATH` | Media directory to scan | `/media` |
-| `LANGUAGE` | Language code (`en`, `es`, `fr`, etc.) | `en` |
+| `LANGUAGE` | Language code (see supported languages above) | `en` |
 | `ENABLE_TRANSCRIPT` | Generate speaker-labeled transcripts | `0` |
 | `FORCE_REGENERATE` | Regenerate existing subtitles | `0` |
 | `PROFANITY_FILTER` | Filter mode: `off`, `tag`, or `remove` | `off` |

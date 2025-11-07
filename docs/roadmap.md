@@ -81,6 +81,67 @@ Final design review and refinement for V2 release.
 
 ---
 
+### 🌐 Priority 7.5: Language Options UX Enhancement
+**Effort:** Low | **Timeline:** 2-3 hours
+**Status:** ⏳ After Priority 7
+
+Enhance language detection and code-switching features to surface valuable metadata and improve feature conflict handling.
+
+**Evaluation Summary:**
+Both auto-detect language (35 languages) and multi-language code-switching (10 languages) are valuable Nova-3 differentiators worth keeping. These features work perfectly with the batch/pre-recorded architecture, but currently the rich metadata from Deepgram responses isn't displayed to users.
+
+**Current Features:**
+- **Auto-detect language** (`detect_language`): Identifies dominant language from 35+ supported languages, returns confidence score
+- **Multi-language code-switching** (`language=multi`): Nova-3's breakthrough feature for real-time transcription across 10 languages (Spanglish, Hinglish, etc.), returns word-level language tags
+
+**Implementation Tasks:**
+- [ ] Improve keyterms conflict handling
+  - [ ] Auto-disable keyterm generation when multi-language is enabled
+  - [ ] Remove confirmation dialog (replace with clear tooltip/explanation)
+  - [ ] Update UI state automatically when toggling multi-language
+- [ ] Add visual indicators for active language overrides
+  - [ ] Badge/icon showing when auto-detect is active
+  - [ ] Badge showing when multi-language is active (overrides dropdown)
+  - [ ] Make language state clear without being intrusive
+- [ ] Display detection results after transcription
+  - [ ] Show detected language + confidence score in results area
+  - [ ] For code-switching: show language breakdown (e.g., "English 67%, Spanish 33%")
+  - [ ] Make this information copyable/exportable
+- [ ] Include language metadata in saved results
+  - [ ] Add to transcript output files when available
+  - [ ] Include in raw JSON when that option is enabled
+  - [ ] Preserve word-level language tags from code-switching
+- [ ] Enhance help text with concrete examples
+  - [ ] Add use cases: "Spanglish, Hinglish, bilingual meetings"
+  - [ ] List 10 supported code-switching languages (EN/ES/FR/DE/HI/RU/PT/JA/IT/NL)
+  - [ ] Show 35 auto-detect supported languages
+  - [ ] Clarify difference between auto-detect (unknown single language) vs code-switching (known bilingual content)
+- [ ] Optional: Add language restriction for auto-detect
+  - [ ] Multi-select to constrain detection to specific languages
+  - [ ] Example: Only detect between English/Spanish/French
+  - [ ] Reduces false positives for known language sets
+
+**Design Principles:**
+- Keep language options in Advanced Options section (not promoted to main UI)
+- Make visual feedback subtle (not prominent/loud)
+- Focus on surfacing hidden API metadata that's already being returned
+- Handle feature conflicts gracefully without blocking user workflows
+
+**Technical Notes:**
+- Language detection is pre-recorded only (not streaming) - perfect for this application
+- Code-switching returns word-level language data we're not currently displaying
+- Model auto-fallback: Nova-3 → Nova-2 → Nova-1 → Enhanced → Base
+- Multi-language incompatible with keyterms (Nova-3 monolingual-only feature)
+
+**Benefits:**
+- Better user understanding of what languages were detected
+- Reduced friction between keyterms and multi-language features
+- Showcases Nova-3's unique code-switching capabilities
+- Provides valuable metadata for international users and content analysts
+- Differentiates from competitors who don't expose these features
+
+---
+
 ### 🔍 Priority 8: CLI/GUI Feature Parity Verification
 **Effort:** Low | **Timeline:** 1-2 hours
 **Status:** ⏳ After Priority 7

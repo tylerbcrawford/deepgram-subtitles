@@ -7,6 +7,7 @@ let currentBatchId = null;
 let eventSource = null;
 let pollInterval = null;
 let onlyFoldersWithVideos = true; // Default to filtering empty folders
+let isInitialLoad = true; // Flag to prevent clearing keyterms on initial page load
 
 /* ============================================
    INITIALIZATION
@@ -15,9 +16,6 @@ let onlyFoldersWithVideos = true; // Default to filtering empty folders
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize theme
     initTheme();
-
-    // Clear keyterms field on page load
-    clearKeytermField();
 
     // Load config
     fetch('/api/config')
@@ -31,24 +29,30 @@ document.addEventListener('DOMContentLoaded', function() {
     const savedSettings = localStorage.getItem('deepgramSettings');
     const shouldLoadSaved = savedSettings !== null;
 
+    let initialPath = '/media'; // Default path
+
     if (shouldLoadSaved) {
-        // Load saved settings
-        loadSavedSettings();
+        // Load saved settings (including folder path and keyterms)
+        const restoredPath = loadSavedSettings();
+        if (restoredPath) {
+            initialPath = restoredPath;
+        }
     } else {
-        // Apply default settings
+        // Apply default settings and clear keyterms
         applyDefaultSettings();
+        clearKeytermField();
     }
 
     // Hide transcript options
     document.getElementById('transcriptOptions').style.display = 'none';
-    
+
     // Setup event delegation for directory items
     document.getElementById('directoryList').addEventListener('click', function(e) {
         // Prevent clicks on file checkboxes and labels from triggering directory navigation
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'LABEL') {
             return;
         }
-        
+
         // Find the directory-item
         let dirItem = null;
         if (e.target.classList && e.target.classList.contains('directory-item') && e.target.hasAttribute('data-path')) {
@@ -56,7 +60,7 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             dirItem = e.target.closest('.directory-item[data-path]');
         }
-        
+
         if (dirItem) {
             const path = dirItem.getAttribute('data-path');
             if (path) {
@@ -64,10 +68,11 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     });
-    
-    // Automatically load /media directory on page load
-    browseDirectories('/media');
-    
+
+    // Automatically load directory on page load
+    console.log('Initial path for browseDirectories:', initialPath);
+    browseDirectories(initialPath);
+
     // Setup keyboard shortcuts
     setupKeyboardShortcuts();
     
@@ -257,17 +262,21 @@ async function browseDirectories(path) {
     currentPath = path;
     const directoryList = document.getElementById('directoryList');
     const showAll = true;
-    
+
     // Clear selection when navigating to a different folder (Group B: Folder Scope)
     if (path !== currentFolder && selectedFiles.length > 0) {
         selectedFiles = [];
         currentFolder = path;
         updateSelectionStatus();
     }
-    
-    // Clear keyterms when navigating directories
-    clearKeytermField();
-    
+
+    // Clear keyterms when navigating directories (but not on initial load if settings are restored)
+    if (!isInitialLoad) {
+        clearKeytermField();
+    } else {
+        isInitialLoad = false; // Reset flag after first load
+    }
+
     console.log('Browsing directory:', path);
     updateBreadcrumb(path);
     
@@ -475,6 +484,10 @@ function toggleRememberSettings() {
     } else {
         // Clear saved settings from localStorage
         localStorage.removeItem('deepgramSettings');
+        // Clear keyterms field immediately
+        clearKeytermField();
+        // Navigate back to /media directory
+        browseDirectories('/media');
         showToast('info', 'Settings cleared - using defaults');
     }
 }
@@ -539,9 +552,12 @@ function saveCurrentSettings() {
         paragraphs: document.getElementById('paragraphs')?.checked,
         preserveExisting: document.getElementById('preserveExisting')?.checked,
         onlyFoldersWithVideos: document.getElementById('onlyFoldersWithVideos')?.checked,
-        autoClearFiles: document.getElementById('autoClearFiles')?.checked
+        autoClearFiles: document.getElementById('autoClearFiles')?.checked,
+        currentPath: currentPath, // Save the current folder path
+        keyterms: document.getElementById('keyTerms')?.value.trim() || '' // Save keyterms
     };
 
+    console.log('Saving settings with currentPath:', currentPath);
     localStorage.setItem('deepgramSettings', JSON.stringify(settings));
 }
 
@@ -581,14 +597,56 @@ function loadSavedSettings() {
                 if (radio) radio.checked = true;
             }
 
+            // Restore folder path (will be returned and used for initial navigation)
+            let restoredPath = null;
+            if (settings.currentPath) {
+                currentPath = settings.currentPath;
+                restoredPath = settings.currentPath;
+                console.log('Restored currentPath from settings:', currentPath);
+            }
+
+            // Restore keyterms
+            if (settings.keyterms) {
+                const keytermsInput = document.getElementById('keyTerms');
+                if (keytermsInput) {
+                    // Set flag to prevent input listener from triggering auto-save
+                    if (keytermsInput._setAutoLoading) {
+                        keytermsInput._setAutoLoading(true);
+                    }
+
+                    keytermsInput.value = settings.keyterms;
+
+                    // Reset flag after a brief delay
+                    setTimeout(() => {
+                        if (keytermsInput._setAutoLoading) {
+                            keytermsInput._setAutoLoading(false);
+                        }
+                    }, 100);
+
+                    // Update label to show restored state
+                    const keytermCount = settings.keyterms.split(',').filter(k => k.trim().length > 0).length;
+                    const keyTermsLabel = document.querySelector('label[for="keyTerms"]');
+                    if (keyTermsLabel && keytermCount > 0) {
+                        keyTermsLabel.textContent = `KEYTERMS (${keytermCount} restored from last session)`;
+                        keyTermsLabel.style.color = 'var(--color-blue)';
+                        keyTermsLabel.setAttribute('data-original-text', 'KEYTERMS');
+                    }
+                }
+            }
+
             // Check the remember settings checkbox
             if (rememberCheckbox) rememberCheckbox.checked = true;
+
+            // Return the restored path so it can be used for initial navigation
+            return restoredPath;
         } catch (e) {
             console.error('Error loading saved settings:', e);
             localStorage.removeItem('deepgramSettings');
             applyDefaultSettings();
+            return null;
         }
     }
+    return null;
 }
 
 /* ============================================
