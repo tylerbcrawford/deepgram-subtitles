@@ -142,6 +142,21 @@ document.addEventListener('DOMContentLoaded', function() {
         llmProvider.addEventListener('change', checkApiKeyStatus);
     }
 
+    // Handle language selection change for keyterms availability
+    const languageSelect = document.getElementById('language');
+    if (languageSelect) {
+        languageSelect.addEventListener('change', updateKeytermAvailability);
+    }
+
+    // Handle multi-language toggle for keyterms availability
+    const multiLanguageCheckbox = document.getElementById('multiLanguage');
+    if (multiLanguageCheckbox) {
+        multiLanguageCheckbox.addEventListener('change', handleMultiLanguageToggle);
+    }
+
+    // Initialize keyterm availability state on page load
+    updateKeytermAvailability();
+
     // Handle overwrite checkbox to control file text color
     const forceRegenerateCheckbox = document.getElementById('forceRegenerate');
     if (forceRegenerateCheckbox) {
@@ -823,6 +838,42 @@ function handleMultiLanguageToggle() {
 
     if (multiLanguage && multiLanguage.checked && keyTerms && keyTerms.value.trim()) {
         showToast('warning', 'Note: Keyterm prompting is not available with multi-language mode');
+    }
+
+    // Update keyterm availability when multi-language is toggled
+    updateKeytermAvailability();
+}
+
+/* ============================================
+   KEYTERM AVAILABILITY (LANGUAGE CHECK)
+   ============================================ */
+
+function updateKeytermAvailability() {
+    const languageSelect = document.getElementById('language');
+    const multiLanguage = document.getElementById('multiLanguage');
+    const keytermsInput = document.getElementById('keyTerms');
+    const generateBtn = document.getElementById('generateKeytermsBtn');
+    const preserveCheckbox = document.getElementById('preserveExisting');
+    const overwriteCheckbox = document.getElementById('overwriteExisting');
+
+    if (!languageSelect || !keytermsInput) return;
+
+    const selectedLanguage = languageSelect.value;
+    const isMultiLanguage = multiLanguage?.checked || false;
+
+    // Keyterms only available for English (en or en-*)
+    const isEnglish = selectedLanguage === 'en' || selectedLanguage.startsWith('en-');
+    const keytermAvailable = isEnglish && !isMultiLanguage;
+
+    // Disable/enable keyterms elements
+    keytermsInput.disabled = !keytermAvailable;
+    if (generateBtn) generateBtn.disabled = !keytermAvailable;
+    if (preserveCheckbox) preserveCheckbox.disabled = !keytermAvailable;
+    if (overwriteCheckbox) overwriteCheckbox.disabled = !keytermAvailable;
+
+    // Update button state if keyterms are available
+    if (keytermAvailable) {
+        updateGenerateKeytermButtonState();
     }
 }
 
@@ -1711,8 +1762,24 @@ function updateGenerateKeytermButtonState() {
     const keytermsInput = document.getElementById('keyTerms');
     const preserveCheckbox = document.getElementById('preserveExisting');
     const overwriteCheckbox = document.getElementById('overwriteExisting');
+    const languageSelect = document.getElementById('language');
+    const multiLanguage = document.getElementById('multiLanguage');
 
     if (!generateBtn || !keytermsInput) return;
+
+    // Check language availability first
+    const selectedLanguage = languageSelect?.value || 'en';
+    const isMultiLanguage = multiLanguage?.checked || false;
+    const isEnglish = selectedLanguage === 'en' || selectedLanguage.startsWith('en-');
+    const keytermAvailable = isEnglish && !isMultiLanguage;
+
+    // If keyterms not available for this language, keep button disabled
+    if (!keytermAvailable) {
+        generateBtn.disabled = true;
+        generateBtn.classList.remove('btn-green', 'btn-blue', 'btn-orange');
+        generateBtn.textContent = 'Generate Keyterms';
+        return;
+    }
 
     const hasKeyterms = keytermsInput.value.trim().length > 0;
     const preserveChecked = preserveCheckbox?.checked || false;

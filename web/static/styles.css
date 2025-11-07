@@ -428,6 +428,16 @@ textarea {
   line-height: var(--line-height-normal);
 }
 
+/* Disabled state for textarea and inputs */
+textarea:disabled,
+input:disabled:not([type="checkbox"]):not([type="radio"]) {
+  background: var(--bg-secondary);
+  color: var(--text-tertiary);
+  cursor: not-allowed;
+  opacity: 0.6;
+  border-color: var(--border);
+}
+
 input[readonly] {
   background: var(--bg-primary);
   cursor: default;
