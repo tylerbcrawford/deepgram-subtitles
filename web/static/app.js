@@ -162,13 +162,41 @@ document.addEventListener('DOMContentLoaded', function() {
     // Update cost estimate when keyterms change
     const keytermsField = document.getElementById('keyTerms');
     if (keytermsField) {
-        keytermsField.addEventListener('input', function() {
+        let isAutoLoading = false; // Flag to track programmatic changes
+        let autoSaveTimeout = null; // Debounce timer for auto-save
+
+        keytermsField.addEventListener('input', function(e) {
             if (selectedFiles.length > 0) {
                 calculateEstimatesAuto();
             }
             // Update button state when user manually edits keyterms
             updateGenerateKeytermButtonState();
+
+            // Only trigger auto-save and label reset if this is a manual edit (not programmatic)
+            if (!isAutoLoading) {
+                // Reset label ONLY if it shows auto-loaded or generated (not if it shows "saved")
+                const keyTermsLabel = document.querySelector('label[for="keyTerms"]');
+                if (keyTermsLabel && (keyTermsLabel.textContent.includes('auto-loaded') || keyTermsLabel.textContent.includes('generated')) && !keyTermsLabel.textContent.includes('saved')) {
+                    console.log('Resetting keyterm label from:', keyTermsLabel.textContent);
+                    resetKeytermLabel();
+                }
+
+                // Auto-save after user stops typing (debounced)
+                if (autoSaveTimeout) {
+                    clearTimeout(autoSaveTimeout);
+                }
+
+                console.log('Setting auto-save timer...');
+                autoSaveTimeout = setTimeout(() => {
+                    console.log('Auto-save timer triggered');
+                    autoSaveKeyterms();
+                }, 1500); // Wait 1.5 seconds after user stops typing
+            }
         });
+
+        // Store the flag on the field for access in other functions
+        keytermsField._isAutoLoading = () => isAutoLoading;
+        keytermsField._setAutoLoading = (value) => { isAutoLoading = value; };
     }
 });
 
@@ -567,10 +595,65 @@ function loadSavedSettings() {
    KEYTERMS AUTO-LOADING
    ============================================ */
 
+function resetKeytermLabel() {
+    const keyTermsLabel = document.querySelector('label[for="keyTerms"]');
+    if (keyTermsLabel) {
+        const originalText = keyTermsLabel.getAttribute('data-original-text') || 'KEYTERMS';
+        keyTermsLabel.textContent = originalText;
+        keyTermsLabel.style.color = '';
+    }
+}
+
 function clearKeytermField() {
     const keytermsInput = document.getElementById('keyTerms');
     if (keytermsInput) {
         keytermsInput.value = '';
+    }
+    resetKeytermLabel();
+}
+
+async function autoSaveKeyterms() {
+    // Only auto-save if we have a selected file
+    if (selectedFiles.length === 0) {
+        return;
+    }
+
+    const keytermsInput = document.getElementById('keyTerms');
+    const keyterms = keytermsInput?.value.trim();
+
+    if (!keyterms) {
+        return; // Don't save empty keyterms
+    }
+
+    const firstFile = selectedFiles[0];
+
+    try {
+        const response = await fetch('/api/keyterms/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                video_path: firstFile,
+                keyterms: keyterms
+            })
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            console.log(`Auto-saved ${data.keyterms_count} keyterms`);
+
+            // Update label to show it was saved
+            const keyTermsLabel = document.querySelector('label[for="keyTerms"]');
+            if (keyTermsLabel) {
+                keyTermsLabel.textContent = `KEYTERMS (${data.keyterms_count} saved)`;
+                keyTermsLabel.style.color = 'var(--color-green)';
+                keyTermsLabel.setAttribute('data-original-text', 'KEYTERMS');
+            }
+        } else {
+            const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+            console.error('Failed to auto-save keyterms:', response.status, errorData);
+        }
+    } catch (error) {
+        console.error('Error auto-saving keyterms:', error);
     }
 }
 
@@ -601,23 +684,31 @@ async function loadKeytermsForSelection() {
             // Populate the keyterms text box
             const keyTermsInput = document.getElementById('keyTerms');
             if (keyTermsInput) {
+                // Set flag to prevent input listener from resetting label
+                if (keyTermsInput._setAutoLoading) {
+                    keyTermsInput._setAutoLoading(true);
+                }
+
                 // Join keyterms with commas
                 keyTermsInput.value = data.keyterms.join(', ');
+
+                // Reset flag after a brief delay
+                setTimeout(() => {
+                    if (keyTermsInput._setAutoLoading) {
+                        keyTermsInput._setAutoLoading(false);
+                    }
+                }, 100);
 
                 // Show a subtle notification
                 console.log(`Auto-loaded ${data.count} keyterms from CSV`);
 
-                // Optional: Show a small toast or indicator
+                // Show persistent indicator that keyterms were auto-loaded
                 const keyTermsLabel = document.querySelector('label[for="keyTerms"]');
                 if (keyTermsLabel) {
-                    const originalText = keyTermsLabel.textContent;
-                    keyTermsLabel.textContent = `Key Terms (${data.count} auto-loaded)`;
+                    keyTermsLabel.textContent = `KEYTERMS (${data.count} auto-loaded)`;
                     keyTermsLabel.style.color = 'var(--color-green)';
-
-                    setTimeout(() => {
-                        keyTermsLabel.textContent = originalText;
-                        keyTermsLabel.style.color = '';
-                    }, 3000);
+                    // Store the original text for later reset
+                    keyTermsLabel.setAttribute('data-original-text', 'KEYTERMS');
                 }
             }
         }
@@ -1413,6 +1504,7 @@ async function pollGenerationStatus(taskId) {
                 if (generateBtn) {
                     generateBtn.classList.remove('processing');
                     generateBtn.classList.add('completed');
+                    generateBtn.disabled = false; // Enable to show full green color
                     generateBtn.textContent = 'Done!';
                 }
 
@@ -1425,7 +1517,28 @@ async function pollGenerationStatus(taskId) {
 
                 // Populate keyterms field
                 const keytermsInput = document.getElementById('keyTerms');
+
+                // Set flag to prevent input listener from resetting label
+                if (keytermsInput._setAutoLoading) {
+                    keytermsInput._setAutoLoading(true);
+                }
+
                 keytermsInput.value = data.keyterms.join(', ');
+
+                // Reset flag after a brief delay
+                setTimeout(() => {
+                    if (keytermsInput._setAutoLoading) {
+                        keytermsInput._setAutoLoading(false);
+                    }
+                }, 100);
+
+                // Update label to show generated count
+                const keyTermsLabel = document.querySelector('label[for="keyTerms"]');
+                if (keyTermsLabel) {
+                    keyTermsLabel.textContent = `KEYTERMS (${data.keyterm_count} generated)`;
+                    keyTermsLabel.style.color = 'var(--color-green)';
+                    keyTermsLabel.setAttribute('data-original-text', 'KEYTERMS');
+                }
 
                 // Show success message with cost
                 showMessage(
@@ -1551,9 +1664,9 @@ function updateGenerateKeytermButtonState() {
     generateBtn.classList.remove('btn-green', 'btn-blue', 'btn-orange');
 
     if (!hasKeyterms) {
-        // No keyterms exist - Green and enabled
+        // No keyterms exist - Blue and enabled (same as transcribe button)
         generateBtn.disabled = false;
-        generateBtn.classList.add('btn-green');
+        generateBtn.classList.add('btn-blue');
         generateBtn.textContent = 'Generate Keyterms';
     } else if (overwriteChecked) {
         // Has keyterms + overwrite selected - Orange/Yellow and enabled

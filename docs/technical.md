@@ -84,10 +84,7 @@ subgeneratorr/
 │   └── validate_setup.py        # Setup validation tool
 ├── docs/                         # Documentation
 │   ├── technical.md             # This file
-│   ├── roadmap.md               # Project roadmap
-│   ├── deepgram-ui-update.md    # Web UI implementation notes
-│   ├── keyterm-info.md          # Keyterm prompting guide
-│   └── nova-languages.csv       # Language support matrix
+│   └── roadmap.md               # Project roadmap
 ├── examples/                     # Example configurations
 │   ├── docker-compose.example.yml  # Full docker-compose template
 │   └── video-list-example.txt   # Example file list
@@ -231,7 +228,7 @@ See `examples/video-list-example.txt` for a complete example.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `PROFANITY_FILTER` | `off` | Profanity filter mode: `off`, `tag`, or `remove` |
+| `PROFANITY_FILTER` | `off` | Profanity filter: `off` (disabled) or any other value enables filtering |
 | `NUMERALS` | `0` | Convert spoken numbers to digits (e.g., "twenty twenty four" → "2024") |
 | `FILLER_WORDS` | `0` | Include filler words like "uh", "um" (usually off for subtitles) |
 | `DETECT_LANGUAGE` | `0` | Auto-detect language for international content |
@@ -312,13 +309,15 @@ environment:
 
 **GET `/api/config`**
 
-Get default model and language settings.
+Get default model and language settings, including LLM API key availability.
 
 **Response:**
 ```json
 {
   "default_model": "nova-3",
-  "default_language": "en"
+  "default_language": "en",
+  "anthropic_api_key_configured": true,
+  "openai_api_key_configured": false
 }
 ```
 
@@ -344,7 +343,7 @@ Browse directories and media files.
     {
       "name": "episode.mkv",
       "path": "/media/tv/Show Name/episode.mkv",
-      "has_subtitle": false,
+      "has_subtitles": false,
       "size": 1234567890,
       "duration": 2700
     }
@@ -384,7 +383,7 @@ Get cost and time estimates for selected files.
 ```json
 {
   "total_duration": 2700,
-  "estimated_cost": 0.19,
+  "estimated_cost": 0.26,
   "estimated_time": 180,
   "file_count": 1
 }
@@ -442,11 +441,11 @@ Check job status with child task details.
     {
       "path": "/media/tv/Show/episode.mkv",
       "status": "completed",
-      "cost": 0.19,
+      "cost": 0.26,
       "duration": 2700
     }
   ],
-  "estimated_cost": 1.90,
+  "estimated_cost": 2.57,
   "total_duration": 27000
 }
 ```
@@ -678,14 +677,14 @@ DEA
 The Web UI supports AI-powered keyterm generation using Anthropic Claude or OpenAI GPT.
 
 **Supported Models:**
-- **Anthropic:** Claude Sonnet 4.5, Claude Haiku 4
-- **OpenAI:** GPT-4 Turbo, GPT-4 Mini
+- **Anthropic:** Claude Sonnet 4.5, Claude Haiku 4.5
+- **OpenAI:** GPT-5, GPT-5 Mini
 
-**Pricing:**
-- Claude Sonnet 4.5: ~$0.03-0.08 per generation (best quality)
-- Claude Haiku 4: ~$0.002-0.005 per generation (faster, cheaper)
-- GPT-4 Turbo: ~$0.05-0.10 per generation
-- GPT-4 Mini: ~$0.001-0.003 per generation (cheapest)
+**Pricing (per 1M tokens):**
+- Claude Sonnet 4.5: $3.00 input / $15.00 output (best quality)
+- Claude Haiku 4.5: $1.00 input / $5.00 output (faster, cheaper)
+- GPT-5: $10.00 input / $30.00 output
+- GPT-5 Mini: $0.15 input / $0.60 output (cheapest)
 
 **How It Works:**
 1. User selects video in Web UI
@@ -796,7 +795,7 @@ Processing statistics are saved to `deepgram-logs/` in JSON format:
   "skipped": 2,
   "failed": 0,
   "total_minutes": 42.5,
-  "estimated_cost": 0.18,
+  "estimated_cost": 0.24,
   "model": "nova-3",
   "language": "en",
   "start_time": "2024-01-15T10:30:00",
@@ -805,7 +804,7 @@ Processing statistics are saved to `deepgram-logs/` in JSON format:
     {
       "path": "/media/tv/Show/episode.mkv",
       "duration": 2700,
-      "cost": 0.19,
+      "cost": 0.26,
       "status": "completed"
     }
   ]
@@ -823,17 +822,27 @@ opts = PrerecordedOptions(
     utterances=True,
     punctuate=True,
     paragraphs=True,
-    timestamps=True,
     diarize=enable_diarization,
     language=language,
-    profanity_filter=profanity_filter,
-    numerals=numerals,
-    measurements=measurements,
-    detect_language=detect_language
+    profanity_filter=use_profanity_filter  # Boolean: True or False
 )
 
+# Add keyterms if provided (Nova-3 feature - monolingual only)
 if keyterms and model == "nova-3":
     opts.keyterm = keyterms
+
+# Add Nova-3 quality enhancement parameters
+if numerals:
+    opts.numerals = True
+
+if filler_words:
+    opts.filler_words = True
+
+if detect_language:
+    opts.detect_language = True
+
+if measurements:
+    opts.measurements = True
 ```
 
 ---
@@ -892,5 +901,3 @@ docker compose run --rm -e BATCH_SIZE=10 deepgram-cli
 For additional information, see:
 - [README.md](../README.md) - Main documentation
 - [roadmap.md](roadmap.md) - Project roadmap and future features
-- [keyterm-info.md](keyterm-info.md) - Detailed keyterm prompting guide
-- [deepgram-ui-update.md](deepgram-ui-update.md) - Web UI implementation notes

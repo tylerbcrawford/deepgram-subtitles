@@ -586,6 +586,58 @@ def api_keyterms_upload():
         return jsonify({"error": str(e)}), 500
 
 
+@app.post("/api/keyterms/save")
+def api_keyterms_save():
+    """
+    Save keyterms to CSV file for a show/movie.
+
+    JSON Body:
+        video_path: Path to any video file in the show/movie directory
+        keyterms: List of keyterm strings or comma-separated string
+
+    Returns:
+        JSON with success status and keyterms count
+    """
+    # _require_auth()
+
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "No JSON data provided"}), 400
+
+    video_path = data.get('video_path')
+    keyterms = data.get('keyterms')
+
+    if not video_path:
+        return jsonify({"error": "No video_path provided"}), 400
+
+    if not keyterms:
+        return jsonify({"error": "No keyterms provided"}), 400
+
+    vp = Path(video_path)
+
+    # Security: Ensure path is under MEDIA_ROOT
+    if not str(vp).startswith(str(MEDIA_ROOT)):
+        return jsonify({"error": "Invalid path"}), 400
+
+    try:
+        # Convert keyterms to list if it's a string
+        if isinstance(keyterms, str):
+            keyterms = [k.strip() for k in keyterms.split(',') if k.strip()]
+
+        # Save keyterms using the core function
+        if save_keyterms_to_csv(vp, keyterms):
+            return jsonify({
+                "success": True,
+                "keyterms_count": len(keyterms),
+                "message": f"Saved {len(keyterms)} keyterms"
+            })
+        else:
+            return jsonify({"error": "Failed to save keyterms"}), 500
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @app.get("/api/keyterms/load")
 def api_keyterms_load():
     """
