@@ -103,7 +103,29 @@ document.addEventListener('DOMContentLoaded', function() {
     if (generateBtn) {
         generateBtn.addEventListener('click', handleGenerateKeyterms);
     }
-    
+
+    // Setup keyterm checkbox handlers (mutual exclusivity)
+    const preserveCheckbox = document.getElementById('preserveExisting');
+    const overwriteCheckbox = document.getElementById('overwriteExisting');
+
+    if (preserveCheckbox) {
+        preserveCheckbox.addEventListener('change', function() {
+            if (this.checked && overwriteCheckbox) {
+                overwriteCheckbox.checked = false;
+            }
+            updateGenerateKeytermButtonState();
+        });
+    }
+
+    if (overwriteCheckbox) {
+        overwriteCheckbox.addEventListener('change', function() {
+            if (this.checked && preserveCheckbox) {
+                preserveCheckbox.checked = false;
+            }
+            updateGenerateKeytermButtonState();
+        });
+    }
+
     // Check API key status on page load
     checkApiKeyStatus();
 
@@ -138,12 +160,14 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Update cost estimate when keyterms change
-    const keytermsField = document.getElementById('keyterms');
+    const keytermsField = document.getElementById('keyTerms');
     if (keytermsField) {
         keytermsField.addEventListener('input', function() {
             if (selectedFiles.length > 0) {
                 calculateEstimatesAuto();
             }
+            // Update button state when user manually edits keyterms
+            updateGenerateKeytermButtonState();
         });
     }
 });
@@ -555,40 +579,41 @@ async function loadKeytermsForSelection() {
     if (selectedFiles.length === 0) {
         return;
     }
-    
+
     // Clear existing keyterms first
     clearKeytermField();
-    
+
     // Use the first selected file to determine which keyterms to load
     const firstFile = selectedFiles[0];
-    
+
     try {
         const response = await fetch(`/api/keyterms/load?video_path=${encodeURIComponent(firstFile)}`);
-        
+
         if (!response.ok) {
             console.log('No keyterms found for this video');
+            updateGenerateKeytermButtonState();
             return;
         }
-        
+
         const data = await response.json();
-        
+
         if (data.keyterms && data.keyterms.length > 0) {
             // Populate the keyterms text box
             const keyTermsInput = document.getElementById('keyTerms');
             if (keyTermsInput) {
                 // Join keyterms with commas
                 keyTermsInput.value = data.keyterms.join(', ');
-                
+
                 // Show a subtle notification
                 console.log(`Auto-loaded ${data.count} keyterms from CSV`);
-                
+
                 // Optional: Show a small toast or indicator
                 const keyTermsLabel = document.querySelector('label[for="keyTerms"]');
                 if (keyTermsLabel) {
                     const originalText = keyTermsLabel.textContent;
                     keyTermsLabel.textContent = `Key Terms (${data.count} auto-loaded)`;
                     keyTermsLabel.style.color = 'var(--color-green)';
-                    
+
                     setTimeout(() => {
                         keyTermsLabel.textContent = originalText;
                         keyTermsLabel.style.color = '';
@@ -596,9 +621,13 @@ async function loadKeytermsForSelection() {
                 }
             }
         }
+
+        // Update button state after loading keyterms
+        updateGenerateKeytermButtonState();
     } catch (error) {
         console.error('Failed to load keyterms:', error);
         // Silently fail - not critical
+        updateGenerateKeytermButtonState();
     }
 }
 
@@ -1289,6 +1318,8 @@ function showSpinner(message) {
     const generateBtn = document.getElementById('generateKeytermsBtn');
     if (generateBtn) {
         generateBtn.disabled = true;
+        generateBtn.classList.add('processing');
+        generateBtn.classList.remove('completed');
         generateBtn.textContent = message;
     }
     showMessage(message, 'info');
@@ -1302,7 +1333,8 @@ function hideSpinner() {
     const generateBtn = document.getElementById('generateKeytermsBtn');
     if (generateBtn) {
         generateBtn.disabled = false;
-        generateBtn.innerHTML = '<span class="icon">🤖</span> Generate Keyterms with AI';
+        generateBtn.classList.remove('processing');
+        generateBtn.textContent = 'Generate Keyterms';
     }
 }
 
@@ -1375,24 +1407,40 @@ async function pollGenerationStatus(taskId) {
             
             if (data.state === 'SUCCESS') {
                 clearInterval(interval);
-                hideSpinner();
-                
+
+                // Show completed state
+                const generateBtn = document.getElementById('generateKeytermsBtn');
+                if (generateBtn) {
+                    generateBtn.classList.remove('processing');
+                    generateBtn.classList.add('completed');
+                    generateBtn.textContent = 'Done!';
+                }
+
                 // Remove the generating toast
                 if (generatingToast) {
                     generatingToast.classList.remove('show');
                     setTimeout(() => generatingToast.remove(), 300);
                     generatingToast = null;
                 }
-                
+
                 // Populate keyterms field
                 const keytermsInput = document.getElementById('keyTerms');
                 keytermsInput.value = data.keyterms.join(', ');
-                
+
                 // Show success message with cost
                 showMessage(
                     `✅ Generated ${data.keyterm_count} keyterms • Cost: $${data.actual_cost.toFixed(3)} • Tokens: ${data.token_count}`,
                     'success'
                 );
+
+                // Reset button after 10 seconds
+                setTimeout(() => {
+                    if (generateBtn) {
+                        generateBtn.classList.remove('completed');
+                        generateBtn.disabled = false;
+                        updateGenerateKeytermButtonState();
+                    }
+                }, 10000);
             } else if (data.state === 'FAILURE') {
                 clearInterval(interval);
                 hideSpinner();
@@ -1485,6 +1533,47 @@ async function checkApiKeyStatus() {
 }
 
 /**
+ * Update the Generate Keyterms button state based on whether keyterms exist
+ */
+function updateGenerateKeytermButtonState() {
+    const generateBtn = document.getElementById('generateKeytermsBtn');
+    const keytermsInput = document.getElementById('keyTerms');
+    const preserveCheckbox = document.getElementById('preserveExisting');
+    const overwriteCheckbox = document.getElementById('overwriteExisting');
+
+    if (!generateBtn || !keytermsInput) return;
+
+    const hasKeyterms = keytermsInput.value.trim().length > 0;
+    const preserveChecked = preserveCheckbox?.checked || false;
+    const overwriteChecked = overwriteCheckbox?.checked || false;
+
+    // Remove all state classes
+    generateBtn.classList.remove('btn-green', 'btn-blue', 'btn-orange');
+
+    if (!hasKeyterms) {
+        // No keyterms exist - Green and enabled
+        generateBtn.disabled = false;
+        generateBtn.classList.add('btn-green');
+        generateBtn.textContent = 'Generate Keyterms';
+    } else if (overwriteChecked) {
+        // Has keyterms + overwrite selected - Orange/Yellow and enabled
+        generateBtn.disabled = false;
+        generateBtn.classList.add('btn-orange');
+        generateBtn.textContent = 'Overwrite Keyterms';
+    } else if (preserveChecked) {
+        // Has keyterms + merge selected - Blue and enabled
+        generateBtn.disabled = false;
+        generateBtn.classList.add('btn-blue');
+        generateBtn.textContent = 'Merge with Existing';
+    } else {
+        // Has keyterms but no option selected - Disabled
+        generateBtn.disabled = true;
+        generateBtn.classList.remove('btn-green', 'btn-blue', 'btn-orange');
+        generateBtn.textContent = 'Generate Keyterms';
+    }
+}
+
+/**
  * Handle Generate Keyterms button click
  */
 async function handleGenerateKeyterms() {
@@ -1493,16 +1582,30 @@ async function handleGenerateKeyterms() {
         showMessage('❌ Please select a video first', 'error');
         return;
     }
-    
+
     const provider = document.getElementById('llmProvider').value;
     const model = document.getElementById('llmModel').value;
     const preserveExisting = document.getElementById('preserveExisting').checked;
-    
+    const overwriteExisting = document.getElementById('overwriteExisting').checked;
+    const keytermsInput = document.getElementById('keyTerms');
+    const hasKeyterms = keytermsInput?.value.trim().length > 0;
+
+    // Confirm overwrite if keyterms exist and overwrite is selected
+    if (hasKeyterms && overwriteExisting) {
+        const keytermCount = keytermsInput.value.split(',').filter(k => k.trim().length > 0).length;
+        const confirmed = confirm(
+            `This will overwrite ${keytermCount} existing keyterm${keytermCount === 1 ? '' : 's'}. Continue?`
+        );
+        if (!confirmed) {
+            return;
+        }
+    }
+
     try {
         // Start generation immediately - show persistent toast
-        showSpinner('🤖 Generating keyterms with AI...');
-        generatingToast = showMessage('🤖 Generating keyterms with AI...', 'info', { persist: true });
-        
+        showSpinner('Processing');
+        generatingToast = showMessage('Processing', 'info', { persist: true });
+
         const response = await fetch('/api/keyterms/generate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -1513,26 +1616,26 @@ async function handleGenerateKeyterms() {
                 preserve_existing: preserveExisting
             })
         });
-        
+
         const data = await response.json();
-        
+
         if (!response.ok) {
             throw new Error(data.error || 'Generation failed');
         }
-        
+
         // Poll for completion
         pollGenerationStatus(data.task_id);
-        
+
     } catch (error) {
         hideSpinner();
-        
+
         // Remove the generating toast
         if (generatingToast) {
             generatingToast.classList.remove('show');
             setTimeout(() => generatingToast.remove(), 300);
             generatingToast = null;
         }
-        
+
         showMessage(`❌ Error: ${error.message}`, 'error');
     }
 }

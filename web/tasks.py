@@ -315,48 +315,38 @@ def generate_keyterms_task(
         if not api_key:
             raise ValueError(f"API key not configured for {provider}")
         
-        # Extract show name
-        path_parts = vp.parts
-        show_name = None
-        
-        for i, part in enumerate(path_parts):
-            part_lower = part.lower()
-            if 'season' in part_lower or part_lower == 'specials':
-                if i > 0:
-                    show_name = path_parts[i - 1]
-                break
-        
-        if not show_name:
-            show_name = vp.parent.name
-        
+        # Extract metadata from video path
+        from core.media_metadata import extract_media_metadata
+        metadata = extract_media_metadata(vp)
+
         # Load existing keyterms if any
         existing = load_keyterms_from_csv(vp)
-        
+
         # Update: Generating
         self.update_state(
             state='PROGRESS',
             meta={'stage': 'generating', 'progress': 30}
         )
-        
+
         # Import here to avoid import errors if dependencies not installed
         from core.keyterm_search import KeytermSearcher, LLMProvider, LLMModel
-        
+
         # Convert string provider/model to enums using bracket notation (access by NAME)
         try:
             provider_enum = LLMProvider[provider.upper()]
             model_enum = LLMModel[model.upper().replace('-', '_')]
         except KeyError:
             raise ValueError(f"Invalid provider or model: {provider}, {model}")
-        
+
         # Generate keyterms
         searcher = KeytermSearcher(
             provider=provider_enum,
             model=model_enum,
             api_key=api_key
         )
-        
+
         result = searcher.generate_from_metadata(
-            show_name=show_name,
+            metadata=metadata,
             existing_keyterms=existing,
             preserve_existing=preserve_existing
         )

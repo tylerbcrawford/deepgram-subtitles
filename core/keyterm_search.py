@@ -12,6 +12,8 @@ from pathlib import Path
 from enum import Enum
 import os
 
+from core.media_metadata import MediaMetadata, format_metadata_for_prompt
+
 
 class LLMProvider(Enum):
     """Supported LLM providers."""
@@ -39,11 +41,80 @@ MODEL_PRICING = {
 }
 
 
-# Keyterm generation prompt template
-KEYTERM_PROMPT_TEMPLATE = """You are assisting with audio transcription accuracy by generating a keyterm list for Deepgram Nova-3 API's keyterm prompting feature.
+# Keyterm generation prompt template for TV shows
+KEYTERM_PROMPT_TV_TEMPLATE = """You are assisting with audio transcription accuracy by generating a keyterm list for Deepgram Nova-3 API's keyterm prompting feature.
 
 TASK:
-Research the following show/movie and create a focused list of keyterms that will improve transcription accuracy: "{show_name}"
+Research the following TV show and create a focused list of keyterms that will improve transcription accuracy across THE ENTIRE SERIES:
+
+{media_info}
+
+{existing_keyterms_section}
+
+IMPORTANT: Generate keyterms for the ENTIRE SHOW (all seasons/episodes), not just a single episode. The context above helps you identify the correct show and verify your research, but the keyterms should cover the whole series.
+
+SEARCH REQUIREMENTS:
+Search for information using reliable, authoritative sources such as:
+- IMDb (Internet Movie Database)
+- Wikipedia and Fandom wikis
+- TV databases (TMDB, TheTVDB)
+- Fan wikis for character and terminology lists
+- Show summaries and cast information
+
+KEYTERMS TO IDENTIFY (Priority Order):
+1. Main cast character names (across all seasons)
+   - Prioritize names that sound like common words or might be misheard
+   - Example: "Gus Fring" (might be heard as "Gus frying")
+2. Major recurring character names
+3. Key locations used throughout the series
+   - Example: "Los Pollos Hermanos", "Albuquerque"
+4. Show-specific terminology, jargon, or invented words
+   - Example: "methylamine", "ricin", "cartel"
+5. Important organization or group names
+6. Multi-word phrases commonly used in the show
+   - Example: "Better call Saul"
+7. Notable recurring objects or concepts
+
+Focus on terms used THROUGHOUT THE SERIES - main characters, key locations, and show-specific terminology that appear across multiple episodes.
+
+CRITICAL FORMATTING RULES:
+- Proper nouns (names, places, titles): Use appropriate capitalization
+  Examples: "Walter White", "Dr. Smith", "Los Pollos Hermanos"
+- Common nouns and technical terms: Use lowercase
+  Examples: "methylamine", "ricin", "cartel"
+- Multi-word phrases: Maintain natural capitalization
+  Examples: "New Mexico", "drug enforcement"
+
+WHAT TO AVOID:
+- Generic common words (the, and, is, said, etc.)
+- Words that are rarely misrecognized
+- Overly broad terms without specific meaning in context
+- Excessive keyterms (stay focused on most important)
+
+QUANTITY LIMIT:
+Generate ONLY the 20-50 most critical terms that are:
+- Most likely to be misheard or confused with other words
+- Essential character/location names used in this episode
+- Unique terminology specific to this episode's plot
+
+The 500 token limit means quality over quantity - prioritize terms with highest potential for transcription errors.
+
+OUTPUT FORMAT:
+Provide ONLY a simple comma-separated list of keyterms with proper capitalization. Do not include headers, context notes, or explanations.
+
+Example format:
+Walter White,Jesse Pinkman,Gus Fring,Skyler White,Hank Schrader,Los Pollos Hermanos,Albuquerque,methylamine,ricin,DEA
+
+Begin your research and generate the keyterm list now."""
+
+
+# Keyterm generation prompt template for movies
+KEYTERM_PROMPT_MOVIE_TEMPLATE = """You are assisting with audio transcription accuracy by generating a keyterm list for Deepgram Nova-3 API's keyterm prompting feature.
+
+TASK:
+Research the following movie and create a focused list of keyterms that will improve transcription accuracy:
+
+{media_info}
 
 {existing_keyterms_section}
 
@@ -52,29 +123,29 @@ Search for information using reliable, authoritative sources such as:
 - IMDb (Internet Movie Database)
 - Wikipedia and Fandom wikis
 - Official production websites and press materials
-- Entertainment databases (TMDB, TV databases)
+- Entertainment databases (TMDB)
 - Reviews from major publications (if they contain character/term lists)
 
 KEYTERMS TO IDENTIFY (Priority Order):
 1. Character names that sound like common words or might be misheard
-   - Example: "Khaleesi" (might be heard as "Kelly see")
+   - Example: "Cobb" (might be heard as "cop"), "Ariadne"
 2. Fictional location names and place names
-   - Example: "Westeros", "Tatooine"
-3. Unique terminology, jargon, or invented words specific to the show
-   - Example: "Valyrian", "lightsaber"
+   - Example: "Westeros", "Tatooine", "Limbo"
+3. Unique terminology, jargon, or invented words specific to the movie
+   - Example: "totem", "kick", "extraction"
 4. Multi-word phrases that are commonly used together
-   - Example: "May the Force", "Winter is coming"
+   - Example: "dream within a dream", "inception"
 5. Organization, company, or group names
 6. Important object or artifact names
-7. Uncommon character names (especially alien, fantasy, or sci-fi names)
+7. Uncommon character names (especially sci-fi or fantasy names)
 
 CRITICAL FORMATTING RULES:
 - Proper nouns (names, places, titles): Use appropriate capitalization
-  Examples: "Deepgram", "Dr. Smith", "iPhone", "Westeros"
+  Examples: "Deepgram", "Dr. Smith", "iPhone", "Dom Cobb"
 - Common nouns and technical terms: Use lowercase
-  Examples: "lightsaber", "algorithm", "protocol"
+  Examples: "totem", "algorithm", "extraction"
 - Multi-word phrases: Maintain natural capitalization
-  Examples: "account number", "customer service"
+  Examples: "shared dreaming", "dream level"
 
 WHAT TO AVOID:
 - Generic common words (the, and, is, said, etc.)
@@ -86,7 +157,7 @@ QUANTITY LIMIT:
 Generate ONLY the 20-50 most critical terms that are:
 - Most likely to be misheard or confused with other words
 - Essential character/location names used frequently
-- Unique to this show's universe
+- Unique to this movie's universe
 
 The 500 token limit means quality over quantity - prioritize terms with highest potential for transcription errors.
 
@@ -94,7 +165,7 @@ OUTPUT FORMAT:
 Provide ONLY a simple comma-separated list of keyterms with proper capitalization. Do not include headers, context notes, or explanations.
 
 Example format:
-Khaleesi,Westeros,Valyrian,Dothraki,Jon Snow,Daenerys Targaryen,White Walkers,Kings Landing,Iron Throne,dragonglass
+Dom Cobb,Ariadne,Eames,Arthur,Mal Cobb,Saito,totem,extraction,inception,limbo,shared dreaming,dream level,kick
 
 Begin your research and generate the keyterm list now."""
 
@@ -128,19 +199,19 @@ class KeytermSearcher:
                 raise ValueError(f"Model {model} not valid for provider {provider}")
     
     def generate_from_metadata(
-        self, 
-        show_name: str, 
+        self,
+        metadata: MediaMetadata,
         existing_keyterms: Optional[List[str]] = None,
         preserve_existing: bool = False
     ) -> Dict[str, Any]:
         """
         Generate keyterms from show/movie metadata using LLM.
-        
+
         Args:
-            show_name: Name of show/movie (e.g., "Breaking Bad")
+            metadata: MediaMetadata object with show/movie information
             existing_keyterms: Optional list of existing keyterms
             preserve_existing: If True, merge with existing; if False, overwrite
-        
+
         Returns:
             Dict containing:
                 - keyterms: List[str] - Generated keyterms
@@ -148,12 +219,12 @@ class KeytermSearcher:
                 - estimated_cost: float - Cost in USD
                 - provider: str - LLM provider used
                 - model: str - Model used
-        
+
         Raises:
             Exception: If LLM API call fails
         """
         # Build prompt
-        prompt = self._build_prompt(show_name, existing_keyterms, preserve_existing)
+        prompt = self._build_prompt(metadata, existing_keyterms, preserve_existing)
         
         # Call appropriate LLM provider
         if self.provider == LLMProvider.ANTHROPIC:
@@ -187,13 +258,13 @@ class KeytermSearcher:
             'model': self.model.value
         }
     
-    def estimate_cost(self, show_name: str) -> Dict[str, Any]:
+    def estimate_cost(self, metadata: MediaMetadata) -> Dict[str, Any]:
         """
         Estimate cost before making LLM request.
-        
+
         Args:
-            show_name: Name of show/movie
-        
+            metadata: MediaMetadata object with show/movie information
+
         Returns:
             Dict containing:
                 - estimated_tokens: int - Estimated tokens
@@ -201,17 +272,17 @@ class KeytermSearcher:
                 - model: str - Model that will be used
         """
         # Build prompt to estimate token count
-        prompt = self._build_prompt(show_name)
-        
+        prompt = self._build_prompt(metadata)
+
         # Rough token estimation: ~1 token per 4 characters
         prompt_tokens = len(prompt) // 4
-        
+
         # Estimated response tokens (20-50 keyterms, ~200 tokens)
         response_tokens = 200
-        
+
         total_tokens = prompt_tokens + response_tokens
         cost = self._calculate_cost(total_tokens)
-        
+
         return {
             'estimated_tokens': total_tokens,
             'estimated_cost': cost,
@@ -219,34 +290,43 @@ class KeytermSearcher:
         }
     
     def _build_prompt(
-        self, 
-        show_name: str, 
+        self,
+        metadata: MediaMetadata,
         existing_keyterms: Optional[List[str]] = None,
         preserve_existing: bool = False
     ) -> str:
         """
         Build the LLM prompt from template and context.
-        
+
         Args:
-            show_name: Name of show/movie
+            metadata: MediaMetadata object with show/movie information
             existing_keyterms: Optional list of existing keyterms
             preserve_existing: If True, instruct to preserve; if False, use as reference
-        
+
         Returns:
             Complete prompt string
         """
         # Build existing keyterms section
         existing_section = self._build_existing_keyterms_section(
-            existing_keyterms, 
+            existing_keyterms,
             preserve_existing
         )
-        
+
+        # Format media info for prompt
+        media_info = format_metadata_for_prompt(metadata)
+
+        # Choose appropriate template based on media type
+        if metadata.media_type == 'tv':
+            template = KEYTERM_PROMPT_TV_TEMPLATE
+        else:
+            template = KEYTERM_PROMPT_MOVIE_TEMPLATE
+
         # Format the template
-        prompt = KEYTERM_PROMPT_TEMPLATE.format(
-            show_name=show_name,
+        prompt = template.format(
+            media_info=media_info,
             existing_keyterms_section=existing_section
         )
-        
+
         return prompt
     
     def _build_existing_keyterms_section(

@@ -248,12 +248,14 @@ h2, h3 {
   border-color: transparent;
 }
 
-.btn-primary.processing {
+.btn-primary.processing,
+.btn-secondary.processing {
   animation: pulse-blue 2s ease-in-out infinite;
   background: var(--color-blue) !important;
 }
 
-.btn-primary.completed {
+.btn-primary.completed,
+.btn-secondary.completed {
   background: var(--color-green) !important;
   border-color: rgba(0, 179, 152, 0.5);
 }
@@ -1869,6 +1871,34 @@ button:active,
 .llm-settings select:focus {
   outline: none;
   border-color: var(--color-blue);
+}
+
+/* Button Color Variants for Generate Keyterms */
+.btn-green {
+  background: var(--color-green) !important;
+  border-color: rgba(0, 179, 152, 0.5);
+}
+
+.btn-green:hover:not(:disabled) {
+  border-color: rgba(0, 179, 152, 0.7);
+}
+
+.btn-blue {
+  background: var(--color-blue) !important;
+  border-color: rgba(0, 174, 239, 0.5);
+}
+
+.btn-blue:hover:not(:disabled) {
+  border-color: rgba(0, 174, 239, 0.7);
+}
+
+.btn-orange {
+  background: var(--color-red) !important;
+  border-color: rgba(249, 56, 34, 0.5);
+}
+
+.btn-orange:hover:not(:disabled) {
+  border-color: rgba(249, 56, 34, 0.7);
 }
 
 /* Secondary button - shares styles with primary */

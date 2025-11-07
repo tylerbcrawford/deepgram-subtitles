@@ -720,34 +720,26 @@ def api_keyterms_generate():
     if not str(vp).startswith(str(MEDIA_ROOT)):
         return jsonify({'error': 'Invalid path'}), 400
     
-    # Extract show name from path
+    # Extract metadata from path
     try:
-        path_parts = vp.parts
-        show_name = None
-        
-        print(f"[DEBUG] Extracting show name from path: {vp}")
-        print(f"[DEBUG] Path parts: {path_parts}")
-        
-        for i, part in enumerate(path_parts):
-            part_lower = part.lower()
-            if 'season' in part_lower or part_lower == 'specials':
-                if i > 0:
-                    show_name = path_parts[i - 1]
-                break
-        
-        if not show_name:
-            show_name = vp.parent.name
-            print(f"[DEBUG] No season folder found, using parent name: {show_name}")
-        else:
-            print(f"[DEBUG] Found show name from season folder: {show_name}")
-            
-        if not show_name or show_name.strip() == '':
-            print(f"[ERROR] Empty show name extracted from path: {vp}")
-            return jsonify({'error': 'Could not extract show name from video path. Please ensure video is in a properly named directory.'}), 400
-            
+        from core.media_metadata import extract_media_metadata
+        metadata = extract_media_metadata(vp)
+
+        print(f"[DEBUG] Extracted metadata from path: {vp}")
+        print(f"[DEBUG] Media type: {metadata.media_type}")
+        print(f"[DEBUG] Name: {metadata.name}")
+        if metadata.media_type == 'tv':
+            print(f"[DEBUG] Season: {metadata.season}, Episode: {metadata.episode}")
+            if metadata.episode_title:
+                print(f"[DEBUG] Episode title: {metadata.episode_title}")
+
+        if not metadata.name or metadata.name.strip() == '':
+            print(f"[ERROR] Empty name extracted from path: {vp}")
+            return jsonify({'error': 'Could not extract show/movie name from video path. Please ensure video is in a properly named directory.'}), 400
+
     except Exception as e:
-        print(f"[ERROR] Exception extracting show name: {str(e)}")
-        return jsonify({'error': f'Failed to extract show name: {str(e)}'}), 400
+        print(f"[ERROR] Exception extracting metadata: {str(e)}")
+        return jsonify({'error': f'Failed to extract metadata: {str(e)}'}), 400
     
     # Get API key from environment
     if provider == 'anthropic':
@@ -765,22 +757,22 @@ def api_keyterms_generate():
     if estimate_only:
         try:
             from core.keyterm_search import KeytermSearcher, LLMProvider, LLMModel
-            
-            print(f"[DEBUG] Estimating cost for show: '{show_name}'")
+
+            print(f"[DEBUG] Estimating cost for: '{metadata.name}'")
             print(f"[DEBUG] Provider: {provider}, Model: {model}")
-            
+
             # Use bracket notation to access enum by NAME, not by VALUE
             provider_enum = LLMProvider[provider.upper()]
             model_enum_name = model.upper().replace('-', '_')
             print(f"[DEBUG] Looking up enum: LLMModel.{model_enum_name}")
             model_enum = LLMModel[model_enum_name]
-            
+
             print(f"[DEBUG] Initializing KeytermSearcher...")
             searcher = KeytermSearcher(provider_enum, model_enum, api_key)
-            
+
             print(f"[DEBUG] Calling estimate_cost...")
-            estimate = searcher.estimate_cost(show_name)
-            
+            estimate = searcher.estimate_cost(metadata)
+
             print(f"[DEBUG] Cost estimation successful: {estimate}")
             return jsonify(estimate)
         except KeyError as e:

@@ -112,7 +112,7 @@
                     <div class="config-section" style="text-align: center;">
                         <div class="form-group">
                             <label for="keyTerms" class="section-label" style="text-align: center;">Keyterms</label>
-                            <textarea id="keyTerms" rows="7" placeholder="e.g., Deepgram, iPhone, customer service" aria-label="Keyterms prompting" style="text-align: center;"></textarea>
+                            <textarea id="keyTerms" rows="7" placeholder="Character names, places, show-specific terms (comma-separated)" aria-label="Keyterms prompting" style="text-align: center;"></textarea>
                             <small style="color: var(--text-tertiary); display: block; margin-top: var(--space-xs); text-align: center; font-size: var(--font-caption);">
                                 Keyterms are auto-loaded and auto-saved from CSV if available.
                             </small>
@@ -120,6 +120,16 @@
                                 <button id="generateKeytermsBtn" class="btn-secondary" title="Generate keyterms using AI">
                                     Generate Keyterms
                                 </button>
+                            </div>
+                            <div style="margin-top: var(--space-m); display: flex; flex-direction: column; align-items: center;">
+                                <label class="checkbox-label" style="justify-content: center; color: var(--text-tertiary);">
+                                    <input type="checkbox" id="preserveExisting" style="opacity: 0.6;">
+                                    <span>Merge with existing keyterms</span>
+                                </label>
+                                <label class="checkbox-label" style="justify-content: center; color: var(--text-tertiary); margin-top: var(--space-xs);">
+                                    <input type="checkbox" id="overwriteExisting" style="opacity: 0.6;">
+                                    <span>Overwrite existing keyterms</span>
+                                </label>
                             </div>
                         </div>
 
@@ -229,11 +239,6 @@
                                     <option value="claude-haiku-4-5">Claude Haiku 4.5 (Faster, Cheaper)</option>
                                 </select>
                             </div>
-
-                            <label class="checkbox-label" style="justify-content: center; color: var(--text-tertiary); margin-top: var(--space-m);">
-                                <input type="checkbox" id="preserveExisting" style="opacity: 0.6;">
-                                <span>Merge with existing keyterms (instead of replacing)</span>
-                            </label>
                         </div>
 
                         <!-- Language Options -->
