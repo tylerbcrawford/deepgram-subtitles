@@ -1,10 +1,10 @@
 # Project Roadmap
 
-**Last Updated:** 2025-11-01
+**Last Updated:** 2025-11-07
 
 ## 🎯 Current Status
 **V1:** ✅ Released and in production
-**V2:** 🚧 In progress - GUI refresh and documentation complete
+**V2:** 🚧 In progress - GUI refresh, documentation, and Nova-3 expansion complete
 **Next Step:** Priority 7 - UI/UX Polish Pass
 
 ---
@@ -22,6 +22,7 @@
 **Completed for V2:**
 - ✅ Priority 5: GUI Refresh (2025-10-30)
 - ✅ Priority 6: Documentation & Branding (2025-11-01)
+- ✅ Priority 6.5: Nova-3 Language Expansion Documentation (2025-11-07)
 
 **V2 Remaining Tasks:**
 - 🔜 Priority 7: UI/UX Polish Pass - Ready to start
@@ -203,6 +204,7 @@ Final steps for V2 release.
 - Comprehensive GUI refresh based on Dieter Rams principles
 - LLM-powered keyterm generation (optional)
 - Enhanced Nova-3 quality options
+- Nova-3 language expansion to 26 languages (from 15)
 - Improved file selector UX
 - Mobile-responsive design
 - Complete technical documentation
@@ -246,10 +248,12 @@ Expand language support by implementing intelligent model routing and multi-lang
   - [ ] Ensure radio button interface works with both Nova-2 and Nova-3
   - [ ] Options: Off, Tag, Remove
 
-**Language Coverage:**
-- **Nova-3 Exclusive:** 15 languages (English, Spanish, French, German, Dutch, Swedish, Danish, Italian, Portuguese, Japanese, Russian, Hindi, Indonesian, Norwegian, Turkish)
-- **Nova-2 Fallback:** 22 additional languages (Korean, Chinese variants, Catalan, Bulgarian, Estonian, Finnish, and more)
+**Language Coverage (Updated 2025-11-07):**
+- **Nova-3 Now Supports:** 26 languages including English, Spanish, French, German, Dutch, Swedish, Danish, Italian, Portuguese, Norwegian, Turkish, Indonesian, Bulgarian, Czech, Finnish, Hindi, Hungarian, Japanese, Korean, Polish, Russian, Ukrainian, Vietnamese
+- **Nova-2 Fallback Still Needed For:** Chinese variants, Catalan, Estonian, and other languages not yet in Nova-3
 - **Multi-Language:** Nova-3 code-switching for mixed-language content
+
+**Note:** With Nova-3's recent expansion, many languages previously requiring Nova-2 (Korean, Japanese, Russian, Hindi, Bulgarian, Czech, Finnish, Hungarian, Polish, Ukrainian, Vietnamese) now have native Nova-3 support with keyterm prompting.
 
 **Benefits:**
 - Comprehensive language support across 37+ languages
@@ -346,6 +350,38 @@ Modern drag-and-drop interface for flexible file selection across multiple folde
 ---
 
 ## ✅ Completed Work
+
+### Priority 6.5: Nova-3 Language Expansion Documentation ✅
+**Completed:** 2025-11-07
+
+Documentation of Nova-3's expanded language support with 11 new languages.
+
+**Key Achievements:**
+- Documented Nova-3 expansion to 26 total languages (from original 15)
+- Added 11 new languages: Bulgarian, Czech, Finnish, Hindi, Hungarian, Japanese, Korean, Polish, Russian, Ukrainian, Vietnamese
+- Covered linguistic improvements across Eastern Europe, South Asia, East Asia, and Southeast Asia
+- Documented keyterm prompting availability for all new languages
+- Recorded WER (Word Error Rate) improvements over Nova-2 for all new languages
+- Added technical details about handling tonal languages, compound words, non-Latin scripts, and code-switching
+- Positioned Nova-3 as ready for global multi-language expansion
+
+**Language Coverage Impact:**
+- **Eastern Europe/Eurasia:** Bulgarian, Czech, Hungarian, Polish, Russian, Ukrainian
+- **Nordics/Baltics:** Finnish
+- **South Asia:** Hindi
+- **East Asia:** Japanese, Korean
+- **Southeast Asia:** Vietnamese
+
+**Technical Highlights:**
+- Streaming mode shows strongest WER reductions (up to 27% improvement for Korean, Czech, Hindi)
+- Native support for agglutinative languages (Hungarian, Finnish)
+- Improved tonal language handling (Vietnamese)
+- Better syllabic rhythm tracking (Japanese)
+- Enhanced code-switching support (Hindi-English)
+
+**Benefits:** Global reach expansion, better accuracy for non-Western languages, native handling of complex linguistic structures, keyterm prompting across all languages
+
+---
 
 ### Priority 6: Documentation & Branding ✅
 **Completed:** 2025-11-01
