@@ -17,7 +17,7 @@
                     <div class="action-bar">
                         <div class="sticky-title">
                             <h1>Subgeneratorr</h1>
-                            <p class="subtitle">Subtitle + Transcript Generation via Deepgram Nova-3</p>
+                            <p class="subtitle">Subtitle Generation via Deepgram Nova-3</p>
                         </div>
 
                         <button onclick="submitBatch()" id="submitBtn" class="btn-primary" disabled>Transcribe</button>
@@ -34,8 +34,6 @@
                         </div>
                     </div>
 
-                    <!-- Section Divider -->
-                    <div class="section-divider"></div>
                     <!-- Language Selection - Top Priority -->
                     <div class="language-section">
                         <div class="form-group">
@@ -80,17 +78,10 @@
                             </select>
                         </div>
                         <label class="checkbox-label" style="margin-top: var(--space-m); justify-content: center; color: var(--text-tertiary);">
-                            <input type="checkbox" id="enableTranscript" onchange="toggleTranscriptOptions()" style="opacity: 0.6;">
-                            <span>Generate Transcript</span>
-                        </label>
-                        <label class="checkbox-label" style="margin-top: var(--space-xs); justify-content: center; color: var(--text-tertiary);">
                             <input type="checkbox" id="forceRegenerate" style="opacity: 0.6;">
                             <span>Overwrite Existing Subtitles</span>
                         </label>
                     </div>
-
-                    <!-- Section Divider -->
-                    <div class="section-divider"></div>
 
                     <!-- Directory Browser -->
                     <div id="directoryBrowser">
@@ -112,9 +103,6 @@
                             <button class="btn-link" onclick="selectNone()">Clear Selection</button>
                         </div>
                     </div>
-
-                    <!-- Section Divider -->
-                    <div class="section-divider"></div>
 
                     <!-- Configuration Options -->
                     <div class="config-section" style="text-align: center;">
@@ -195,6 +183,10 @@
                         <div class="transcript-settings" style="text-align: center;">
                             <h3 class="section-title" style="text-align: center;">Transcript Options</h3>
                             <div class="checkbox-group" style="display: flex; flex-direction: column; align-items: center;">
+                                <label class="checkbox-label" style="justify-content: center; color: var(--text-tertiary);">
+                                    <input type="checkbox" id="enableTranscript" onchange="toggleTranscriptOptions()" style="opacity: 0.6;">
+                                    <span>Generate Transcript</span>
+                                </label>
                                 <label class="checkbox-label" style="justify-content: center; color: var(--text-tertiary);">
                                     <input type="checkbox" id="saveRawJson" style="opacity: 0.6;">
                                     <span>Save Raw JSON</span>

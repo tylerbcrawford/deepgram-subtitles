@@ -181,7 +181,8 @@ h2, h3 {
   border: 1px solid var(--border);
   box-shadow: var(--shadow-1);
   transition: box-shadow 200ms ease;
-  overflow: hidden; /* Ensures child elements respect parent radius */
+  overflow-y: auto; /* Enable vertical scrolling */
+  max-height: calc(100vh - 40px); /* Take up most of viewport height */
 }
 
 .card:hover {
@@ -854,16 +855,19 @@ input[readonly] {
 
 .action-bar {
   position: sticky;
-  top: 0;
+  top: calc(-1 * var(--space-xl));
   z-index: 100;
   background: var(--surface);
-  backdrop-filter: blur(10px);
-  padding: 0 0 var(--spacing-md) 0;
-  border-bottom: none;
-  margin: 0;
+  padding: var(--space-xl) var(--space-xl) var(--space-xl) var(--space-xl);
+  margin: calc(-1 * var(--space-xl)) calc(-1 * var(--space-xl)) var(--spacing-md) calc(-1 * var(--space-xl));
+  margin-top: calc(-1 * var(--space-xl) - 1px);
+  margin-bottom: 0;
+  padding-bottom: var(--space-xl);
   display: flex;
   flex-direction: column;
   gap: var(--space-s);
+  border-top-left-radius: var(--border-radius-standard);
+  border-top-right-radius: var(--border-radius-standard);
 }
 
 /* Unified Status Area - Clean and Simple */
@@ -1554,7 +1558,7 @@ body.overwrite-enabled .browser-file[data-has-subtitles="true"]:has(.item-checkb
 .language-section label[for="language"] {
   display: block;
   margin-bottom: var(--space-m);
-  font-size: var(--font-h3);
+  font-size: var(--font-h2);
   font-weight: 500;
   color: var(--text-primary);
 }
@@ -1564,6 +1568,7 @@ body.overwrite-enabled .browser-file[data-has-subtitles="true"]:has(.item-checkb
   max-width: 300px;
   margin: 0 auto;
   text-align: center;
+  font-size: var(--font-h3);
 }
 
 .language-section .help-text {
