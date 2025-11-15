@@ -105,6 +105,8 @@ body {
   font-size: var(--font-body);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow: hidden; /* Prevent body scrolling */
+  height: 100vh; /* Fixed viewport height */
 }
 
 /* ============================================
@@ -181,8 +183,8 @@ h2, h3 {
   border: 1px solid var(--border);
   box-shadow: var(--shadow-1);
   transition: box-shadow 200ms ease;
-  overflow-y: auto; /* Enable vertical scrolling */
-  max-height: calc(100vh - 40px); /* Take up most of viewport height */
+  overflow-y: auto; /* Card scrolls */
+  max-height: calc(100vh - 40px); /* Constrain card height */
 }
 
 .card:hover {
@@ -568,9 +570,13 @@ input[readonly] {
    FILE & DIRECTORY BROWSER
    ============================================ */
 
+#directoryBrowser {
+  display: block;
+  margin-bottom: var(--space-m);
+}
+
 .files-list {
-  min-height: 200px;
-  max-height: 400px;
+  height: 400px; /* Fixed height - always the same */
   overflow-y: auto;
   background: var(--bg-primary);
   border: 1px solid var(--border);
@@ -1058,7 +1064,7 @@ input[readonly] {
   }
 
   .files-list {
-    max-height: 300px; /* Reduce height on mobile */
+    height: 300px; /* Fixed height on mobile */
   }
 
   .browser-item {
